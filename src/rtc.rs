@@ -82,12 +82,8 @@ impl Rtc {
     pub fn set_datatime(&mut self, t: DateTime) {
         let rtc = unsafe { &*pac::RTC::PTR };
 
-        let mut days: u16 = (YEAR_OFFSET..t.year)
-            .map(|y| if y % 4 == 0 { 366 } else { 365 })
-            .sum();
-        days += (1..=t.month - 1)
-            .map(|m| days_in_month(m, t.year))
-            .sum::<u16>();
+        let mut days: u16 = (YEAR_OFFSET..t.year).map(|y| if y % 4 == 0 { 366 } else { 365 }).sum();
+        days += (1..=t.month - 1).map(|m| days_in_month(m, t.year)).sum::<u16>();
         days += t.day as u16 - 1;
 
         let sec2 = ((t.hour as u16) % 24) * 1800 + (t.minute as u16) * 30 + (t.second as u16) / 2;

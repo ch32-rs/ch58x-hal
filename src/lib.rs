@@ -17,9 +17,9 @@ pub mod systick;
 pub mod timer;
 
 // #[cfg(feature = "isp")]
+pub mod interrupt;
 pub mod isp;
 pub mod rt;
-pub mod interrupt;
 
 pub mod peripherals;
 

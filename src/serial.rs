@@ -67,9 +67,7 @@ impl Uart {
                 .fifo_trig()
                 .bits(2) // 4 bytes
         });
-        uart1
-            .lcr
-            .write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) }); // 8 bits
+        uart1.lcr.write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) }); // 8 bits
         match config.stop_bits {
             StopBits::STOP1 => uart1.lcr.modify(|_, w| w.stop_bit().clear_bit()),
             StopBits::STOP2 => uart1.lcr.modify(|_, w| w.stop_bit().set_bit()),

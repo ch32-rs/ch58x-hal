@@ -1,7 +1,5 @@
-use core::{
-    mem, ptr,
-    sync::atomic::{compiler_fence, Ordering},
-};
+use core::sync::atomic::{compiler_fence, Ordering};
+use core::{mem, ptr};
 
 use crate::pac;
 use crate::rt::Interrupt as InterruptEnum;

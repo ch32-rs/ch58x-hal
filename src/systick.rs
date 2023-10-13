@@ -1,8 +1,6 @@
-use crate::{
-    pac,
-    peripheral::{Peripheral, PeripheralRef},
-    peripherals::SYSTICK,
-};
+use crate::pac;
+use crate::peripheral::{Peripheral, PeripheralRef};
+use crate::peripherals::SYSTICK;
 
 pub struct SysTick<'d> {
     _inner: PeripheralRef<'d, SYSTICK>,

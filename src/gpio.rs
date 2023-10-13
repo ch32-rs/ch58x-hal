@@ -8,7 +8,6 @@
 
 #![macro_use]
 
-
 use crate::{impl_peripheral, into_ref, pac, peripherals, Peripheral, PeripheralRef};
 
 /// GPIO flexible pin.
@@ -301,11 +300,7 @@ pub struct Output<'d, T: Pin> {
 
 impl<'d, T: Pin> Output<'d, T> {
     #[inline]
-    pub fn new(
-        pin: impl Peripheral<P = T> + 'd,
-        initial_output: Level,
-        drive: OutputDrive,
-    ) -> Self {
+    pub fn new(pin: impl Peripheral<P = T> + 'd, initial_output: Level, drive: OutputDrive) -> Self {
         let mut pin = Flex::new(pin);
         match initial_output {
             Level::High => pin.set_high(),
@@ -421,14 +416,12 @@ pub(crate) mod sealed {
             let pin = self._pin() as usize;
             match self._port() {
                 0 => unsafe {
-                    gpio.pa_pd_drv
-                        .modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                    gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                     gpio.pa_pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                     gpio.pa_dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 },
                 1 => unsafe {
-                    gpio.pb_pd_drv
-                        .modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                    gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                     gpio.pb_pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                     gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 },
@@ -443,22 +436,18 @@ pub(crate) mod sealed {
             match self._port() {
                 0 => match drive {
                     OutputDrive::Low => unsafe {
-                        gpio.pa_pd_drv
-                            .modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                        gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                     },
                     OutputDrive::High => unsafe {
-                        gpio.pa_pd_drv
-                            .modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                        gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                     },
                 },
                 1 => match drive {
                     OutputDrive::Low => unsafe {
-                        gpio.pb_pd_drv
-                            .modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                     },
                     OutputDrive::High => unsafe {
-                        gpio.pb_pd_drv
-                            .modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                     },
                 },
                 _ => unreachable!(),
@@ -521,35 +510,34 @@ macro_rules! foreach_pin {
             $(($pat) => $code;)*
             ($_:tt) => {}
         }
-        __foreach_pin_inner!((PA4,GPIOA,0,4,EXTI4));
-        __foreach_pin_inner!((PA5,GPIOA,0,5,EXTI5));
-        __foreach_pin_inner!((PA6,GPIOA,0,6,EXTI6));
-        __foreach_pin_inner!((PA7,GPIOA,0,7,EXTI7));
-        __foreach_pin_inner!((PA8,GPIOA,0,8,EXTI8));
-        __foreach_pin_inner!((PA9,GPIOA,0,9,EXTI9));
-        __foreach_pin_inner!((PA10,GPIOA,0,10,EXTI10));
-        __foreach_pin_inner!((PA11,GPIOA,0,11,EXTI11));
-        __foreach_pin_inner!((PA12,GPIOA,0,12,EXTI12));
-        __foreach_pin_inner!((PA13,GPIOA,0,13,EXTI13));
-        __foreach_pin_inner!((PA14,GPIOA,0,14,EXTI14));
-        __foreach_pin_inner!((PA15,GPIOA,0,15,EXTI15));
-        __foreach_pin_inner!((PB0,GPIOB,1,0,EXTI0));
-        __foreach_pin_inner!((PB4,GPIOB,1,4,EXTI4));
-        __foreach_pin_inner!((PB6,GPIOB,1,6,EXTI6));
-        __foreach_pin_inner!((PB7,GPIOB,1,7,EXTI7));
-        __foreach_pin_inner!((PB10,GPIOB,1,10,EXTI10));
-        __foreach_pin_inner!((PB11,GPIOB,1,11,EXTI11));
-        __foreach_pin_inner!((PB12,GPIOB,1,12,EXTI12));
-        __foreach_pin_inner!((PB13,GPIOB,1,13,EXTI13));
-        __foreach_pin_inner!((PB14,GPIOB,1,14,EXTI14));
-        __foreach_pin_inner!((PB15,GPIOB,1,15,EXTI15));
-        __foreach_pin_inner!((PB22,GPIOB,1,22,EXTI15));
-        __foreach_pin_inner!((PB23,GPIOB,1,23,EXTI15));
+        __foreach_pin_inner!((PA4,GPIOA,0,4));
+        __foreach_pin_inner!((PA5,GPIOA,0,5));
+        __foreach_pin_inner!((PA6,GPIOA,0,6));
+        __foreach_pin_inner!((PA7,GPIOA,0,7));
+        __foreach_pin_inner!((PA8,GPIOA,0,8));
+        __foreach_pin_inner!((PA9,GPIOA,0,9));
+        __foreach_pin_inner!((PA10,GPIOA,0,10));
+        __foreach_pin_inner!((PA11,GPIOA,0,11));
+        __foreach_pin_inner!((PA12,GPIOA,0,12));
+        __foreach_pin_inner!((PA13,GPIOA,0,13));
+        __foreach_pin_inner!((PA14,GPIOA,0,14));
+        __foreach_pin_inner!((PA15,GPIOA,0,15));
+        __foreach_pin_inner!((PB0,GPIOB,1,0));
+        __foreach_pin_inner!((PB4,GPIOB,1,4));
+        __foreach_pin_inner!((PB6,GPIOB,1,6));
+        __foreach_pin_inner!((PB7,GPIOB,1,7));
+        __foreach_pin_inner!((PB10,GPIOB,1,10));
+        __foreach_pin_inner!((PB11,GPIOB,1,11));
+        __foreach_pin_inner!((PB12,GPIOB,1,12));
+        __foreach_pin_inner!((PB13,GPIOB,1,13));
+        __foreach_pin_inner!((PB14,GPIOB,1,14));
+        __foreach_pin_inner!((PB15,GPIOB,1,15));
+        __foreach_pin_inner!((PB22,GPIOB,1,22));
+        __foreach_pin_inner!((PB23,GPIOB,1,23));
     };
 }
-#[allow(unused)]
 foreach_pin!(
-    ($pin_name:ident, $port_name:ident, $port_num:expr, $pin_num:expr, $exti_ch:ident) => {
+    ($pin_name:ident, $port_name:ident, $port_num:expr, $pin_num:expr) => {
         impl Pin for peripherals::$pin_name {}
 
         impl sealed::Pin for peripherals::$pin_name {

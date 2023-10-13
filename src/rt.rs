@@ -132,9 +132,7 @@ pub static __INTERRUPTS: [Vector; 36] = [
     // 8: ECALL-U
     Vector { handler: EcallU },
     // 9: Breakpoint
-    Vector {
-        handler: BreakPoint,
-    },
+    Vector { handler: BreakPoint },
     // 10-11
     Vector { reserved: 0 },
     Vector { reserved: 0 },
@@ -164,9 +162,7 @@ pub static __INTERRUPTS: [Vector; 36] = [
     Vector { handler: TMR3 },
     Vector { handler: UART2 },
     Vector { handler: UART3 },
-    Vector {
-        reserved: 0xaaaaaaaa,
-    },
+    Vector { reserved: 0xaaaaaaaa },
 ];
 
 macro_rules! cfg_global_asm {

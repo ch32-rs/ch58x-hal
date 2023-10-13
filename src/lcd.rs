@@ -1,7 +1,8 @@
 //! Segment LCD controller
 
-use crate::pac;
 use pac::LCD;
+
+use crate::pac;
 
 pub struct Config {
     pub voltage: bool,

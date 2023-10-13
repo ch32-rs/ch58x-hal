@@ -46,12 +46,12 @@ pub enum RomCmd {
     GetUniqueId = 0x07,     // get 64 bit unique ID, parameter @Buffer
     FlashRomPwrDown = 0x0D, // power-down FlashROM, without parameter
     FlashRomPwrUp = 0x0C,   // power-up FlashROM, without parameter
-    FlashRomLock = 0x08, // lock(protect)/unlock FlashROM data block, return 0 if success, parameter @StartAddr
+    FlashRomLock = 0x08,    // lock(protect)/unlock FlashROM data block, return 0 if success, parameter @StartAddr
     // StartAddr: 0=unlock all, 1=lock boot code, 3=lock all code and data
-    EepromErase = 0x09, // erase Data-Flash block, return 0 if success, parameter @StartAddr,Length
-    EepromWrite = 0x0A, // write Data-Flash data block, return 0 if success, parameter @StartAddr,Buffer,Length
-    EepromRead = 0x0B,  // read Data-Flash data block, parameter @StartAddr,Buffer,Length
-    FlashRomErase = 0x01, // erase FlashROM block, return 0 if success, parameter @StartAddr,Length
+    EepromErase = 0x09,    // erase Data-Flash block, return 0 if success, parameter @StartAddr,Length
+    EepromWrite = 0x0A,    // write Data-Flash data block, return 0 if success, parameter @StartAddr,Buffer,Length
+    EepromRead = 0x0B,     // read Data-Flash data block, parameter @StartAddr,Buffer,Length
+    FlashRomErase = 0x01,  // erase FlashROM block, return 0 if success, parameter @StartAddr,Length
     FlashRomWrite = 0x02, // write FlashROM data block, minimal block is dword, return 0 if success, parameter @StartAddr,Buffer,Length
     FlashRomVerify = 0x03, // read FlashROM data block, minimal block is dword, return 0 if success, parameter @StartAddr,Buffer,Length
 }
@@ -88,12 +88,7 @@ pub fn get_unique_id() -> [u8; 8] {
 pub fn get_mac_address() -> [u8; 6] {
     let mut mac = [0u8; 6];
     unsafe {
-        FLASH_EEPROM_CMD(
-            RomCmd::GetRomInfo as u8,
-            ROM_CFG_MAC_ADDR,
-            mac.as_mut_ptr(),
-            0,
-        );
+        FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, ROM_CFG_MAC_ADDR, mac.as_mut_ptr(), 0);
     }
     mac
 }
@@ -103,25 +98,13 @@ pub fn get_boot_info() -> [u8; 12] {
     let mut aligned_boot_info = boot_info.as_ptr() as usize / 4 * 4;
     let new_boot_info = aligned_boot_info as *mut u8;
     unsafe {
-        FLASH_EEPROM_CMD(
-            RomCmd::GetRomInfo as u8,
-            ROM_CFG_BOOT_INFO,
-            new_boot_info,
-            0,
-        );
+        FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, ROM_CFG_BOOT_INFO, new_boot_info, 0);
     }
     boot_info
 }
 
 pub fn eeprom_read(start_addr: u32, buf: &mut [u8]) -> u32 {
-    unsafe {
-        FLASH_EEPROM_CMD(
-            RomCmd::EepromRead as u8,
-            start_addr,
-            buf.as_mut_ptr(),
-            buf.len() as _,
-        )
-    }
+    unsafe { FLASH_EEPROM_CMD(RomCmd::EepromRead as u8, start_addr, buf.as_mut_ptr(), buf.len() as _) }
 }
 
 /// @param   StartAddr   - Address of the data to be erased.
@@ -132,14 +115,7 @@ pub fn eeprom_erase(start_addr: u32, len: u32) -> u32 {
 }
 
 pub fn eeprom_write(start_addr: u32, buf: &[u8]) -> u32 {
-    unsafe {
-        FLASH_EEPROM_CMD(
-            RomCmd::EepromWrite as u8,
-            start_addr,
-            buf.as_ptr(),
-            buf.len() as _,
-        )
-    }
+    unsafe { FLASH_EEPROM_CMD(RomCmd::EepromWrite as u8, start_addr, buf.as_ptr(), buf.len() as _) }
 }
 
 /*

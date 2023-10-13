@@ -1,23 +1,19 @@
 #![no_std]
 #![no_main]
 
-use core::arch::global_asm;
+use core::arch::{asm, global_asm};
+use core::fmt::Write;
 use core::writeln;
-use core::{arch::asm, fmt::Write};
 
-use ch58x_hal as hal;
 use embedded_hal_alpha::delay::DelayUs;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
 use hal::isp::EEPROM_BLOCK_SIZE;
+use hal::rtc::{DateTime, Rtc};
+use hal::serial::Uart;
+use hal::sysctl::Config;
 use hal::systick::SysTick;
-use hal::{
-    pac,
-    rtc::{DateTime, Rtc},
-    serial::Uart,
-    sysctl::Config,
-};
-use hal::{peripherals, Peripherals};
-use panic_halt as _;
+use hal::{pac, peripherals, Peripherals};
+use {ch58x_hal as hal, panic_halt as _};
 
 global_asm!(
     r#"
@@ -154,13 +150,7 @@ extern "C" fn main() -> ! {
             while download_button.is_low() {}
 
             if reset_button.is_low() {
-                writeln!(
-                    uart,
-                    "button: {} {}",
-                    download_button.is_low(),
-                    reset_button.is_low()
-                )
-                .unwrap();
+                writeln!(uart, "button: {} {}", download_button.is_low(), reset_button.is_low()).unwrap();
             }
             unsafe { asm!("j -222224") };
         }

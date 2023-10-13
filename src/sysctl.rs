@@ -1,6 +1,7 @@
 use fugit::HertzU32 as Hertz;
 
-use crate::{pac::SYS, pac::SYSCTL, with_safe_access};
+use crate::pac::{SYS, SYSCTL};
+use crate::with_safe_access;
 
 // No HSI
 const HSE_FREQUENCY: Hertz = Hertz::from_raw(32_000_000);
@@ -43,10 +44,17 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn with_ls() -> Self {
+    pub fn with_lsi_32k() -> Self {
         Self {
             mux: ClockSrc::Clock32K,
             clock32ksrc: Clock32KSrc::LSI,
+        }
+    }
+
+    pub fn with_lse_32k() -> Self {
+        Self {
+            mux: ClockSrc::Clock32K,
+            clock32ksrc: Clock32KSrc::LSE,
         }
     }
 
@@ -116,9 +124,7 @@ impl Config {
         }
 
         with_safe_access(|| unsafe {
-            sysctl
-                .pll_config
-                .modify(|r, w| w.bits(r.bits() & !(1 << 5)));
+            sysctl.pll_config.modify(|r, w| w.bits(r.bits() & !(1 << 5)));
         });
         let hclk = match self.mux {
             ClockSrc::HSE(div) => {
@@ -168,8 +174,7 @@ impl Config {
                 Hertz::from_raw(PLL_FREQUENCY.to_Hz() / (div as u32))
             }
             _ => {
-                sys.clk_sys_cfg
-                    .modify(|r, w| unsafe { w.bits(r.bits() | 0xC0) });
+                sys.clk_sys_cfg.modify(|r, w| unsafe { w.bits(r.bits() | 0xC0) });
                 Hertz::from_raw(32_768)
             }
         };

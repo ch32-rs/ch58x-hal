@@ -32,10 +32,8 @@
 //! let mut rtc = Rtc::new(peripherals.RTC);
 //! ```
 
-use core::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use core::marker::PhantomData;
+use core::ops::{Deref, DerefMut};
 
 /// An exclusive reference to a peripheral.
 ///
