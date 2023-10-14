@@ -1,1 +1,3 @@
-ch58x-hal
+# ch58x-hal
+
+Under random and active development. DO NOT USE.
