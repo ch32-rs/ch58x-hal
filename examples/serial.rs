@@ -13,7 +13,7 @@ use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
 use hal::sysctl::Config;
 use hal::systick::SysTick;
-use hal::uart::{Uart, UartTx};
+use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
@@ -21,6 +21,7 @@ use {ch58x_hal as hal, panic_halt as _};
 fn main() -> ! {
     // hal::sysctl::Config::pll_60mhz().freeze();
     hal::sysctl::Config::pll_60mhz().use_lse().freeze();
+    //hal::sysctl::Config::with_lsi_32k().freeze();
 
     let p = Peripherals::take();
 
@@ -29,9 +30,9 @@ fn main() -> ! {
     // LED PA8
     let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::Low);
 
-    //let mut serial = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
-    let mut serial = UartTx::new(p.UART3, p.PA5, Default::default()).unwrap();
-    let mut serial = UartTx::new(p.UART0, p.PA14, Default::default()).unwrap();
+    let mut serial = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
+    //let mut serial = UartTx::new(p.UART3, p.PA5, Default::default()).unwrap();
+    //let mut serial = UartTx::new(p.UART0, p.PA14, Default::default()).unwrap();
 
     //let mut serial = UartTx::new(p.UART0, p.PB7, Default::default()).unwrap();
 
@@ -39,6 +40,7 @@ fn main() -> ! {
     let mut reset_button = Input::new(p.PB23, Pull::Up);
     let mut rtc = Rtc {};
 
+    serial.blocking_flush();
     //      rtc.set_datatime(DateTime {
     //        year: 2023,
     //        month: 10,
@@ -66,18 +68,19 @@ fn main() -> ! {
         // writeln!(uart, "2s {:?}", rtc.counter_2s()).unwrap();
 
         //  writeln!(uart, "tick! {}", SysTick::now()).unwrap();
-        delay.delay_ms(300);
+        delay.delay_ms(1000);
 
         let now = rtc.now();
         writeln!(
             serial,
-            "{}: weekday={}, button: download={} reset={}",
+            "{}:  button: download={} reset={}",
             now,
-            now.isoweekday(),
+            // now.isoweekday(),
             download_button.is_low(),
             reset_button.is_low()
         )
         .unwrap();
+        // serial.blocking_flush();
         //writeln!(serial, "Current time: {} weekday={}", now, now.isoweekday()).unwrap();
         //writeln!(serial, "button: {} {}", ).unwrap();
     }
