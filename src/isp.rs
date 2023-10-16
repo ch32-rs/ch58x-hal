@@ -1,9 +1,4 @@
-//! The libISP592 library.
-/* CH592 Flash-ROM & Data-Flash  */
-/* Website:  http://wch.cn       */
-/* Email:    tech@wch.cn         */
-/* Author:   W.ch 2020.06        */
-/* V1.0 FlashROM library for USER/BOOT */
+//! The libISP582 library.
 /*!
 for the target in USER code area on the chip divided into USER code area and BOOT area
 用于具有用户代码区和引导区的芯片、操作目标为用户代码区的情况，

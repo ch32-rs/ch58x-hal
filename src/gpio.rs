@@ -107,7 +107,7 @@ impl<'d, T: Pin> Flex<'d, T> {
     pub fn set_as_output(&mut self, drive: OutputDrive) {
         critical_section::with(|_| {
             let gpio = unsafe { &*pac::GPIO::PTR };
-            let n = self.pin.pin() as usize;
+            let n = self.pin.pin();
             match self.pin.port() {
                 0 => match drive {
                     OutputDrive::Low => unsafe {
@@ -163,9 +163,10 @@ impl<'d, T: Pin> Flex<'d, T> {
     #[inline]
     pub fn is_set_low(&self) -> bool {
         let gpio = unsafe { &*pac::GPIO::PTR };
+        let mask = 1 << self.pin.pin();
         match self.pin.port() {
-            0 => gpio.pa_out.read().bits() & (1 << self.pin.pin()) == 0,
-            1 => gpio.pb_out.read().bits() & (1 << self.pin.pin()) == 0,
+            0 => gpio.pa_out.read().bits() & mask == 0,
+            1 => gpio.pb_out.read().bits() & mask == 0,
             _ => unreachable!(),
         }
     }
@@ -429,6 +430,24 @@ pub(crate) mod sealed {
             }
         }
 
+        /// Set the pin as an input, for peripherals functions
+        #[inline]
+        fn set_as_output_with_drive_low(&self) {
+            let gpio = unsafe { &*pac::GPIO::PTR };
+            let pin = self._pin() as usize;
+            match self._port() {
+                0 => unsafe {
+                    gpio.pa_dir.modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                    gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                },
+                1 => unsafe {
+                    gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                    gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                },
+                _ => unreachable!(),
+            }
+        }
+
         #[inline]
         fn set_drive(&self, drive: OutputDrive) {
             let gpio = unsafe { &*pac::GPIO::PTR };
@@ -532,6 +551,8 @@ macro_rules! foreach_pin {
         __foreach_pin_inner!((PB13,GPIOB,1,13));
         __foreach_pin_inner!((PB14,GPIOB,1,14));
         __foreach_pin_inner!((PB15,GPIOB,1,15));
+        __foreach_pin_inner!((PB20,GPIOB,1,20));
+        __foreach_pin_inner!((PB21,GPIOB,1,21));
         __foreach_pin_inner!((PB22,GPIOB,1,22));
         __foreach_pin_inner!((PB23,GPIOB,1,23));
     };

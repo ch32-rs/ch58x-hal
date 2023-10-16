@@ -24,6 +24,11 @@ embedded-hal-alpha = { version = "=1.0.0-rc.1", package = "embedded-hal" }
 qingke = { path = "../qingke" }
 critical-section = { version = "1.1.2", features = ["restore-state-u8"] }
 
+# ch32v-rt-macros = { path = "../ch32v-rt/ch32v-rt-macros" }
+ch32v-rt = { path = "../ch32v-rt" }
+embedded-hal-nb = "1.0.0-rc.1"
+
+
 #  optional = true
 # embassy-time = { version = "0.1.3", features = ["nightly"] }
 
@@ -41,6 +46,7 @@ isp = []
 # panic = "unwind"
 # lto = true
 # strip = true
+panic = "abort"
 opt-level = "z"
 lto = true
-panic = "abort"
+codegen-units = 1

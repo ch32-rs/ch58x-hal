@@ -1,3 +1,5 @@
+//! rt for CH58x
+
 use core::arch::global_asm;
 
 #[export_name = "error: riscv-rt appears more than once in the dependency graph"]

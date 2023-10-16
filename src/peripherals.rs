@@ -45,6 +45,8 @@ crate::peripherals! {
     PB13 <= virtual,
     PB14 <= virtual,
     PB15 <= virtual,
+    PB20 <= virtual,
+    PB21 <= virtual, // noex in CH59x
     PB22 <= virtual,
     PB23 <= virtual,
 }

@@ -7,10 +7,11 @@ pub use ch59x::ch59x as pac;
 pub use self::peripheral::{Peripheral, PeripheralRef};
 pub use self::peripherals::Peripherals;
 
+pub mod dma;
 pub mod gpio;
 pub mod lcd;
 pub mod rtc;
-pub mod serial;
+pub mod uart;
 pub mod signature;
 pub mod sysctl;
 pub mod systick;
@@ -27,6 +28,8 @@ pub mod peripheral;
 pub mod prelude;
 
 mod critical_section;
+
+pub mod embassy;
 
 /// Bits per second
 pub type BitsPerSecond = fugit::HertzU32;
@@ -87,3 +90,29 @@ pub struct Config {
 pub fn init(_config: Config) -> Peripherals {
     todo!()
 }
+
+
+// pin trait impl
+macro_rules! pin_trait_impl {
+    (crate::$mod:ident::$trait:ident, $instance:ident, $pin:ident, $remap:expr) => {
+        impl crate::$mod::$trait<crate::peripherals::$instance> for crate::peripherals::$pin {
+            fn is_remap(&self) -> bool {
+                $remap
+            }
+        }
+    };
+}
+
+pin_trait_impl!(crate::uart::TxPin, UART0, PB7, false);
+pin_trait_impl!(crate::uart::TxPin, UART0, PA14, true);
+
+pin_trait_impl!(crate::uart::TxPin, UART1, PA9, false);
+pin_trait_impl!(crate::uart::TxPin, UART1, PB13, true);
+
+pin_trait_impl!(crate::uart::TxPin, UART2, PA7, false);
+pin_trait_impl!(crate::uart::TxPin, UART2, PB23, true);
+
+pin_trait_impl!(crate::uart::TxPin, UART3, PA5, false);
+pin_trait_impl!(crate::uart::TxPin, UART3, PB21, true);
+
+

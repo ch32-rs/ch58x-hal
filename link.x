@@ -39,22 +39,21 @@ PROVIDE(WDOG_BAT = DefaultHandler);
 
 PROVIDE(DefaultHandler = DefaultInterruptHandler);
 
+ENTRY(_start)
+
 SECTIONS
 {
     .init :
     {
-        _sinit = .;
         . = ALIGN(4);
         KEEP(*(SORT_NONE(.init)))
         . = ALIGN(4);
-        _einit = .;
     } >FLASH AT>FLASH
 
     .vector_table :
     {
         . = ALIGN(4);
         __vector_base = .;
-
         /* KEEP(*(.vector));  keep vector table */
         /* *(.vector);*/
         KEEP(*(.vector_table.interrupts));
@@ -66,28 +65,18 @@ SECTIONS
         . = ALIGN(4);
         KEEP(*(SORT_NONE(.handle_reset)))
         KEEP(*(SORT_NONE(.trap)))
-        *(.text)
-        *(.text.*)
+        *(.text .text.*)
     } >FLASH AT>FLASH
 
     .rodata : ALIGN(4)
     {
         *(.srodata .srodata.*);
         *(.rodata .rodata.*);
-        /* 4-byte align the end (VMA) of this section.
-        This is required by LLD to ensure the LMA of the following .data
-        section will have the correct alignment. */
-        . = ALIGN(4);
     } >FLASH AT>FLASH
 
-    .dlalign :
+    .data : ALIGN(4)
     {
-        . = ALIGN(4);
-        PROVIDE(_data_lma = .);
-    } >FLASH AT>FLASH
-    .data :
-    {
-        . = ALIGN(4);
+        _data_lma = LOADADDR(.data);
         PROVIDE(_data_vma = .);
         *(.gnu.linkonce.r.*)
         *(.data .data.*)
@@ -106,16 +95,10 @@ SECTIONS
         PROVIDE( _edata = .);
     } >RAM AT>FLASH
 
-    .bss :
+    .bss : ALIGN(4)
     {
-        . = ALIGN(4);
         PROVIDE( _sbss = .);
-          *(.sbss*)
-        *(.gnu.linkonce.sb.*)
-        *(.bss*)
-         *(.gnu.linkonce.b.*)
-        *(COMMON*)
-        . = ALIGN(4);
+        *(.sbss .sbss.* .bss .bss.*)
         PROVIDE( _ebss = .);
     } >RAM AT>FLASH
 
@@ -124,6 +107,11 @@ SECTIONS
         . = ALIGN(4);
         PROVIDE(_stack_top = . );
     } >RAM
+
+    .got (INFO) :
+    {
+        KEEP(*(.got .got.*));
+    }
 
     .eh_frame (INFO) : { KEEP(*(.eh_frame)) }
     .eh_frame_hdr (INFO) : { *(.eh_frame_hdr) }
