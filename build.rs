@@ -13,7 +13,6 @@ fn main() {
     println!("cargo:rustc-link-search={}", out_dir.display());
 
     println!("cargo:rustc-link-search={}", out_dir.display());
-    println!("cargo:rustc-link-lib=ISP583");
 
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");

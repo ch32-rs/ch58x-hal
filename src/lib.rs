@@ -7,16 +7,18 @@ pub use ch59x::ch59x as pac;
 pub use self::peripheral::{Peripheral, PeripheralRef};
 pub use self::peripherals::Peripherals;
 
+pub mod adc;
 pub mod dma;
 pub mod gpio;
+pub mod i2c;
 pub mod lcd;
 pub mod rtc;
 pub mod signature;
+pub mod spi;
 pub mod sysctl;
 pub mod systick;
 pub mod timer;
 pub mod uart;
-pub mod i2c;
 
 // #[cfg(feature = "isp")]
 pub mod interrupt;
@@ -87,6 +89,10 @@ where
 
 pub struct Config {
     pub clock: sysctl::Config,
+    /// All GPIO Input Pull Up
+    pub low_power: bool,
+    /// Enable DCDC
+    pub enable_dcdc: bool,
 }
 
 pub fn init(_config: Config) -> Peripherals {

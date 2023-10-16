@@ -1,4 +1,4 @@
-//! The libISP582 library.
+//! The libISP583 library.
 /*!
 for the target in USER code area on the chip divided into USER code area and BOOT area
 用于具有用户代码区和引导区的芯片、操作目标为用户代码区的情况，
@@ -56,6 +56,7 @@ const ROM_CFG_MAC_ADDR: u32 = 0x7F018;
 /// address for BOOT information
 const ROM_CFG_BOOT_INFO: u32 = 0x7DFF8;
 
+#[link(name = "ISP583")]
 extern "C" {
     /**
      * @brief   execute Flash/EEPROM command, caller from FlashROM or RAM

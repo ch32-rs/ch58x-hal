@@ -114,7 +114,7 @@ macro_rules! impl_irqs {
 
 impl_irqs!(
     SysTick, Software, TMR0, GPIOA, GPIOB, SPI0, BLEL, BLEB, USB, // USB2,
-    TMR1, TMR2, UART0, UART1, UART2, UART3, RTC,
+    TMR1, TMR2, UART0, UART1, UART2, UART3, RTC, I2C
 );
 
 /// Represents an interrupt type that can be configured by embassy to handle
