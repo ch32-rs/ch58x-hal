@@ -71,82 +71,6 @@ pub enum Error {
     BufferTooLong,
 }
 
-// Default UART is UART1(PA8/PA9)
-pub struct Uart {}
-
-impl Uart {
-    pub fn new(config: Config) -> Self {
-        let uart1 = unsafe { &*pac::UART0::PTR };
-        let _sys = unsafe { &*pac::SYS::PTR };
-
-        // default on
-        // sys.slp_clk_off0
-        //    .modify(|_, w| w.slp_clk_uart1().clear_bit());
-
-        uart1.fcr.write(|w| unsafe {
-            w.rx_fifo_clr()
-                .set_bit()
-                .rx_fifo_clr()
-                .set_bit()
-                .fifo_en() // enable 8 byte FIFO
-                .set_bit()
-                .fifo_trig()
-                .bits(2) // 4 bytes
-        });
-        uart1.lcr.write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) }); // 8 bits
-        match config.stop_bits {
-            StopBits::STOP1 => uart1.lcr.modify(|_, w| w.stop_bit().clear_bit()),
-            StopBits::STOP2 => uart1.lcr.modify(|_, w| w.stop_bit().set_bit()),
-        }
-        match config.parity {
-            Parity::ParityNone => uart1.lcr.modify(|_, w| w.par_en().clear_bit()),
-            _ => uart1
-                .lcr
-                .modify(|_, w| unsafe { w.par_en().set_bit().par_mod().bits(config.parity as u8) }),
-        }
-
-        // baudrate = Fsys * 2 / R8_UARTx_DIV / 16 / R16_UARTx_DL
-        let x = 10 * crate::sysctl::clocks().hclk.to_Hz() / 8 / config.baudrate;
-        let x = ((x + 5) / 10) & 0xffff;
-
-        uart1.div.write(|w| unsafe { w.bits(1) });
-        uart1.dl.write(|w| unsafe { w.bits(x as u16) });
-
-        // enable TX
-        uart1.ier.write(|w| w.txd_en().set_bit());
-
-        Self {}
-    }
-
-    pub fn blocking_write(&self, buf: &[u8]) {
-        let uart1 = unsafe { &*pac::UART0::PTR };
-
-        const UART_FIFO_SIZE: u8 = 8;
-
-        for &c in buf {
-            while uart1.tfc.read().tfc().bits() >= UART_FIFO_SIZE {
-                // wait
-            }
-            uart1.thr().write(|w| unsafe { w.bits(c) });
-        }
-    }
-
-    pub fn flush(&self) {
-        let uart1 = unsafe { &*pac::UART0::PTR };
-
-        while uart1.tfc.read().tfc().bits() != 0 {
-            // wait
-        }
-    }
-}
-
-impl core::fmt::Write for Uart {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        self.blocking_write(s.as_bytes());
-        Ok(())
-    }
-}
-
 // ----
 
 pub struct UartTx<'d, T: BasicInstance> {
@@ -193,17 +117,17 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
         // set up uart
         let rb = T::regs();
 
-        rb.fcr.write(|w| unsafe {
+        rb.fcr.write(|w| {
             w.rx_fifo_clr()
                 .set_bit()
-                .rx_fifo_clr()
+                .tx_fifo_clr()
                 .set_bit()
                 .fifo_en() // enable 8 byte FIFO
                 .set_bit()
                 .fifo_trig()
-                .bits(2) // 4 bytes
+                .variant(0b00) // 1 bytes to send
         });
-        rb.lcr.write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) });
+        rb.lcr.write(|w| w.word_sz().variant(config.data_bits as u8));
         match config.stop_bits {
             StopBits::STOP1 => rb.lcr.modify(|_, w| w.stop_bit().clear_bit()),
             StopBits::STOP2 => rb.lcr.modify(|_, w| w.stop_bit().set_bit()),
@@ -212,15 +136,23 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
             Parity::ParityNone => rb.lcr.modify(|_, w| w.par_en().clear_bit()),
             _ => rb
                 .lcr
-                .modify(|_, w| unsafe { w.par_en().set_bit().par_mod().bits(config.parity as u8) }),
+                .modify(|_, w| w.par_en().set_bit().par_mod().variant(config.parity as u8)),
         }
 
         // baudrate = Fsys * 2 / R8_UARTx_DIV / 16 / R16_UARTx_DL
-        let x = 10 * crate::sysctl::clocks().hclk.to_Hz() / 8 / config.baudrate;
-        let x = ((x + 5) / 10) & 0xffff;
+        let (div, dl) = match (crate::sysctl::clocks().hclk.to_Hz(), config.baudrate) {
+            (60_000_000, 115200) => (13, 5),
+            (60_000_000, 8600) => (8, 109),
+            _ => {
+                let x = 10 * crate::sysctl::clocks().hclk.to_Hz() / 8 / config.baudrate;
+                let x = ((x + 5) / 10) & 0xffff;
 
-        rb.div.write(|w| unsafe { w.bits(1) });
-        rb.dl.write(|w| unsafe { w.bits(x as u16) });
+                (1, x as u16)
+            }
+        };
+
+        rb.div.write(|w| unsafe { w.bits(div) });
+        rb.dl.write(|w| unsafe { w.bits(dl) });
 
         // enable TX
         rb.ier.write(|w| w.txd_en().set_bit());
@@ -246,7 +178,6 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
             while rb.tfc.read().bits() >= UART_FIFO_SIZE {}
             rb.thr().write(|w| unsafe { w.bits(c) });
         }
-
         Ok(())
     }
 
@@ -365,7 +296,7 @@ macro_rules! impl_uart {
             /// Remap offset in R16_PIN_ALTERNATE
             fn set_remap(enable: bool) {
                 let sys = unsafe { &*pac::SYS::PTR };
-                sys.pin_alternate.modify(|r, w| w.$remap_field().bit(enable));
+                sys.pin_alternate.modify(|_, w| w.$remap_field().bit(enable));
             }
         }
 
