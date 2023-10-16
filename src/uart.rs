@@ -2,10 +2,7 @@
 
 use core::marker::PhantomData;
 
-use crate::dma::NoDma;
-use crate::{into_ref, pac, peripherals, Peripheral, PeripheralRef};
-
-// Default UART is UART1(PA8/PA9)
+use crate::{into_ref, pac, peripherals, Peripheral};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Parity {
@@ -74,11 +71,12 @@ pub enum Error {
     BufferTooLong,
 }
 
+// Default UART is UART1(PA8/PA9)
 pub struct Uart {}
 
 impl Uart {
     pub fn new(config: Config) -> Self {
-        let uart1 = unsafe { &*pac::UART1::PTR };
+        let uart1 = unsafe { &*pac::UART0::PTR };
         let _sys = unsafe { &*pac::SYS::PTR };
 
         // default on
@@ -121,7 +119,7 @@ impl Uart {
     }
 
     pub fn blocking_write(&self, buf: &[u8]) {
-        let uart1 = unsafe { &*pac::UART1::PTR };
+        let uart1 = unsafe { &*pac::UART0::PTR };
 
         const UART_FIFO_SIZE: u8 = 8;
 
@@ -134,7 +132,7 @@ impl Uart {
     }
 
     pub fn flush(&self) {
-        let uart1 = unsafe { &*pac::UART1::PTR };
+        let uart1 = unsafe { &*pac::UART0::PTR };
 
         while uart1.tfc.read().tfc().bits() != 0 {
             // wait
@@ -151,22 +149,20 @@ impl core::fmt::Write for Uart {
 
 // ----
 
-pub struct UartTx<'d, T: BasicInstance, TxDma = NoDma> {
+pub struct UartTx<'d, T: BasicInstance> {
     phantom: PhantomData<&'d mut T>,
-    tx_dma: PeripheralRef<'d, TxDma>,
 }
 
-impl<'d, T: BasicInstance, TxDma> UartTx<'d, T, TxDma> {
+impl<'d, T: BasicInstance> UartTx<'d, T> {
     /// Useful if you only want Uart Tx. It saves 1 pin and consumes a little less power.
     pub fn new(
         peri: impl Peripheral<P = T> + 'd,
         tx: impl Peripheral<P = impl TxPin<T>> + 'd,
-        tx_dma: impl Peripheral<P = TxDma> + 'd,
         config: Config,
     ) -> Result<Self, ConfigError> {
         //T::enable();
 
-        Self::new_inner(peri, tx, tx_dma, config)
+        Self::new_inner(peri, tx, config)
     }
 
     /* pub fn new_with_cts(
@@ -186,24 +182,18 @@ impl<'d, T: BasicInstance, TxDma> UartTx<'d, T, TxDma> {
     fn new_inner(
         _peri: impl Peripheral<P = T> + 'd,
         tx: impl Peripheral<P = impl TxPin<T>> + 'd,
-        tx_dma: impl Peripheral<P = TxDma> + 'd,
         config: Config,
     ) -> Result<Self, ConfigError> {
-        into_ref!(_peri, tx, tx_dma);
+        into_ref!(_peri, tx);
 
         // set up pin
         tx.set_as_output_with_drive_low();
-        if tx.is_remap() {
-            let sys = unsafe { &*pac::SYS::PTR };
-            let offset = T::remap_offset();
-            sys.pin_alternate
-                .modify(|r, w| unsafe { w.bits(r.bits() | (0x1 << offset)) });
-        }
+        T::set_remap(tx.is_remap());
 
         // set up uart
-        let uart: &pac::uart0::RegisterBlock = T::regs();
+        let rb = T::regs();
 
-        uart.fcr.write(|w| unsafe {
+        rb.fcr.write(|w| unsafe {
             w.rx_fifo_clr()
                 .set_bit()
                 .rx_fifo_clr()
@@ -213,14 +203,14 @@ impl<'d, T: BasicInstance, TxDma> UartTx<'d, T, TxDma> {
                 .fifo_trig()
                 .bits(2) // 4 bytes
         });
-        uart.lcr.write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) });
+        rb.lcr.write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) });
         match config.stop_bits {
-            StopBits::STOP1 => uart.lcr.modify(|_, w| w.stop_bit().clear_bit()),
-            StopBits::STOP2 => uart.lcr.modify(|_, w| w.stop_bit().set_bit()),
+            StopBits::STOP1 => rb.lcr.modify(|_, w| w.stop_bit().clear_bit()),
+            StopBits::STOP2 => rb.lcr.modify(|_, w| w.stop_bit().set_bit()),
         }
         match config.parity {
-            Parity::ParityNone => uart.lcr.modify(|_, w| w.par_en().clear_bit()),
-            _ => uart
+            Parity::ParityNone => rb.lcr.modify(|_, w| w.par_en().clear_bit()),
+            _ => rb
                 .lcr
                 .modify(|_, w| unsafe { w.par_en().set_bit().par_mod().bits(config.parity as u8) }),
         }
@@ -229,22 +219,16 @@ impl<'d, T: BasicInstance, TxDma> UartTx<'d, T, TxDma> {
         let x = 10 * crate::sysctl::clocks().hclk.to_Hz() / 8 / config.baudrate;
         let x = ((x + 5) / 10) & 0xffff;
 
-        uart.div.write(|w| unsafe { w.bits(1) });
-        uart.dl.write(|w| unsafe { w.bits(x as u16) });
+        rb.div.write(|w| unsafe { w.bits(1) });
+        rb.dl.write(|w| unsafe { w.bits(x as u16) });
 
         // enable TX
-        uart.ier.write(|w| w.txd_en().set_bit());
-
-        //tx.set_as_af(tx.af_num(), AFType::OutputPushPull);
-        // configure(r, &config, T::frequency(), T::KIND, false, true)?;
+        rb.ier.write(|w| w.txd_en().set_bit());
 
         // create state once!
         //let _s = T::state();
 
-        Ok(Self {
-            tx_dma,
-            phantom: PhantomData,
-        })
+        Ok(Self { phantom: PhantomData })
     }
 
     // todo: reconfigure support
@@ -254,32 +238,29 @@ impl<'d, T: BasicInstance, TxDma> UartTx<'d, T, TxDma> {
     //     TxDma: crate::usart::TxDma<T>,
 
     pub fn blocking_write(&mut self, buffer: &[u8]) -> Result<(), Error> {
-        let uart = T::regs();
-
+        let rb = T::regs();
         const UART_FIFO_SIZE: u8 = 8;
 
         for &c in buffer {
-            while uart.tfc.read().tfc().bits() >= UART_FIFO_SIZE {
-                // wait
-            }
-            uart.thr().write(|w| unsafe { w.bits(c) });
+            // wait
+            while rb.tfc.read().bits() >= UART_FIFO_SIZE {}
+            rb.thr().write(|w| unsafe { w.bits(c) });
         }
 
         Ok(())
     }
 
     pub fn blocking_flush(&mut self) -> Result<(), Error> {
-        let uart = T::regs();
-        while uart.tfc.read().tfc().bits() != 0 {
-            // wait
-        }
+        let rb = T::regs();
+
+        while rb.tfc.read().bits() != 0 {}
         Ok(())
     }
 }
 
 // embedded-hal
 
-impl<'d, T: BasicInstance, TxDma> core::fmt::Write for UartTx<'d, T, TxDma> {
+impl<'d, T: BasicInstance> core::fmt::Write for UartTx<'d, T> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         self.blocking_write(s.as_bytes()).unwrap();
         Ok(())
@@ -301,11 +282,11 @@ mod eh1 {
         }
     }
 
-    impl<'d, T: BasicInstance, TxDma> embedded_hal_nb::serial::ErrorType for UartTx<'d, T, TxDma> {
+    impl<'d, T: BasicInstance> embedded_hal_nb::serial::ErrorType for UartTx<'d, T> {
         type Error = Error;
     }
 
-    impl<'d, T: BasicInstance, TxDma> embedded_hal_nb::serial::Write for UartTx<'d, T, TxDma> {
+    impl<'d, T: BasicInstance> embedded_hal_nb::serial::Write for UartTx<'d, T> {
         fn write(&mut self, char: u8) -> nb::Result<(), Self::Error> {
             self.blocking_write(&[char]).map_err(nb::Error::Other)
         }
@@ -324,13 +305,6 @@ pub(crate) mod sealed {
     use super::*;
     use crate::interrupt;
 
-    #[derive(Clone, Copy, PartialEq, Eq)]
-    pub enum Kind {
-        Uart,
-        // UART with CTS, DSR, RI, DCD, DTR, RTS
-        UartWithModem,
-    }
-
     /*
     pub struct State {
         pub rx_waker: AtomicWaker,
@@ -348,18 +322,18 @@ pub(crate) mod sealed {
     */
 
     pub trait BasicInstance {
-        const KIND: Kind;
         type Interrupt: interrupt::Interrupt;
 
         fn regs() -> &'static pac::uart0::RegisterBlock;
         // fn state() -> &'static ();
-        fn remap_offset() -> u8;
+        fn set_remap(enable: bool);
     }
 
     pub trait FullInstance: BasicInstance {}
 }
 pub trait BasicInstance: Peripheral<P = Self> + sealed::BasicInstance + 'static + Send {}
 
+// UART with CTS, DSR, RI, DCD, DTR, RTS
 pub trait FullInstance: sealed::FullInstance {}
 
 // pin traits
@@ -378,13 +352,10 @@ pin_trait!(TxPin, BasicInstance);
 
 // uart peripheral traits
 
-use self::sealed::Kind;
-
 // ident-name, irq-name, kind?
 macro_rules! impl_uart {
-    ($inst:ident, $irq:ident, $kind:expr, $bit:expr) => {
+    ($inst:ident, $irq:ident, $remap_field:ident) => {
         impl sealed::BasicInstance for crate::peripherals::$inst {
-            const KIND: Kind = $kind;
             type Interrupt = crate::interrupt::$irq;
 
             fn regs() -> &'static crate::pac::uart0::RegisterBlock {
@@ -392,8 +363,9 @@ macro_rules! impl_uart {
             }
 
             /// Remap offset in R16_PIN_ALTERNATE
-            fn remap_offset() -> u8 {
-                $bit
+            fn set_remap(enable: bool) {
+                let sys = unsafe { &*pac::SYS::PTR };
+                sys.pin_alternate.modify(|r, w| w.$remap_field().bit(enable));
             }
         }
 
@@ -401,7 +373,7 @@ macro_rules! impl_uart {
     };
 }
 
-impl_uart!(UART0, UART0, Kind::Uart, 4); // FIXME: UartWithModem
-impl_uart!(UART1, UART1, Kind::Uart, 5);
-impl_uart!(UART2, UART2, Kind::Uart, 6);
-impl_uart!(UART3, UART3, Kind::Uart, 7);
+impl_uart!(UART0, UART0, pin_uart0); // FIXME: UartWithModem, a FullInstance
+impl_uart!(UART1, UART1, pin_uart1);
+impl_uart!(UART2, UART2, pin_uart2);
+impl_uart!(UART3, UART3, pin_uart3);

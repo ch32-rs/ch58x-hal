@@ -19,7 +19,6 @@ use {ch58x_hal as hal, panic_halt as _};
 
 #[ch32v_rt::entry]
 fn main() -> ! {
-    // LED PA8
     // hal::sysctl::Config::pll_60mhz().freeze();
     hal::sysctl::Config::pll_60mhz().use_lse().freeze();
 
@@ -27,12 +26,14 @@ fn main() -> ! {
 
     let mut delay = SysTick::new(p.SYSTICK);
 
-    let mut serial = UartTx::new(p.UART1, p.PA9, NoDma, Default::default()).unwrap();
-    //let mut serial = UartTx::new(p.UART3, p.PA5, NoDma, Default::default()).unwrap();
-
-    //let mut serial = UartTx::new(p.UART1, p.PB13, NoDma, Default::default()).unwrap();
-
+    // LED PA8
     let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::Low);
+
+    //let mut serial = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
+    let mut serial = UartTx::new(p.UART3, p.PA5, Default::default()).unwrap();
+    let mut serial = UartTx::new(p.UART0, p.PA14, Default::default()).unwrap();
+
+    //let mut serial = UartTx::new(p.UART0, p.PB7, Default::default()).unwrap();
 
     let mut download_button = Input::new(p.PB22, Pull::Up);
     let mut reset_button = Input::new(p.PB23, Pull::Up);
@@ -52,6 +53,11 @@ fn main() -> ! {
     writeln!(serial, "ChipID: {:02x}", hal::signature::get_chip_id());
     let now = rtc.now();
     writeln!(serial, "Boot time: {} weekday={}", now, now.isoweekday()).unwrap();
+
+    let marchid = riscv::register::marchid::read().unwrap();
+    writeln!(serial, "marchid: 0x{:08x?}", marchid.bits());
+    let mias = riscv::register::misa::read().unwrap();
+    writeln!(serial, "mias: 0x{:08x?}", mias.bits());
 
     loop {
         blue_led.toggle();

@@ -11,11 +11,11 @@ pub mod dma;
 pub mod gpio;
 pub mod lcd;
 pub mod rtc;
-pub mod uart;
 pub mod signature;
 pub mod sysctl;
 pub mod systick;
 pub mod timer;
+pub mod uart;
 
 // #[cfg(feature = "isp")]
 pub mod interrupt;
@@ -91,7 +91,6 @@ pub fn init(_config: Config) -> Peripherals {
     todo!()
 }
 
-
 // pin trait impl
 macro_rules! pin_trait_impl {
     (crate::$mod:ident::$trait:ident, $instance:ident, $pin:ident, $remap:expr) => {
@@ -114,5 +113,3 @@ pin_trait_impl!(crate::uart::TxPin, UART2, PB23, true);
 
 pin_trait_impl!(crate::uart::TxPin, UART3, PA5, false);
 pin_trait_impl!(crate::uart::TxPin, UART3, PB21, true);
-
-

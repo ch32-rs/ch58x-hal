@@ -10,9 +10,9 @@ use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
 use hal::interrupt::Interrupt;
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
-use hal::serial::Uart;
 use hal::sysctl::Config;
 use hal::systick::SysTick;
+use hal::uart::Uart;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
@@ -49,9 +49,10 @@ extern "C" fn RTC_IRQHandler() {
 static mut BUF: [u8; 1024] = [0; 1024];
 
 // #[riscv_rt::entry]
-#[allow(non_snake_case)]
-#[export_name = "main"]
-extern "C" fn main() -> ! {
+// ch58x_hal::entry!(main);
+
+#[ch32v_rt::entry]
+fn main() -> ! {
     // LED PA8
     // hal::sysctl::Config::pll_60mhz().freeze();
     hal::sysctl::Config::pll_60mhz().use_lse().freeze();
