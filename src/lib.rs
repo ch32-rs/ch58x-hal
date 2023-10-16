@@ -16,11 +16,13 @@ pub mod sysctl;
 pub mod systick;
 pub mod timer;
 pub mod uart;
+pub mod i2c;
 
 // #[cfg(feature = "isp")]
 pub mod interrupt;
 pub mod isp;
 pub mod rt;
+pub(crate) mod traits;
 
 pub mod peripherals;
 
@@ -91,7 +93,8 @@ pub fn init(_config: Config) -> Peripherals {
     todo!()
 }
 
-// pin trait impl
+// pin trait
+
 macro_rules! pin_trait_impl {
     (crate::$mod:ident::$trait:ident, $instance:ident, $pin:ident, $remap:expr) => {
         impl crate::$mod::$trait<crate::peripherals::$instance> for crate::peripherals::$pin {
