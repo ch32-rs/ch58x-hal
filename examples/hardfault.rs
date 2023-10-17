@@ -79,7 +79,7 @@ static mut BUF: [u8; 1024] = [0; 1024];
 extern "C" fn main() -> ! {
     // LED PA8
     // hal::sysctl::Config::pll_60mhz().freeze();
-    hal::sysctl::Config::pll_60mhz().use_lse().freeze();
+    hal::sysctl::Config::pll_60mhz().enable_lse().freeze();
 
     let p = Peripherals::take();
 

@@ -87,16 +87,88 @@ where
     ret
 }
 
+pub fn delay_us(t: u16) {
+    let t = t as u32;
+    let mut i = match sysctl::clocks().hclk.to_Hz() {
+        60000000 => t * 15,
+        80000000 => t * 20,
+        48000000 => t * 12,
+        32000000 => t * 8,
+        24000000 => t * 6,
+        16000000 => t * 4,
+        8000000 => t * 2,
+        4000000 => t,
+        2000000 => t / 2,
+        1000000 => t / 4,
+        _ => t << 1, // default 2us
+    };
+    i = i / 8;
+    unsafe {
+        core::arch::asm!(
+        "1:",
+        "nop",
+        "addi {0}, {0}, -1",
+        "bne {0}, zero, 1b",
+        inout(reg) i => _,
+        options(nomem, nostack),
+        );
+    }
+}
+
+pub fn delay_ms(t: u16) {
+    for _ in 0..t {
+        delay_us(1000);
+    }
+}
+
 pub struct Config {
     pub clock: sysctl::Config,
-    /// All GPIO Input Pull Up
+    /// All GPIO Input Pull Up, aka. HAL_SLEEP
     pub low_power: bool,
-    /// Enable DCDC
+    /// Enable DCDC, aka. DCDC_ENABLE
     pub enable_dcdc: bool,
 }
 
-pub fn init(_config: Config) -> Peripherals {
-    todo!()
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            clock: sysctl::Config::pll_60mhz(),
+            low_power: false,
+            enable_dcdc: false,
+        }
+    }
+}
+
+pub fn init(config: Config) -> Peripherals {
+    config.clock.freeze();
+    let sys = unsafe { &*pac::SYS::PTR };
+    if config.enable_dcdc {
+        with_safe_access(|| {
+            sys.aux_power_adj.modify(|_, w| w.dcdc_charge().set_bit());
+            sys.power_plan.modify(|_, w| w.pwr_dcdc_pre().set_bit());
+        });
+        delay_us(10);
+        with_safe_access(|| {
+            sys.power_plan.modify(|_, w| w.pwr_dcdc_en().set_bit());
+        });
+    } else {
+        with_safe_access(|| {
+            sys.aux_power_adj.modify(|_, w| w.dcdc_charge().clear_bit());
+            sys.power_plan
+                .modify(|_, w| w.pwr_dcdc_pre().clear_bit().pwr_dcdc_pre().clear_bit());
+        });
+    }
+    if config.low_power {
+        let gpio = unsafe { &*pac::GPIO::PTR };
+        // in pu
+        gpio.pa_pd_drv.write(|w| w.pa_pd_drv().variant(0));
+        gpio.pb_pd_drv.write(|w| w.pb_pd_drv().variant(0));
+        gpio.pa_pu.write(|w| w.pa_pu().variant(0xffff));
+        gpio.pb_pu.write(|w| w.pb_pu().variant(0xffffff));
+        gpio.pa_dir.write(|w| w.pa_dir().variant(0));
+        gpio.pb_dir.write(|w| w.pb_dir().variant(0));
+    }
+    Peripherals::take()
 }
 
 // pin trait

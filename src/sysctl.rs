@@ -44,14 +44,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn with_lsi_32k() -> Self {
+    pub fn use_lsi_32k() -> Self {
         Self {
             mux: ClockSrc::Clock32K,
             clock32ksrc: Clock32KSrc::LSI,
         }
     }
 
-    pub fn with_lse_32k() -> Self {
+    pub fn use_lse_32k() -> Self {
         Self {
             mux: ClockSrc::Clock32K,
             clock32ksrc: Clock32KSrc::LSE,
@@ -93,7 +93,7 @@ impl Config {
         }
     }
 
-    pub fn use_lse(mut self) -> Self {
+    pub fn enable_lse(mut self) -> Self {
         self.clock32ksrc = Clock32KSrc::LSE;
         self
     }

@@ -55,7 +55,7 @@ fn GPIOB_IRQHandler() {
 #[ch32v_rt::entry]
 fn main() -> ! {
     // hal::sysctl::Config::pll_60mhz().freeze();
-    hal::sysctl::Config::pll_60mhz().use_lse().freeze();
+    hal::sysctl::Config::pll_60mhz().enable_lse().freeze();
     //hal::sysctl::Config::with_lsi_32k().freeze();
 
     let p = Peripherals::take();

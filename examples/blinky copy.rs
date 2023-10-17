@@ -9,9 +9,9 @@ use embedded_hal_alpha::delay::DelayUs;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
-use hal::serial::Uart;
 use hal::sysctl::Config;
 use hal::systick::SysTick;
+use hal::uart::Uart;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
@@ -53,7 +53,7 @@ static mut BUF: [u8; 1024] = [0; 1024];
 extern "C" fn main() -> ! {
     // LED PA8
     // hal::sysctl::Config::pll_60mhz().freeze();
-    hal::sysctl::Config::pll_60mhz().use_lse().freeze();
+    hal::sysctl::Config::pll_60mhz().enable_lse().freeze();
 
     let p = Peripherals::take();
 
