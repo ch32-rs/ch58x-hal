@@ -44,56 +44,44 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn use_lsi_32k() -> Self {
-        Self {
-            mux: ClockSrc::Clock32K,
-            clock32ksrc: Clock32KSrc::LSI,
-        }
+    pub fn use_lsi_32k(&mut self) -> &mut Self {
+        self.clock32ksrc = Clock32KSrc::LSI;
+        self.mux = ClockSrc::Clock32K;
+        self
     }
 
-    pub fn use_lse_32k() -> Self {
-        Self {
-            mux: ClockSrc::Clock32K,
-            clock32ksrc: Clock32KSrc::LSE,
-        }
+    pub fn use_lse_32k(&mut self) -> &mut Self {
+        self.clock32ksrc = Clock32KSrc::LSE;
+        self.mux = ClockSrc::Clock32K;
+        self
     }
 
-    pub fn pll_60mhz() -> Self {
-        Self {
-            mux: ClockSrc::PLL(8),
-            ..Default::default()
-        }
+    pub fn use_pll_60mhz(&mut self) -> &mut Self {
+        self.mux = ClockSrc::PLL(8);
+        self
     }
 
-    pub fn pll_80mhz() -> Self {
-        Self {
-            mux: ClockSrc::PLL(6),
-            ..Default::default()
-        }
+    pub fn use_pll_80mhz(&mut self) -> &mut Self {
+        self.mux = ClockSrc::PLL(6);
+        self
     }
 
-    pub fn pll_48mhz() -> Self {
-        Self {
-            mux: ClockSrc::PLL(10),
-            ..Default::default()
-        }
+    pub fn use_pll_48mhz(&mut self) -> &mut Self {
+        self.mux = ClockSrc::PLL(10);
+        self
     }
 
-    pub fn pll_32mhz() -> Self {
-        Self {
-            mux: ClockSrc::PLL(15),
-            ..Default::default()
-        }
+    pub fn use_pll_32mhz(&mut self) -> &mut Self {
+        self.mux = ClockSrc::PLL(15);
+        self
     }
 
-    pub fn pll_24mhz() -> Self {
-        Self {
-            mux: ClockSrc::PLL(20),
-            ..Default::default()
-        }
+    pub fn use_pll_24mhz(&mut self) -> &mut Self {
+        self.mux = ClockSrc::PLL(20);
+        self
     }
 
-    pub fn enable_lse(mut self) -> Self {
+    pub fn enable_lse(&mut self) -> &mut Self {
         self.clock32ksrc = Clock32KSrc::LSE;
         self
     }

@@ -121,6 +121,7 @@ pub fn delay_ms(t: u16) {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Config {
     pub clock: sysctl::Config,
     /// All GPIO Input Pull Up, aka. HAL_SLEEP
@@ -132,7 +133,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            clock: sysctl::Config::pll_60mhz(),
+            clock: sysctl::Config::default(),
             low_power: false,
             enable_dcdc: false,
         }
@@ -140,7 +141,6 @@ impl Default for Config {
 }
 
 pub fn init(config: Config) -> Peripherals {
-    config.clock.freeze();
     let sys = unsafe { &*pac::SYS::PTR };
     if config.enable_dcdc {
         with_safe_access(|| {
@@ -158,6 +158,9 @@ pub fn init(config: Config) -> Peripherals {
                 .modify(|_, w| w.pwr_dcdc_pre().clear_bit().pwr_dcdc_pre().clear_bit());
         });
     }
+
+    config.clock.freeze();
+
     if config.low_power {
         let gpio = unsafe { &*pac::GPIO::PTR };
         // in pu

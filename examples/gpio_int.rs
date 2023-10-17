@@ -37,7 +37,7 @@ global_asm!(
 
 #[allow(non_snake_case)]
 #[export_name = "_rust_GPIOB"]
-fn GPIOB_IRQHandler() {
+unsafe fn GPIOB_IRQHandler() {
     if let Some(button) = BUTTON.as_mut() {
         button.disable_interrupt();
 
@@ -54,11 +54,10 @@ fn GPIOB_IRQHandler() {
 
 #[ch32v_rt::entry]
 fn main() -> ! {
-    // hal::sysctl::Config::pll_60mhz().freeze();
-    hal::sysctl::Config::pll_60mhz().enable_lse().freeze();
-    //hal::sysctl::Config::with_lsi_32k().freeze();
+    let mut config = hal::Config::default();
+    config.clock.use_pll_60mhz().enable_lse();
 
-    let p = Peripherals::take();
+    let p = hal::init(config);
 
     let mut delay = SysTick::new(p.SYSTICK);
 
