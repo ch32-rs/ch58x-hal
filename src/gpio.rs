@@ -135,6 +135,118 @@ impl<'d, T: Pin> Flex<'d, T> {
     }
 
     #[inline]
+    pub fn disable_interrupt(&mut self) {
+        critical_section::with(|_| {
+            let gpio = unsafe { &*pac::GPIO::PTR };
+            let n = self.pin.pin();
+            match self.pin.port() {
+                0 => unsafe {
+                    gpio.pa_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                },
+                1 if n >= 22 => unsafe {
+                    // map PB[23:22] to PB[9:8]
+                    gpio.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << (n - 14))));
+                },
+                1 => unsafe {
+                    gpio.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                },
+                _ => unreachable!(),
+            }
+        })
+    }
+
+    #[inline]
+    pub fn set_trigger(&mut self, trigger: InterruptTrigger) {
+        critical_section::with(|_| {
+            let gpio = unsafe { &*pac::GPIO::PTR };
+            let mut n = self.pin.pin();
+            use InterruptTrigger::*;
+            // map PB[23:22] to PB[9:8]
+
+            match self.pin.port() {
+                0 => unsafe {
+                    if matches!(trigger, LowLevel | HighLevel) {
+                        gpio.pa_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    } else {
+                        gpio.pa_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    }
+                    if matches!(trigger, LowLevel | FallingEdge) {
+                        gpio.pa_clr.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    } else {
+                        gpio.pa_out.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    }
+                },
+                1 => unsafe {
+                    if n >= 22 {
+                        n -= 14;
+                        let sys = &*pac::SYS::PTR;
+                        sys.pin_alternate.modify(|_, w| w.intx().set_bit());
+                    }
+
+                    if matches!(trigger, LowLevel | HighLevel) {
+                        gpio.pb_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    } else {
+                        gpio.pb_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    }
+                    if matches!(trigger, LowLevel | FallingEdge) {
+                        gpio.pb_clr.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    } else {
+                        gpio.pb_out.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    }
+                },
+                _ => unreachable!(),
+            }
+        });
+    }
+
+    // TODO: R16_PB_INT_MODE[9:8]由 RB_PIN_INTX 选择对应 PB[23:22]或 PB[9:8
+    #[inline]
+    pub fn enable_interrupt(&mut self) {
+        critical_section::with(|_| {
+            let gpio = unsafe { &*pac::GPIO::PTR };
+            let mut n = self.pin.pin();
+            // map PB[23:22] to PB[9:8]
+
+            match self.pin.port() {
+                0 => unsafe {
+                    gpio.pa_int_if.write(|w| w.bits(1 << n));
+                    gpio.pa_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                },
+                1 => unsafe {
+                    if n >= 22 {
+                        n -= 14;
+                        let sys = &*pac::SYS::PTR;
+                        sys.pin_alternate.modify(|_, w| w.intx().set_bit());
+                    }
+                    gpio.pb_int_if.write(|w| w.bits(1 << n));
+                    gpio.pb_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                },
+                _ => unreachable!(),
+            }
+        });
+    }
+
+    #[inline]
+    pub fn clear_interrupt(&mut self) {
+        let gpio = unsafe { &*pac::GPIO::PTR };
+        let n = self.pin.pin();
+        // clear int_if, write 1 to clear
+        match self.pin.port() {
+            0 => unsafe {
+                gpio.pa_int_if.write(|w| w.bits(1 << n));
+            },
+            1 if n >= 22 => unsafe {
+                // remap to PB[9:8]
+                gpio.pb_int_if.modify(|r, w| w.bits(r.bits() | (1 << (n - 14))));
+            },
+            1 => unsafe {
+                gpio.pb_int_if.write(|w| w.bits(1 << n));
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    #[inline]
     pub fn is_high(&self) -> bool {
         !self.is_low()
     }
@@ -261,6 +373,26 @@ impl<'d, T: Pin> Input<'d, T> {
     #[inline]
     pub fn get_level(&self) -> Level {
         self.pin.get_level()
+    }
+
+    #[inline]
+    pub fn disable_interrupt(&mut self) {
+        self.pin.disable_interrupt();
+    }
+
+    #[inline]
+    pub fn set_trigger(&mut self, trigger: InterruptTrigger) {
+        self.pin.set_trigger(trigger);
+    }
+
+    #[inline]
+    pub fn enable_interrupt(&mut self) {
+        self.pin.enable_interrupt();
+    }
+
+    #[inline]
+    pub fn clear_interrupt(&mut self) {
+        self.pin.clear_interrupt();
     }
 }
 
@@ -521,6 +653,18 @@ impl sealed::Pin for AnyPin {
     fn pin_port(&self) -> u8 {
         self.pin_port
     }
+}
+
+// interrupt handling
+
+// also control by CLR/OUT
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum InterruptTrigger {
+    LowLevel,
+    HighLevel,
+    RaisingEdge,
+    FallingEdge,
 }
 
 macro_rules! foreach_pin {

@@ -304,7 +304,7 @@ macro_rules! impl_uart {
     };
 }
 
-impl_uart!(UART0, UART0, pin_uart0); // FIXME: UartWithModem, a FullInstance
-impl_uart!(UART1, UART1, pin_uart1);
-impl_uart!(UART2, UART2, pin_uart2);
-impl_uart!(UART3, UART3, pin_uart3);
+impl_uart!(UART0, UART0, uart0); // FIXME: UartWithModem, a FullInstance
+impl_uart!(UART1, UART1, uart1);
+impl_uart!(UART2, UART2, uart2);
+impl_uart!(UART3, UART3, uart3);
