@@ -6,8 +6,9 @@ use crate::{into_ref, pac, Peripheral, PeripheralRef};
 
 const ROM_CFG_TMP_25C: *const u32 = 0x7F014 as *const u32;
 
+/// Sampling clock
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub enum ClkSel {
+pub enum SamplingClock {
     _3_2MHz = 0b00, // CK32M div 10
     _8MHz = 0b01,   // CK32M div 4
     #[default]
@@ -15,10 +16,45 @@ pub enum ClkSel {
     _4MHz = 0b11,   // CK32M div 8
 }
 
-#[non_exhaustive]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+pub enum Gain {
+    /// -12dB, 1/4. -0.2V to 3.3V+0.2V
+    GAIN1_4 = 0b00,
+    /// -6dB, 1/2. -0.2V to 3.15V
+    #[default]
+    GAIN1_2 = 0b01,
+    /// 0dB, 1. 0V to 2.1V
+    GAIN1 = 0b10,
+    /// 6dB, 2. 0.525V to 1.575V
+    GAIN2 = 0b11,
+}
+
+#[non_exhaustive]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Config {
-    pub clksel: ClkSel,
+    pub clk: SamplingClock,
+    pub pga_gain: Gain,
+    pub diff_en: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            clk: SamplingClock::_3_2MHz,
+            pga_gain: Gain::GAIN1_2,
+            diff_en: false,
+        }
+    }
+}
+
+impl Config {
+    pub fn for_temperature() -> Self {
+        Self {
+            clk: SamplingClock::_3_2MHz,
+            pga_gain: Gain::GAIN2,
+            diff_en: true,
+        }
+    }
 }
 
 pub struct Adc<'d, T: Instance> {
@@ -124,16 +160,42 @@ where
             w.power_on()
                 .set_bit()
                 .diff_en()
+                .bit(config.diff_en) // must for temp
+                .clk_div()
+                .variant(config.clk as u8)
+                .buf_en()
+                .bit(!config.diff_en)
+                .pga_gain()
+                .variant(config.pga_gain as u8)
+        });
+        /* rb.cfg.modify(|_, w| {
+            w.power_on()
+                .set_bit()
+                .diff_en()
                 .set_bit() // must for temp
                 .clk_div()
-                .variant(config.clksel as u8)
+                .variant(config.clk as u8)
                 .buf_en()
                 .clear_bit()
                 .pga_gain()
-                .variant(0b11)
-        });
+                .variant(0b00)
+        }); */
 
         Self { adc }
+    }
+
+    pub fn set_config(&self, config: Config) {
+        let rb = T::regs();
+        rb.cfg.modify(|_, w| {
+            w.diff_en()
+                .bit(config.diff_en) // must for temp
+                .clk_div()
+                .variant(config.clk as u8)
+                .buf_en()
+                .bit(!config.diff_en)
+                .pga_gain()
+                .variant(config.pga_gain as u8)
+        });
     }
 
     /// Enable Temperature sensor
@@ -173,6 +235,27 @@ where
         rb.channel.modify(|_, w| w.ch_inx().variant(channel));
 
         self.convert()
+    }
+
+    /// Read ADC sample data as millivolts. Avoid using soft-fp, about 20k flash increase.
+    pub fn read_as_millivolts(&mut self, pin: &mut impl AdcPin<T>) -> i32 {
+        let rb = T::regs();
+
+        let data = self.read(pin);
+
+        let vref = 1050;
+        // Ref: DS manual
+        match rb.cfg.read().pga_gain().bits() {
+            // -12dB, 1/4
+            0b00 => (data as i32) * vref / 512 - 3 * vref,
+            // -6dB, 1/2
+            0b01 => (data as i32) * vref / 1024 - 1 * vref,
+            // 0dB, 1
+            0b10 => (data as i32) * vref / 2048,
+            // 6dB, 2
+            0b11 => (data as i32) * vref / 4096 + 1050 / 2,
+            _ => unreachable!(),
+        }
     }
 }
 
