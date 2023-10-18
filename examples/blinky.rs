@@ -22,6 +22,7 @@ fn main() -> ! {
     // hal::sysctl::Config::pll_60mhz().freeze();
     ///hal::sysctl::Config::pll_60mhz().use_lse().freeze();
     let mut config = hal::Config::default();
+    config.clock.use_pll_60mhz().enable_lse();
     config.enable_dcdc = true;
     config.low_power = true;
     config.clock.enable_lse();

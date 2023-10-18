@@ -61,10 +61,8 @@ impl Config {
         self
     }
 
-    pub fn use_pll_80mhz(&mut self) -> &mut Self {
-        self.mux = ClockSrc::PLL(6);
-        self
-    }
+    // Not supported
+    // pub fn use_pll_80mhz(&mut self) -> &mut Self
 
     pub fn use_pll_48mhz(&mut self) -> &mut Self {
         self.mux = ClockSrc::PLL(10);
