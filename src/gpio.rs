@@ -673,6 +673,10 @@ macro_rules! foreach_pin {
             $(($pat) => $code;)*
             ($_:tt) => {}
         }
+        __foreach_pin_inner!((PA0,GPIOA,0,0));
+        __foreach_pin_inner!((PA1,GPIOA,0,1));
+        __foreach_pin_inner!((PA2,GPIOA,0,2));
+        __foreach_pin_inner!((PA3,GPIOA,0,3));
         __foreach_pin_inner!((PA4,GPIOA,0,4));
         __foreach_pin_inner!((PA5,GPIOA,0,5));
         __foreach_pin_inner!((PA6,GPIOA,0,6));

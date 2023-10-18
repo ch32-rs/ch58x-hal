@@ -22,6 +22,9 @@ crate::peripherals! {
     BLE <= virtual,
     PWMX <= PWMX,
 
+    ADC_TEMP_SENSOR <= virtual,
+    ADC_VBAT_SENSOR <= virtual,
+
     PA4 <= virtual,
     PA5 <= virtual,
     PA6 <= virtual,
@@ -49,4 +52,10 @@ crate::peripherals! {
     PB21 <= virtual, // noex in CH59x
     PB22 <= virtual,
     PB23 <= virtual,
+
+    // CH582
+    PA0 <= virtual,
+    PA1 <= virtual,
+    PA2 <= virtual,
+    PA3 <= virtual,
 }

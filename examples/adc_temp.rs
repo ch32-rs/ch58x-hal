@@ -30,10 +30,6 @@ fn main() -> ! {
     let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::Low);
 
     let mut serial = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
-    //let mut serial = UartTx::new(p.UART3, p.PA5, Default::default()).unwrap();
-    //let mut serial = UartTx::new(p.UART0, p.PA14, Default::default()).unwrap();
-
-    //let mut serial = UartTx::new(p.UART0, p.PB7, Default::default()).unwrap();
 
     let mut download_button = Input::new(p.PB22, Pull::Up);
     let mut reset_button = Input::new(p.PB23, Pull::Up);
@@ -78,43 +74,31 @@ fn main() -> ! {
             .pga_gain()
             .variant(0b11)
     });
-    // start adc convert
-
-    const ROM_CFG_TMP_25C: *const u32 = 0x7F014 as *const u32;
-
-    let c25 = unsafe { core::ptr::read_volatile(ROM_CFG_TMP_25C) };
-
-    writeln!(serial, "c25: 0x{:08x}", c25).unwrap();
 
     loop {
         blue_led.toggle();
 
+        let now = rtc.now();
+
+        // start adc convert
         adc.convert.modify(|_, w| w.start().set_bit());
         while adc.convert.read().start().bit_is_set() {} // wait for convert
 
         let data = adc.data.read().data().bits();
-        // writeln!(serial, "adc data: {}", data,).unwrap();
+        // writeln!(serial, "adc raw data: {}", data,).unwrap();
         let temp_celesius = hal::adc::adc_to_temperature_milli_celsius(data);
-        writeln!(serial, "temp: {}.{}C", temp_celesius / 1000, temp_celesius % 1000 / 100).unwrap();
 
-        // writeln!(uart, "day {:?}", rtc.counter_day()).unwrap();
-        // writeln!(uart, "2s {:?}", rtc.counter_2s()).unwrap();
-
-        //  writeln!(uart, "tick! {}", SysTick::now()).unwrap();
-        delay.delay_ms(500);
-
-        let now = rtc.now();
-        writeln!(
+        write!(
             serial,
-            "{}:  button: download={} reset={}",
+            "{}: download={} reset={} temp=",
             now,
             // now.isoweekday(),
             download_button.is_low(),
             reset_button.is_low()
         )
         .unwrap();
-        // serial.blocking_flush();
-        //writeln!(serial, "Current time: {} weekday={}", now, now.isoweekday()).unwrap();
-        //writeln!(serial, "button: {} {}", ).unwrap();
+        writeln!(serial, "{}.{}C", temp_celesius / 1000, temp_celesius % 1000 / 100).unwrap();
+
+        delay.delay_ms(500);
     }
 }
