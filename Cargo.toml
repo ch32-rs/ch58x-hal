@@ -6,12 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# ch58x = { version = "0.1.8", features = ["ch58x", "rt"] }
-# They are sharing almost the same SVD, so we can use the same crate.
-ch59x = { name = "ch59x", path = "../ch32-rs-nightlies/ch59x", version = "0.1.7", features = [
-    "ch59x",
-    #"rt",
+ch58x = { version = "0.2.0", path = "../ch32-rs-nightlies/ch58x", features = [
+    "ch58x",
 ] }
+
 fugit = "0.3.7"
 fugit-timer = "0.1.3"
 

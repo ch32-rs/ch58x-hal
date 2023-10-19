@@ -2,7 +2,7 @@
 #![recursion_limit = "1024"]
 use core::ptr;
 
-pub use ch59x::ch59x as pac;
+pub use ch58x::ch58x as pac;
 
 pub use self::peripheral::{Peripheral, PeripheralRef};
 pub use self::peripherals::Peripherals;
@@ -11,7 +11,7 @@ pub mod adc;
 pub mod dma;
 pub mod gpio;
 pub mod i2c;
-pub mod lcd;
+// pub mod lcd;
 pub mod rtc;
 pub mod signature;
 pub mod spi;
@@ -121,23 +121,13 @@ pub fn delay_ms(t: u16) {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Config {
     pub clock: sysctl::Config,
     /// All GPIO Input Pull Up, aka. HAL_SLEEP
     pub low_power: bool,
     /// Enable DCDC, aka. DCDC_ENABLE
     pub enable_dcdc: bool,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            clock: sysctl::Config::default(),
-            low_power: false,
-            enable_dcdc: false,
-        }
-    }
 }
 
 pub fn init(config: Config) -> Peripherals {
@@ -162,14 +152,14 @@ pub fn init(config: Config) -> Peripherals {
     config.clock.freeze();
 
     if config.low_power {
-        let gpio = unsafe { &*pac::GPIO::PTR };
-        // in pu
-        gpio.pa_pd_drv.write(|w| w.pa_pd_drv().variant(0));
-        gpio.pb_pd_drv.write(|w| w.pb_pd_drv().variant(0));
-        gpio.pa_pu.write(|w| w.pa_pu().variant(0xffff));
-        gpio.pb_pu.write(|w| w.pb_pu().variant(0xffffff));
-        gpio.pa_dir.write(|w| w.pa_dir().variant(0));
-        gpio.pb_dir.write(|w| w.pb_dir().variant(0));
+        unsafe {
+            for rb in [&*pac::GPIOA::PTR, &*pac::GPIOB::PTR] {
+                // in pu
+                rb.pd_drv.write(|w| w.bits(0));
+                rb.pu.write(|w| w.bits(0xffff));
+                rb.dir.write(|w| w.bits(0));
+            }
+        }
     }
     Peripherals::take()
 }

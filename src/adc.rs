@@ -210,7 +210,7 @@ where
     pub fn enable_temperature(&self) -> Temperature {
         let rb = T::regs();
 
-        rb.tem_sensor.modify(|_, w| w.tem_sen_pwr_on().set_bit());
+        rb.tem_sensor.modify(|_, w| w.power_on().set_bit());
 
         Temperature {}
     }
@@ -240,7 +240,7 @@ where
         let channel = pin.channel();
 
         // Select channel
-        rb.channel.modify(|_, w| w.ch_inx().variant(channel));
+        rb.channel.modify(|_, w| w.ch_idx().variant(channel));
 
         self.convert()
     }

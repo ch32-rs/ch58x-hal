@@ -50,51 +50,28 @@ impl<'d, T: Pin> Flex<'d, T> {
     /// Put the pin into input mode.
     #[inline]
     pub fn set_as_input(&mut self, pull: Pull) {
-        let n = self.pin.pin() as usize;
-        let gpio = unsafe { &*pac::GPIO::PTR };
+        let n = self.pin.pin();
+        let rb = self.pin.block();
         critical_section::with(|_| {
-            match self.pin.port() {
-                0 => {
-                    match pull {
-                        Pull::None => unsafe {
-                            // In_floating
-                            gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                            gpio.pa_pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                            gpio.pa_dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        },
-                        Pull::Up => unsafe {
-                            // In_PU
-                            gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                            gpio.pa_pu.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                            gpio.pa_dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        },
-                        Pull::Down => unsafe {
-                            // In_PD
-                            gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                            gpio.pa_pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                            gpio.pa_dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        },
-                    }
-                }
-                // PB
-                1 => match pull {
-                    Pull::None => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        gpio.pb_pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    },
-                    Pull::Up => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        gpio.pb_pu.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                        gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    },
-                    Pull::Down => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                        gpio.pb_pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    },
+            match pull {
+                Pull::None => unsafe {
+                    // In_floating
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
                 },
-                _ => unreachable!(),
+                Pull::Up => unsafe {
+                    // In_PU
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    rb.pu.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                },
+                Pull::Down => unsafe {
+                    // In_PD
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                },
             }
         });
     }
@@ -106,30 +83,17 @@ impl<'d, T: Pin> Flex<'d, T> {
     #[inline]
     pub fn set_as_output(&mut self, drive: OutputDrive) {
         critical_section::with(|_| {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let rb = self.pin.block();
             let n = self.pin.pin();
-            match self.pin.port() {
-                0 => match drive {
-                    OutputDrive::Low => unsafe {
-                        gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        gpio.pa_dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    },
-                    OutputDrive::High => unsafe {
-                        gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                        gpio.pa_dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    },
+            match drive {
+                OutputDrive::Low => unsafe {
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    rb.dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
                 },
-                1 => match drive {
-                    OutputDrive::Low => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                        gpio.pb_dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    },
-                    OutputDrive::High => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                        gpio.pb_dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    },
+                OutputDrive::High => unsafe {
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    rb.dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
                 },
-                _ => unreachable!(),
             }
         });
     }
@@ -137,18 +101,18 @@ impl<'d, T: Pin> Flex<'d, T> {
     #[inline]
     pub fn disable_interrupt(&mut self) {
         critical_section::with(|_| {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
             let n = self.pin.pin();
             match self.pin.port() {
                 0 => unsafe {
-                    gpio.pa_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
                 },
                 1 if n >= 22 => unsafe {
                     // map PB[23:22] to PB[9:8]
-                    gpio.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << (n - 14))));
+                    gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << (n - 14))));
                 },
                 1 => unsafe {
-                    gpio.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
                 },
                 _ => unreachable!(),
             }
@@ -158,7 +122,8 @@ impl<'d, T: Pin> Flex<'d, T> {
     #[inline]
     pub fn set_trigger(&mut self, trigger: InterruptTrigger) {
         critical_section::with(|_| {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+            let rb = self.pin.block();
             let mut n = self.pin.pin();
             use InterruptTrigger::*;
             // map PB[23:22] to PB[9:8]
@@ -166,35 +131,30 @@ impl<'d, T: Pin> Flex<'d, T> {
             match self.pin.port() {
                 0 => unsafe {
                     if matches!(trigger, LowLevel | HighLevel) {
-                        gpio.pa_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                        gpioctl.pa_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
                     } else {
-                        gpio.pa_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    }
-                    if matches!(trigger, LowLevel | FallingEdge) {
-                        gpio.pa_clr.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    } else {
-                        gpio.pa_out.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                        gpioctl.pa_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
                     }
                 },
                 1 => unsafe {
                     if n >= 22 {
                         n -= 14;
                         let sys = &*pac::SYS::PTR;
-                        sys.pin_alternate.modify(|_, w| w.intx().set_bit());
+                        gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
                     }
 
                     if matches!(trigger, LowLevel | HighLevel) {
-                        gpio.pb_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                        gpioctl.pb_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
                     } else {
-                        gpio.pb_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    }
-                    if matches!(trigger, LowLevel | FallingEdge) {
-                        gpio.pb_clr.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    } else {
-                        gpio.pb_out.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                        gpioctl.pb_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
                     }
                 },
                 _ => unreachable!(),
+            }
+            if matches!(trigger, LowLevel | FallingEdge) {
+                rb.clr.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
+            } else {
+                rb.out.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
             }
         });
     }
@@ -203,23 +163,23 @@ impl<'d, T: Pin> Flex<'d, T> {
     #[inline]
     pub fn enable_interrupt(&mut self) {
         critical_section::with(|_| {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
             let mut n = self.pin.pin();
             // map PB[23:22] to PB[9:8]
 
             match self.pin.port() {
                 0 => unsafe {
-                    gpio.pa_int_if.write(|w| w.bits(1 << n));
-                    gpio.pa_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    gpioctl.pa_int_if.write(|w| w.bits(1 << n));
+                    gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
                 },
                 1 => unsafe {
                     if n >= 22 {
                         n -= 14;
                         let sys = &*pac::SYS::PTR;
-                        sys.pin_alternate.modify(|_, w| w.intx().set_bit());
+                        gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
                     }
-                    gpio.pb_int_if.write(|w| w.bits(1 << n));
-                    gpio.pb_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    gpioctl.pb_int_if.write(|w| w.bits(1 << n));
+                    gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
                 },
                 _ => unreachable!(),
             }
@@ -228,19 +188,19 @@ impl<'d, T: Pin> Flex<'d, T> {
 
     #[inline]
     pub fn clear_interrupt(&mut self) {
-        let gpio = unsafe { &*pac::GPIO::PTR };
+        let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
         let n = self.pin.pin();
         // clear int_if, write 1 to clear
         match self.pin.port() {
             0 => unsafe {
-                gpio.pa_int_if.write(|w| w.bits(1 << n));
+                gpioctl.pa_int_if.write(|w| w.bits(1 << n));
             },
             1 if n >= 22 => unsafe {
                 // remap to PB[9:8]
-                gpio.pb_int_if.modify(|r, w| w.bits(r.bits() | (1 << (n - 14))));
+                gpioctl.pb_int_if.modify(|r, w| w.bits(r.bits() | (1 << (n - 14))));
             },
             1 => unsafe {
-                gpio.pb_int_if.write(|w| w.bits(1 << n));
+                gpioctl.pb_int_if.write(|w| w.bits(1 << n));
             },
             _ => unreachable!(),
         }
@@ -253,12 +213,8 @@ impl<'d, T: Pin> Flex<'d, T> {
 
     #[inline]
     pub fn is_low(&self) -> bool {
-        let gpio = unsafe { &*pac::GPIO::PTR };
-        match self.pin.port() {
-            0 => gpio.pa_pin.read().bits() & (1 << self.pin.pin()) == 0,
-            1 => gpio.pb_pin.read().bits() & (1 << self.pin.pin()) == 0,
-            _ => unreachable!(),
-        }
+        let rb = self.pin.block();
+        rb.pin.read().bits() & (1 << self.pin.pin()) == 0
     }
 
     #[inline]
@@ -274,13 +230,9 @@ impl<'d, T: Pin> Flex<'d, T> {
     /// Is the output pin set as low?
     #[inline]
     pub fn is_set_low(&self) -> bool {
-        let gpio = unsafe { &*pac::GPIO::PTR };
+        let rb = self.pin.block();
         let mask = 1 << self.pin.pin();
-        match self.pin.port() {
-            0 => gpio.pa_out.read().bits() & mask == 0,
-            1 => gpio.pb_out.read().bits() & mask == 0,
-            _ => unreachable!(),
-        }
+        rb.out.read().bits() & mask == 0
     }
 
     /// What level output is set to
@@ -503,105 +455,74 @@ pub(crate) mod sealed {
 
         #[inline]
         fn _pin(&self) -> u8 {
-            self.pin_port() % 32
+            // self.pin_port() % 32
+            self.pin_port() & 0x1f
         }
         #[inline]
         fn _port(&self) -> u8 {
-            self.pin_port() / 32
+            // self.pin_port() / 32
+            self.pin_port() >> 5
+        }
+
+        #[inline]
+        fn block(&self) -> &'static pac::gpioa::RegisterBlock {
+            match self._port() {
+                0 => unsafe { &*pac::GPIOA::PTR },
+                1 => unsafe { &*pac::GPIOB::PTR },
+                _ => unreachable!(),
+            }
         }
 
         /// Set the output as high.
         #[inline]
         fn set_high(&self) {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let rb = self.block();
             let n = self._pin();
-            match self._port() {
-                0 => unsafe {
-                    gpio.pa_out.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-                1 => unsafe {
-                    gpio.pb_out.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-                _ => unreachable!(),
-            }
+            rb.out.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
         }
 
         /// Set the output as low.
         #[inline]
         fn set_low(&self) {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let rb = self.block();
             let n = self._pin();
-            match self._port() {
-                0 => unsafe {
-                    gpio.pa_clr.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-                1 => unsafe {
-                    gpio.pb_clr.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-                _ => unreachable!(),
-            }
+            rb.clr.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
         }
 
         #[inline]
         fn set_as_analog(&self) {
             // GPIO_ModeIN_Floating
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let rb = self.block();
             let pin = self._pin() as usize;
-            match self._port() {
-                0 => unsafe {
-                    gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    gpio.pa_pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    gpio.pa_dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                },
-                1 => unsafe {
-                    gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    gpio.pb_pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                },
-                _ => unreachable!(),
+            unsafe {
+                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
             }
         }
 
         /// Set the pin as an input, for peripherals functions
         #[inline]
         fn set_as_output_with_drive_low(&self) {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let rb = self.block();
             let pin = self._pin() as usize;
-            match self._port() {
-                0 => unsafe {
-                    gpio.pa_dir.modify(|r, w| w.bits(r.bits() | (1 << pin)));
-                    gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                },
-                1 => unsafe {
-                    gpio.pb_dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                },
-                _ => unreachable!(),
+            unsafe {
+                rb.dir.modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
             }
         }
 
         #[inline]
         fn set_drive(&self, drive: OutputDrive) {
-            let gpio = unsafe { &*pac::GPIO::PTR };
+            let rb = self.block();
             let pin = self._pin() as usize;
-            match self._port() {
-                0 => match drive {
-                    OutputDrive::Low => unsafe {
-                        gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    },
-                    OutputDrive::High => unsafe {
-                        gpio.pa_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
-                    },
+            match drive {
+                OutputDrive::Low => unsafe {
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 },
-                1 => match drive {
-                    OutputDrive::Low => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                    },
-                    OutputDrive::High => unsafe {
-                        gpio.pb_pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
-                    },
+                OutputDrive::High => unsafe {
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 },
-                _ => unreachable!(),
             }
         }
     }

@@ -32,11 +32,6 @@ fn main() -> ! {
 
     let mut delay = SysTick::new(p.SYSTICK);
 
-    unsafe {
-        // prepare PA9, for uart tx
-        p.GPIO.pa_dir.modify(|_, w| w.pa_dir().bits((1 << 9)));
-    }
-
     let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::Low);
 
     let mut download_button = Input::new(p.PB22, Pull::Up);

@@ -295,8 +295,8 @@ macro_rules! impl_uart {
 
             /// Remap offset in R16_PIN_ALTERNATE
             fn set_remap(enable: bool) {
-                let sys = unsafe { &*pac::SYS::PTR };
-                sys.pin_alternate.modify(|_, w| w.$remap_field().bit(enable));
+                let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+                gpioctl.pin_alternate.modify(|_, w| w.$remap_field().bit(enable));
             }
         }
 
