@@ -6,6 +6,7 @@ use core::fmt::Write;
 use core::writeln;
 
 use embedded_hal_alpha::delay::DelayUs;
+use hal::adc::{adc_to_temperature_celsius, Adc};
 use hal::dma::NoDma;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
 use hal::interrupt::Interrupt;
@@ -57,48 +58,55 @@ fn main() -> ! {
     writeln!(serial, "mias: 0x{:08x?}", mias.bits());
 
     // ADC part
-    let adc = unsafe { &*pac::ADC::PTR };
-    adc.tem_sensor.modify(|_, w| w.tem_sen_pwr_on().set_bit());
-    adc.channel.modify(|_, w| w.ch_inx().variant(15));
+    let mut adc_config = hal::adc::Config::for_temperature();
+    let mut adc = Adc::new(p.ADC, adc_config);
 
-    // 00, 01, 02, 03
-    adc.cfg.modify(|_, w| {
-        w.power_on()
-            .set_bit()
-            .diff_en()
-            .set_bit() // must for temp
-            .clk_div()
-            .variant(0b00)
-            .buf_en()
-            .clear_bit()
-            .pga_gain()
-            .variant(0b11)
-    });
+    let mut temp_sensor = adc.enable_temperature();
 
     loop {
         blue_led.toggle();
 
         let now = rtc.now();
 
+        let raw_temp = adc.read(&mut temp_sensor);
+        writeln!(serial, "ADC raw data: {}", raw_temp).unwrap();
+        let temp = adc_to_temperature_celsius(raw_temp);
+        writeln!(serial, "sensor temp: {}C", temp).unwrap();
+
+        let vi = adc.read_as_millivolts(&mut temp_sensor);
+        writeln!(serial, "ADC voltage: {}mV", vi).unwrap();
+
+        /*
+
         // start adc convert
-        adc.convert.modify(|_, w| w.start().set_bit());
-        while adc.convert.read().start().bit_is_set() {} // wait for convert
+        let data = adc.read(&mut vbat_channel);
+        writeln!(serial, "adc raw data: {}", data).unwrap();
+        // avoid using soft-fp, about 20k flash increase
+        // let vref = 1.05;
+        // let vi = ((data as f32) / 4096.0 + 0.5) * vref;
+        let vref = 1050;
+        let vi = ((data as u32) * vref) / 4096 + 1050 / 2;
+        writeln!(serial, "Vbat voltage: {}mV", vi).unwrap();
 
-        let data = adc.data.read().data().bits();
-        // writeln!(serial, "adc raw data: {}", data,).unwrap();
-        let temp_celesius = hal::adc::adc_to_temperature_milli_celsius(data);
+        let vi = adc.read_as_millivolts(&mut vbat_channel);
+        writeln!(serial, "Vbat voltage: {}mV", vi).unwrap();
 
-        write!(
+        //let raw_temp = adc.read(&mut temp_sensor);
+        //writeln!(serial, "raw_temp: {}", raw_temp);
+        //let temp = adc_to_temperature_celsius(raw_temp);
+        //writeln!(serial, "sensor temp: {}C", temp).unwrap();
+        */
+
+        writeln!(
             serial,
-            "{}: download={} reset={} temp=",
+            "{}: download={} reset={}",
             now,
             // now.isoweekday(),
             download_button.is_low(),
             reset_button.is_low()
         )
         .unwrap();
-        writeln!(serial, "{}.{}C", temp_celesius / 1000, temp_celesius % 1000 / 100).unwrap();
 
-        delay.delay_ms(500);
+        delay.delay_ms(1000);
     }
 }

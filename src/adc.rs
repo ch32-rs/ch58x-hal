@@ -55,6 +55,14 @@ impl Config {
             diff_en: true,
         }
     }
+
+    pub fn for_vbat() -> Self {
+        Self {
+            clk: SamplingClock::_3_2MHz,
+            pga_gain: Gain::GAIN1_4,
+            diff_en: false,
+        }
+    }
 }
 
 pub struct Adc<'d, T: Instance> {
