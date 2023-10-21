@@ -5,7 +5,7 @@ use core::arch::{asm, global_asm};
 use core::fmt::Write;
 use core::writeln;
 
-use embedded_hal_alpha::delay::DelayUs;
+use embedded_hal_1::delay::DelayUs;
 use hal::adc::{adc_to_temperature_celsius, Adc};
 use hal::dma::NoDma;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};

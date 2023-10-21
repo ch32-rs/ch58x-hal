@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal_alpha::delay::DelayUs;
+use embedded_hal_1::delay::DelayUs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::peripherals;
 use hal::systick::SysTick;
