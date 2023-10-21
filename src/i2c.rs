@@ -59,9 +59,9 @@ impl Instance for peripherals::I2C {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub enum DutyCycle {
-    Ratio2to1 = 0,
-    Ratio16to9 = 1,
+pub enum Duty {
+    Duty2_1 = 0,
+    Duty16_9 = 1,
 }
 
 #[non_exhaustive]
@@ -70,7 +70,7 @@ pub struct Config {
     pub sda_pullup: bool,
     pub scl_pullup: bool,
     pub freq: Hertz,
-    pub duty_cycle: DutyCycle,
+    pub duty: Duty,
 }
 
 impl Default for Config {
@@ -78,8 +78,8 @@ impl Default for Config {
         Self {
             sda_pullup: false,
             scl_pullup: false,
-            freq: Hertz::from_raw(100_000),
-            duty_cycle: DutyCycle::Ratio2to1,
+            freq: Hertz::from_raw(100_000), // default slow
+            duty: Duty::Duty2_1,
         }
     }
 }
@@ -137,7 +137,7 @@ impl<'d, T: Instance> I2c<'d, T> {
             rb.ckcfgr.write(|w| w.ccr().variant(tmp as _));
         } else {
             // high speed, use duty cycle
-            let tmp = if config.duty_cycle == DutyCycle::Ratio2to1 {
+            let tmp = if config.duty == Duty::Duty2_1 {
                 (sysclk / (i2c_clk * 3)) & 0x0FFF
             } else {
                 (sysclk / (i2c_clk * 25)) & 0x0FFF
@@ -151,7 +151,7 @@ impl<'d, T: Instance> I2c<'d, T> {
                 w.f_s()
                     .set_bit()
                     .duty()
-                    .variant(config.duty_cycle as u8 != 0)
+                    .variant(config.duty as u8 != 0)
                     .ccr()
                     .variant(tmp as u16)
             });
@@ -397,6 +397,54 @@ impl<'d, T: Instance> Drop for I2c<'d, T> {
         T::regs().ctrl1.modify(|_, w| w.pe().clear_bit());
     }
 }
+
+mod eh1 {
+    use super::*;
+
+    impl embedded_hal_1::i2c::Error for Error {
+        fn kind(&self) -> embedded_hal_1::i2c::ErrorKind {
+            match *self {
+                Self::Bus => embedded_hal_1::i2c::ErrorKind::Bus,
+                Self::Arbitration => embedded_hal_1::i2c::ErrorKind::ArbitrationLoss,
+                Self::Nack => {
+                    embedded_hal_1::i2c::ErrorKind::NoAcknowledge(embedded_hal_1::i2c::NoAcknowledgeSource::Unknown)
+                }
+                Self::Timeout => embedded_hal_1::i2c::ErrorKind::Other,
+                Self::Crc => embedded_hal_1::i2c::ErrorKind::Other,
+                Self::Overrun => embedded_hal_1::i2c::ErrorKind::Overrun,
+                Self::ZeroLengthTransfer => embedded_hal_1::i2c::ErrorKind::Other,
+            }
+        }
+    }
+
+    impl<'d, T: Instance> embedded_hal_1::i2c::ErrorType for I2c<'d, T> {
+        type Error = Error;
+    }
+
+    impl<'d, T: Instance> embedded_hal_1::i2c::I2c for I2c<'d, T> {
+        fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
+            self.blocking_read(address, read)
+        }
+
+        fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+            self.blocking_write(address, write)
+        }
+
+        fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), Self::Error> {
+            self.blocking_write_read(address, write, read)
+        }
+
+        fn transaction(
+            &mut self,
+            _address: u8,
+            _operations: &mut [embedded_hal_1::i2c::Operation<'_>],
+        ) -> Result<(), Self::Error> {
+            todo!();
+        }
+    }
+}
+
+// - Pin config
 
 macro_rules! impl_pin {
     ($pin:ident, $instance:ident, $function:ident, $remap:expr) => {
