@@ -1,4 +1,8 @@
 //! SPI
+//!
+//! CH583 has SPI0 and SPI1, CH582/CH581 has SPI0 only.
+//! SPI0 supports DMA, SPI1 does not.
+//! SPI supports both master and slave mode.
 
 pub use embedded_hal_02::spi::{Mode, Phase, Polarity, MODE_0, MODE_1, MODE_2, MODE_3};
 

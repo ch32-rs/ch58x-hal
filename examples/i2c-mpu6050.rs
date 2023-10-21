@@ -343,7 +343,7 @@ fn main() -> ! {
 
     let mut i2c_config = i2c::Config::default();
 
-    i2c_config.freq = 400.kHz();
+    i2c_config.frequency = 400.kHz();
     let i2c = I2c::new(p.I2C, p.PB13, p.PB12, i2c_config);
 
     let mut mpu6050 = MPU6050::new(i2c, Config::default()).unwrap();

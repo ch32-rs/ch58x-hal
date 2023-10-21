@@ -69,7 +69,7 @@ pub enum Duty {
 pub struct Config {
     pub sda_pullup: bool,
     pub scl_pullup: bool,
-    pub freq: Hertz,
+    pub frequency: Hertz,
     pub duty: Duty,
 }
 
@@ -78,7 +78,7 @@ impl Default for Config {
         Self {
             sda_pullup: false,
             scl_pullup: false,
-            freq: Hertz::from_raw(100_000), // default slow
+            frequency: Hertz::from_raw(100_000), // default slow
             duty: Duty::Duty2_1,
         }
     }
@@ -121,13 +121,13 @@ impl<'d, T: Instance> I2c<'d, T> {
         // 60MHz is the max frequency
         let sysclk = crate::sysctl::clocks().hclk.to_Hz();
         let sysclk_mhz = crate::sysctl::clocks().hclk.to_MHz();
-        let i2c_clk = config.freq.to_Hz();
+        let i2c_clk = config.frequency.to_Hz();
 
         rb.ctrl2.modify(|_, w| w.freq().variant((sysclk / 1_000_000) as u8));
 
         rb.ctrl1.modify(|_, w| w.pe().clear_bit());
 
-        if config.freq.to_Hz() <= 100_000 {
+        if config.frequency.to_Hz() <= 100_000 {
             let tmp = (sysclk / (i2c_clk * 2)) & 0x0FFF;
             let tmp = u32::max(tmp, 0x04);
 
