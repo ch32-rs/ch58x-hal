@@ -2,7 +2,8 @@
 
 use core::fmt;
 
-use crate::{pac, with_safe_access};
+use crate::peripherals::RTC;
+use crate::{pac, with_safe_access, Peripheral};
 
 // avoid cross 100-year, which is complex to handle leap year
 const YEAR_OFFSET: u16 = 2020;
@@ -24,6 +25,10 @@ pub enum TimingMode {
 pub struct Rtc;
 
 impl Rtc {
+    pub fn new(_rtc: impl Peripheral<P = RTC>) -> Self {
+        // <RTC as crate::rcc::sealed::RccPeripheral>::enable();
+        Self {}
+    }
     pub fn timestamp_since_epoch(&self) -> u32 {
         let rtc = unsafe { &*pac::RTC::PTR };
 
@@ -171,9 +176,6 @@ fn days_in_month(month: u8, year: u16) -> u16 {
         _ => 0,
     }
 }
-
-#[derive(Copy, Clone, PartialEq)]
-pub struct RtcConfig {}
 
 /// Structure containing date and time information
 #[derive(Copy, Clone, PartialEq, Debug)]
