@@ -512,6 +512,28 @@ pub(crate) mod sealed {
             }
         }
 
+        // input floatingZF
+        #[inline]
+        fn set_as_input(&self) {
+            let rb = self.block();
+            let pin = self._pin() as usize;
+            unsafe {
+                rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+            }
+        }
+
+        #[inline]
+        fn set_pullup(&self) {
+            let rb = self.block();
+            let pin = self._pin() as usize;
+            unsafe {
+                rb.pu.modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+            }
+        }
+
         #[inline]
         fn set_drive(&self, drive: OutputDrive) {
             let rb = self.block();
