@@ -244,6 +244,7 @@ handle_reset:
     li t0, 0x3
     csrw 0x804, t0",
     // Set mpp=3, return to machine mode
+    // or use 0x88 to set mpp=0, return to user mode
     "
     li t0, 0x1888
     csrs mstatus, t0
