@@ -4,12 +4,12 @@
 use embedded_hal_1::delay::DelayUs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::i2c::{self, I2c};
+use hal::peripherals;
 use hal::prelude::*;
 // use hal::interrupt::Interrupt;
-use hal::rtc::{DateTime, Rtc};
+use hal::rtc::Rtc;
 use hal::systick::SysTick;
 use hal::uart::UartTx;
-use hal::{delay_ms, pac, peripherals, with_safe_access};
 use {ch58x_hal as hal, panic_halt as _};
 
 static mut SERIAL: Option<UartTx<peripherals::UART1>> = None;
@@ -244,12 +244,18 @@ impl<'d> MPU6050<'d> {
         Ok(gyro)
     }
 
-    pub fn read_temperture(&mut self) -> Result<f32, MPU6050Error> {
+    pub fn read_raw_temperture(&mut self) -> Result<i16, MPU6050Error> {
         let mut buf = [0u8; 2];
         self.i2c.blocking_write_read(self.addr, &[regs::TEMP_OUT_H], &mut buf)?;
         let temp_raw = ((buf[0] as u16) << 8) | buf[1] as u16;
-        let temp = (temp_raw as f32) / 340.0 + 36.53;
-        Ok(temp)
+        Ok(temp_raw as i16)
+    }
+
+    pub fn read_temperture_millis_cecius(&mut self) -> Result<i16, MPU6050Error> {
+        let temp_raw = self.read_raw_temperture()?;
+        //  raw / 340.0 + 36.53;
+        let temp = (temp_raw as i32) * 1000 / 340 + 36530;
+        Ok(temp as i16)
     }
 
     /// Calibrate gyro and accelerometers, load biases in bias registers
@@ -342,18 +348,21 @@ fn main() -> ! {
 
     let mut mpu6050 = MPU6050::new(i2c, Config::default()).unwrap();
 
-    let temp = mpu6050.read_temperture().unwrap();
-    println!("temp: {}", temp);
+    let temp = mpu6050.read_temperture_millis_cecius().unwrap();
+    println!("temp: {}.{:03}C", temp / 1000, temp % 1000);
+
+    // avoid soft-fp
+    //let temp = mpu6050.read_temperture().unwrap();
+    //println!("temp: {}", temp);
 
     loop {
         led.toggle();
-        println!("tick");
 
         let accel = mpu6050.read_accel().unwrap();
         println!("accel: {:?}", accel);
         let gyro = mpu6050.read_gyro().unwrap();
         println!("gyro: {:?}", gyro);
 
-        delay.delay_ms(1000);
+        delay.delay_ms(500);
     }
 }
