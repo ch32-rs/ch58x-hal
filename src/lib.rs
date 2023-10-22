@@ -164,6 +164,14 @@ pub fn init(config: Config) -> Peripherals {
     Peripherals::take()
 }
 
+pub unsafe fn reset() -> ! {
+    const KEY3: u16 = 0xBEEF;
+    let pfic = unsafe { &*pac::PFIC::PTR };
+
+    pfic.cfgr.write(|w| w.keycode().variant(KEY3).resetsys().set_bit());
+    loop {}
+}
+
 // pin trait
 
 macro_rules! pin_trait_impl {
