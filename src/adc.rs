@@ -1,8 +1,6 @@
 use core::ptr;
 
-use crate::gpio::AnyPin;
-use crate::peripherals::{self, ADC_TEMP_SENSOR, ADC_VBAT_SENSOR};
-use crate::{into_ref, pac, Peripheral, PeripheralRef};
+use crate::{into_ref, pac, peripherals, Peripheral};
 
 const ROM_CFG_TMP_25C: *const u32 = 0x7F014 as *const u32;
 

@@ -28,7 +28,6 @@ pub enum Error {
 }
 
 pub(crate) mod sealed {
-    use super::*;
     pub trait Instance {
         fn regs() -> &'static crate::pac::i2c::RegisterBlock;
         // fn state() -> &'static State;

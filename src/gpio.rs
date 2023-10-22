@@ -139,7 +139,6 @@ impl<'d, T: Pin> Flex<'d, T> {
                 1 => unsafe {
                     if n >= 22 {
                         n -= 14;
-                        let sys = &*pac::SYS::PTR;
                         gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
                     }
 
@@ -175,7 +174,6 @@ impl<'d, T: Pin> Flex<'d, T> {
                 1 => unsafe {
                     if n >= 22 {
                         n -= 14;
-                        let sys = &*pac::SYS::PTR;
                         gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
                     }
                     gpioctl.pb_int_if.write(|w| w.bits(1 << n));
@@ -608,6 +606,118 @@ pub enum InterruptTrigger {
     HighLevel,
     RaisingEdge,
     FallingEdge,
+}
+
+mod eh02 {
+    use core::convert::Infallible;
+
+    use embedded_hal_02::digital::v2::{InputPin, OutputPin, StatefulOutputPin, ToggleableOutputPin};
+
+    use super::*;
+
+    impl<'d, T: Pin> InputPin for Input<'d, T> {
+        type Error = Infallible;
+
+        #[inline]
+        fn is_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_high())
+        }
+
+        #[inline]
+        fn is_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_low())
+        }
+    }
+
+    impl<'d, T: Pin> OutputPin for Output<'d, T> {
+        type Error = Infallible;
+
+        #[inline]
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            self.set_high();
+            Ok(())
+        }
+
+        #[inline]
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            self.set_low();
+            Ok(())
+        }
+    }
+
+    impl<'d, T: Pin> StatefulOutputPin for Output<'d, T> {
+        #[inline]
+        fn is_set_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_high())
+        }
+
+        /// Is the output pin set as low?
+        #[inline]
+        fn is_set_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_low())
+        }
+    }
+
+    impl<'d, T: Pin> ToggleableOutputPin for Output<'d, T> {
+        type Error = Infallible;
+        #[inline]
+        fn toggle(&mut self) -> Result<(), Self::Error> {
+            self.toggle();
+            Ok(())
+        }
+    }
+
+    impl<'d, T: Pin> InputPin for Flex<'d, T> {
+        type Error = Infallible;
+
+        #[inline]
+        fn is_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_high())
+        }
+
+        #[inline]
+        fn is_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_low())
+        }
+    }
+
+    impl<'d, T: Pin> OutputPin for Flex<'d, T> {
+        type Error = Infallible;
+
+        #[inline]
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            self.set_high();
+            Ok(())
+        }
+
+        #[inline]
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            self.set_low();
+            Ok(())
+        }
+    }
+
+    impl<'d, T: Pin> StatefulOutputPin for Flex<'d, T> {
+        #[inline]
+        fn is_set_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_high())
+        }
+
+        /// Is the output pin set as low?
+        #[inline]
+        fn is_set_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_low())
+        }
+    }
+
+    impl<'d, T: Pin> ToggleableOutputPin for Flex<'d, T> {
+        type Error = Infallible;
+        #[inline]
+        fn toggle(&mut self) -> Result<(), Self::Error> {
+            self.toggle();
+            Ok(())
+        }
+    }
 }
 
 macro_rules! foreach_pin {

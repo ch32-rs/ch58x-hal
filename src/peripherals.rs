@@ -8,7 +8,10 @@ crate::peripherals! {
     UART1 <= UART1,
     UART2 <= UART2,
     UART3 <= UART3,
+
     SPI0 <= SPI0,
+    // SPI1 is only avalible to CH583
+
     I2C <= I2C,
     RTC <= RTC,
     GPIO <= virtual,
@@ -22,8 +25,8 @@ crate::peripherals! {
     BLE <= virtual,
     PWMX <= PWMX,
 
-    ADC_TEMP_SENSOR <= virtual,
-    ADC_VBAT_SENSOR <= virtual,
+    // ADC_TEMP_SENSOR <= virtual,
+    // ADC_VBAT_SENSOR <= virtual,
 
     PA7 <= virtual,
     PA8 <= virtual,
