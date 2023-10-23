@@ -15,18 +15,19 @@ crate::peripherals! {
     I2C <= I2C,
     RTC <= RTC,
     GPIO <= virtual,
+
     ADC <= ADC,
+    TKEY <= virtual,
+
     USB <= USB,
+
     TMR0 <= TMR0,
     TMR1 <= TMR1,
     TMR2 <= TMR2,
     TMR3 <= TMR3,
-    TKEY <= virtual,
-    BLE <= virtual,
     PWMX <= PWMX,
 
-    // ADC_TEMP_SENSOR <= virtual,
-    // ADC_VBAT_SENSOR <= virtual,
+    BLE <= virtual,
 
     PA7 <= virtual,
     PA8 <= virtual,
