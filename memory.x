@@ -1,10 +1,10 @@
-/* CH98X */
+/* CH58x */
 MEMORY
 {
     /* Code Flash, 448KB max */
   FLASH(rx) : ORIGIN = 0x00000000, LENGTH = 448k
     /* SRAM, 32KB */
-    /* 0x20007FFF */
+    /* up to 0x20007FFF */
   RAM(rwx) : ORIGIN = 0x20000000, LENGTH = 32k
 }
 
