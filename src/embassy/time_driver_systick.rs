@@ -1,6 +1,5 @@
 //! SysTick-based time driver.
 
-use core::arch::global_asm;
 use core::cell::Cell;
 use core::sync::atomic::{AtomicU32, AtomicU8, Ordering};
 use core::{mem, ptr};
@@ -154,10 +153,9 @@ impl Driver for SystickDriver {
                 return false;
             }
 
-            let safe_timestamp = (timestamp + 3) * (self.period.load(Ordering::Relaxed) as u64);
+            let safe_timestamp = (timestamp + 1) * (self.period.load(Ordering::Relaxed) as u64);
 
             rb.cmp.write(|w| unsafe { w.bits(safe_timestamp) });
-
             rb.ctlr.modify(|_, w| w.stie().set_bit());
 
             true
@@ -165,7 +163,7 @@ impl Driver for SystickDriver {
     }
 }
 
-global_asm!(
+core::arch::global_asm!(
     r#"
     .section .trap, "ax"
     .global SysTick
