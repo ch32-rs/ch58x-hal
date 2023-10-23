@@ -6,7 +6,7 @@
 
 pub use embedded_hal_02::spi::{Mode, Polarity, MODE_0, MODE_3};
 
-use crate::gpio::AnyPin;
+use crate::gpio::{AnyPin, OutputDrive};
 use crate::prelude::Hertz;
 use crate::{into_ref, peripherals, Peripheral, PeripheralRef};
 
@@ -71,8 +71,8 @@ impl<'d, T: Instance> Spi<'d, T> {
         } else {
             sck.set_high();
         }
-        sck.set_as_output_with_drive_low();
-        mosi.set_as_output_with_drive_low();
+        sck.set_as_output(OutputDrive::Standard);
+        mosi.set_as_output(OutputDrive::Standard);
         miso.set_as_input();
 
         Self::new_inner(
@@ -97,7 +97,7 @@ impl<'d, T: Instance> Spi<'d, T> {
         } else {
             sck.set_high();
         }
-        sck.set_as_output_with_drive_low();
+        sck.set_as_output(OutputDrive::Standard);
         miso.set_as_input();
 
         todo!()
@@ -117,8 +117,8 @@ impl<'d, T: Instance> Spi<'d, T> {
         } else {
             sck.set_high();
         }
-        sck.set_as_output_with_drive_low();
-        mosi.set_as_output_with_drive_low();
+        sck.set_as_output(OutputDrive::Standard);
+        mosi.set_as_output(OutputDrive::Standard);
 
         if REMAP {
             T::set_remap();
@@ -133,7 +133,7 @@ impl<'d, T: Instance> Spi<'d, T> {
     ) -> Self {
         into_ref!(mosi);
 
-        mosi.set_as_output_with_drive_low();
+        mosi.set_as_output(OutputDrive::Standard);
 
         Self::new_inner(peri, None, Some(mosi.map_into()), None, config)
     }

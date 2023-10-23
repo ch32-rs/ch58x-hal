@@ -85,14 +85,13 @@ impl<'d, T: Pin> Flex<'d, T> {
         critical_section::with(|_| {
             let rb = self.pin.block();
             let n = self.pin.pin();
+            rb.dir.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
             match drive {
-                OutputDrive::Low => unsafe {
+                OutputDrive::Standard => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    rb.dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
                 },
-                OutputDrive::High => unsafe {
+                OutputDrive::HighDrive => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    rb.dir.modify(|r, w| w.bits(r.bits() | (1 << n)));
                 },
             }
         });
@@ -281,13 +280,14 @@ pub enum Pull {
 }
 
 /// Drive current settings for PushPull outputs.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum OutputDrive {
     // The drive current is 5mA
-    Low,
+    #[default]
+    Standard = 0,
     // The drive current is 20mA
-    High,
+    HighDrive = 1,
 }
 
 /// GPIO input driver.
@@ -500,13 +500,18 @@ pub(crate) mod sealed {
         }
 
         /// Set the pin as an input, for peripherals functions
+        /// Default using standard drive, 5mA
         #[inline]
-        fn set_as_output_with_drive_low(&self) {
+        fn set_as_output(&self, drive: OutputDrive) {
             let rb = self.block();
             let pin = self._pin() as usize;
             unsafe {
                 rb.dir.modify(|r, w| w.bits(r.bits() | (1 << pin)));
-                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                if drive == OutputDrive::HighDrive {
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                } else {
+                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                }
             }
         }
 
@@ -537,10 +542,10 @@ pub(crate) mod sealed {
             let rb = self.block();
             let pin = self._pin() as usize;
             match drive {
-                OutputDrive::Low => unsafe {
+                OutputDrive::Standard => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 },
-                OutputDrive::High => unsafe {
+                OutputDrive::HighDrive => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 },
             }

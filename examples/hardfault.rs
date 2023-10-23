@@ -48,7 +48,7 @@ extern "C" fn RTC_IRQHandler() {
 #[export_name = "HardFault"]
 extern "C" fn HardFault_IRQHandler() {
     let pa8 = unsafe { hal::peripherals::PA8::steal() };
-    let mut led = Output::new(pa8, Level::Low, OutputDrive::High);
+    let mut led = Output::new(pa8, Level::Low, OutputDrive::HighDrive);
 
     let short = hal::sysctl::clocks().hclk.to_Hz() / 256;
     let long = hal::sysctl::clocks().hclk.to_Hz() / 32;
@@ -90,7 +90,7 @@ extern "C" fn main() -> ! {
         p.GPIO.pa_dir.modify(|_, w| w.pa_dir().bits((1 << 9)));
     }
 
-    let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::Low);
+    let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
 
     let mut download_button = Input::new(p.PB22, Pull::Up);
     let mut reset_button = Input::new(p.PB23, Pull::Up);

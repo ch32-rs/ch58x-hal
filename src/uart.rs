@@ -2,7 +2,7 @@
 
 use core::marker::PhantomData;
 
-use crate::{into_ref, pac, peripherals, Peripheral};
+use crate::{into_ref, pac, peripherals, Peripheral, gpio::OutputDrive};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Parity {
@@ -111,7 +111,7 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
         into_ref!(_peri, tx);
 
         // set up pin
-        tx.set_as_output_with_drive_low();
+        tx.set_as_output(OutputDrive::Standard);
         T::set_remap(tx.is_remap());
 
         // set up uart

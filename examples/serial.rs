@@ -29,7 +29,7 @@ fn main() -> ! {
     let mut delay = SysTick::new(p.SYSTICK);
 
     // LED PA8
-    let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::Low);
+    let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
 
     let mut serial = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
     //let mut serial = UartTx::new(p.UART3, p.PA5, Default::default()).unwrap();

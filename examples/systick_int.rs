@@ -40,7 +40,7 @@ fn main() -> ! {
     let p = hal::init(config);
 
     // GPIO
-    let mut led = Output::new(p.PA8, Level::Low, OutputDrive::Low);
+    let mut led = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
     let download_button = Input::new(p.PB22, Pull::Up);
     let reset_button = Input::new(p.PB23, Pull::Up);
 
