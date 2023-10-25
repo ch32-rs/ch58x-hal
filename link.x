@@ -54,8 +54,6 @@ SECTIONS
     {
         . = ALIGN(4);
         __vector_base = .;
-        /* KEEP(*(.vector));  keep vector table */
-        /* *(.vector);*/
         KEEP(*(.vector_table.interrupts));
         . = ALIGN(4);
     } >FLASH AT>FLASH
@@ -64,9 +62,19 @@ SECTIONS
     {
         . = ALIGN(4);
         KEEP(*(SORT_NONE(.handle_reset)))
-        KEEP(*(SORT_NONE(.trap)))
         *(.text .text.*)
     } >FLASH AT>FLASH
+
+    .highcode : ALIGN(4)
+    {
+        _highcode_lma = LOADADDR(.highcode);
+        PROVIDE(_highcode_vma_start = .);
+        KEEP(*(SORT_NONE(.trap))) /* All trap handlers */
+        *(.highcode);
+        *(.highcode.*);
+		. = ALIGN(4);
+        PROVIDE(_highcode_vma_end = .);
+    } >RAM AT>FLASH
 
     .rodata : ALIGN(4)
     {

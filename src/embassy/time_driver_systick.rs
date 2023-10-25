@@ -56,7 +56,7 @@ impl SystickDriver {
 
         self.period.store(cnt_per_tick as u32, Ordering::Relaxed);
 
-        // Avoid initial interrupt, this is undocumented in datasheet
+        // UNDOCUMENTED:  Avoid initial interrupt
         rb.cmp.write(|w| unsafe { w.bits(u64::MAX) });
         critical_section::with(|_| {
             rb.sr.write(|w| w.cntif().bit(false)); // clear
@@ -179,6 +179,7 @@ core::arch::global_asm!(
 
 #[allow(non_snake_case)]
 #[export_name = "_rust_SysTick"]
+#[link_section = ".trap"]
 extern "C" fn SysTick_IRQHandler() {
     DRIVER.on_interrupt();
 }
