@@ -65,12 +65,22 @@ fn main() -> ! {
     let s = hal::isp::get_user_option();
     println!("User Option: {:02x?}", s);
 
+    // Refer: wchisp
     if s & 0x08 != 0 {
         println!("-- Reset Enable");
     } else {
         println!("-- Reset Disable");
     }
-    let s = (!(s << 24)) & 0xFF000000;
+    if s & (1 << 4) != 0 {
+        println!("-- DEBUG Enable");
+    } else {
+        println!("-- DEBUG Disable");
+    }
+    if s & (1 << 7) != 0 {
+        println!("-- SPI Flash read Enable");
+    } else {
+        println!("-- SPI Flash read Disable");
+    }
 
     loop {
         led.toggle();
