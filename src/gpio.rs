@@ -491,7 +491,7 @@ pub(crate) mod sealed {
         fn set_as_analog(&self) {
             // GPIO_ModeIN_Floating
             let rb = self.block();
-            let pin = self._pin() as usize;
+            let pin = self._pin();
             unsafe {
                 rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
@@ -504,14 +504,14 @@ pub(crate) mod sealed {
         #[inline]
         fn set_as_output(&self, drive: OutputDrive) {
             let rb = self.block();
-            let pin = self._pin() as usize;
+            let pin = self._pin();
             unsafe {
-                rb.dir.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 if drive == OutputDrive::HighDrive {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 } else {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 }
+                rb.dir.modify(|r, w| w.bits(r.bits() | (1 << pin)));
             }
         }
 
@@ -519,7 +519,7 @@ pub(crate) mod sealed {
         #[inline]
         fn set_as_input(&self) {
             let rb = self.block();
-            let pin = self._pin() as usize;
+            let pin = self._pin();
             unsafe {
                 rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
@@ -530,7 +530,7 @@ pub(crate) mod sealed {
         #[inline]
         fn set_pullup(&self) {
             let rb = self.block();
-            let pin = self._pin() as usize;
+            let pin = self._pin();
             unsafe {
                 rb.pu.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
@@ -540,7 +540,7 @@ pub(crate) mod sealed {
         #[inline]
         fn set_drive(&self, drive: OutputDrive) {
             let rb = self.block();
-            let pin = self._pin() as usize;
+            let pin = self._pin();
             match drive {
                 OutputDrive::Standard => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
@@ -747,16 +747,26 @@ macro_rules! foreach_pin {
         __foreach_pin_inner!((PA13,GPIOA,0,13));
         __foreach_pin_inner!((PA14,GPIOA,0,14));
         __foreach_pin_inner!((PA15,GPIOA,0,15));
+
         __foreach_pin_inner!((PB0,GPIOB,1,0));
+        __foreach_pin_inner!((PB1,GPIOB,1,1));
+        __foreach_pin_inner!((PB2,GPIOB,1,2));
+        __foreach_pin_inner!((PB3,GPIOB,1,3));
         __foreach_pin_inner!((PB4,GPIOB,1,4));
+        __foreach_pin_inner!((PB5,GPIOB,1,5));
         __foreach_pin_inner!((PB6,GPIOB,1,6));
         __foreach_pin_inner!((PB7,GPIOB,1,7));
+        __foreach_pin_inner!((PB8,GPIOB,1,8));
+        __foreach_pin_inner!((PB9,GPIOB,1,9));
         __foreach_pin_inner!((PB10,GPIOB,1,10));
         __foreach_pin_inner!((PB11,GPIOB,1,11));
         __foreach_pin_inner!((PB12,GPIOB,1,12));
         __foreach_pin_inner!((PB13,GPIOB,1,13));
         __foreach_pin_inner!((PB14,GPIOB,1,14));
         __foreach_pin_inner!((PB15,GPIOB,1,15));
+        __foreach_pin_inner!((PB16,GPIOB,1,16));
+        __foreach_pin_inner!((PB18,GPIOB,1,18));
+        __foreach_pin_inner!((PB19,GPIOB,1,19));
         __foreach_pin_inner!((PB20,GPIOB,1,20));
         __foreach_pin_inner!((PB21,GPIOB,1,21));
         __foreach_pin_inner!((PB22,GPIOB,1,22));

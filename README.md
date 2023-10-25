@@ -17,11 +17,15 @@ This should be the reference hal implementation for CH57x, CH58x, CH59x.
 - SysTick
 - I2C
 - ADC
-- [ ] SPI, not working, help-wanted
+- SPI, partially
 
 ## Usage
 
 Refer `Cargo.toml` and `examples` directory.
+
+## Notes
+
+- `UNDOCUMENTED:` tags in code comments means the information is not from official documents.
 
 ## References
 

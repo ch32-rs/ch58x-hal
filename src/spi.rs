@@ -2,7 +2,7 @@
 //!
 //! CH583 has SPI0 and SPI1, CH582/CH581 has SPI0 only.
 //! SPI0 supports DMA, SPI1 does not.
-//! SPI supports both master and slave mode.
+//! SPI0 supports both master and slave mode.
 
 pub use embedded_hal_02::spi::{Mode, Polarity, MODE_0, MODE_3};
 
@@ -75,6 +75,10 @@ impl<'d, T: Instance> Spi<'d, T> {
         mosi.set_as_output(OutputDrive::Standard);
         miso.set_as_input();
 
+        if REMAP {
+            T::set_remap();
+        }
+
         Self::new_inner(
             peri,
             Some(sck.map_into()),
@@ -100,7 +104,11 @@ impl<'d, T: Instance> Spi<'d, T> {
         sck.set_as_output(OutputDrive::Standard);
         miso.set_as_input();
 
-        todo!()
+        if REMAP {
+            T::set_remap();
+        }
+
+        Self::new_inner(peri, Some(sck.map_into()), None, Some(miso.map_into()), config)
     }
 
     pub fn new_txonly<const REMAP: bool>(
@@ -135,6 +143,10 @@ impl<'d, T: Instance> Spi<'d, T> {
 
         mosi.set_as_output(OutputDrive::Standard);
 
+        if REMAP {
+            T::set_remap();
+        }
+
         Self::new_inner(peri, None, Some(mosi.map_into()), None, config)
     }
 
@@ -148,10 +160,10 @@ impl<'d, T: Instance> Spi<'d, T> {
         into_ref!(peri);
 
         // TODO
-        if false {
-            let sys = unsafe { &*crate::pac::SYS::PTR };
-            sys.slp_clk_off1.modify(|_, w| w.slp_clk_spi0().clear_bit());
-        }
+        //    if false {
+        //      let sys = unsafe { &*crate::pac::SYS::PTR };
+        //     sys.slp_clk_off1.modify(|_, w| w.slp_clk_spi0().clear_bit());
+        //}
 
         // set clock div
         let sysclk = crate::sysctl::clocks().hclk.to_Hz();
@@ -162,10 +174,26 @@ impl<'d, T: Instance> Spi<'d, T> {
             T::regs().ctrl_cfg.modify(|_, w| w.mst_dly_en().set_bit());
         }
         T::regs().clock_div().write(|w| w.clock_div().variant(fdiv));
-        T::regs().clock_div().write(|w| w.clock_div().variant(4));
 
         // FIFO/Counter/IF clear
         T::regs().ctrl_mod.write(|w| w.all_clear().set_bit());
+
+        // enable output
+        T::regs().ctrl_mod.write(|w| {
+            // UNDOCUMENTED: ALL_CLEAR must be cleared when setting OE
+            w.all_clear()
+                .clear_bit()
+                .mosi_oe()
+                .bit(mosi.is_some())
+                .miso_oe()
+                .bit(miso.is_some())
+                .sck_oe()
+                .bit(sck.is_some())
+        });
+
+        T::regs()
+            .ctrl_cfg
+            .modify(|_, w| w.auto_if().set_bit().dma_enable().clear_bit());
 
         // mode 0 or mode 3
         match config.clock_polarity {
@@ -178,19 +206,6 @@ impl<'d, T: Instance> Spi<'d, T> {
             BitOrder::MsbFirst => T::regs().ctrl_cfg.modify(|_, w| w.bit_order().clear_bit()), // default
             BitOrder::LsbFirst => T::regs().ctrl_cfg.modify(|_, w| w.bit_order().set_bit()),
         }
-
-        // enable output
-        T::regs().ctrl_mod.write(|w| {
-            w.mosi_oe()
-                .bit(mosi.is_some())
-                .miso_oe()
-                .bit(miso.is_some())
-                .sck_oe()
-                .bit(sck.is_some())
-        });
-        T::regs()
-            .ctrl_cfg
-            .modify(|_, w| w.auto_if().set_bit().dma_enable().clear_bit());
 
         Self {
             _peri: peri,
@@ -297,8 +312,8 @@ impl sealed::Instance for peripherals::SPI0 {
 }
 impl Instance for peripherals::SPI0 {}
 // All pins require REMAP to be the same
-pub trait SckPin<T: Instance, const REMAP: bool>: crate::gpio::Pin {}
 pub trait CsPin<T: Instance, const REMAP: bool>: crate::gpio::Pin {}
+pub trait SckPin<T: Instance, const REMAP: bool>: crate::gpio::Pin {}
 pub trait MosiPin<T: Instance, const REMAP: bool>: crate::gpio::Pin {}
 pub trait MisoPin<T: Instance, const REMAP: bool>: crate::gpio::Pin {}
 
@@ -310,13 +325,13 @@ macro_rules! impl_pin {
     };
 }
 
-impl_pin!(PA12, SPI0, SckPin, false);
-impl_pin!(PA13, SPI0, CsPin, false);
+impl_pin!(PA12, SPI0, CsPin, false);
+impl_pin!(PA13, SPI0, SckPin, false);
 impl_pin!(PA14, SPI0, MosiPin, false);
 impl_pin!(PA15, SPI0, MisoPin, false);
 
-impl_pin!(PB12, SPI0, SckPin, true);
-impl_pin!(PB13, SPI0, CsPin, true);
+impl_pin!(PB12, SPI0, CsPin, true);
+impl_pin!(PB13, SPI0, SckPin, true);
 impl_pin!(PB14, SPI0, MosiPin, true);
 impl_pin!(PB15, SPI0, MisoPin, true);
 
