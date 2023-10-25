@@ -3,6 +3,7 @@
 //! CH583 has SPI0 and SPI1, CH582/CH581 has SPI0 only.
 //! SPI0 supports DMA, SPI1 does not.
 //! SPI0 supports both master and slave mode.
+//! The max clock speed is hclk/2.
 
 pub use embedded_hal_02::spi::{Mode, Polarity, MODE_0, MODE_3};
 
@@ -30,7 +31,6 @@ pub enum BitOrder {
 #[non_exhaustive]
 #[derive(Copy, Clone)]
 pub struct Config {
-    // pub mode: Mode,
     // No phrase support
     /// Clock polarity
     pub clock_polarity: Polarity,
