@@ -81,6 +81,11 @@ impl Config {
         self
     }
 
+    pub fn use_pll_20mhz(&mut self) -> &mut Self {
+        self.mux = ClockSrc::PLL(24);
+        self
+    }
+
     pub fn enable_lse(&mut self) -> &mut Self {
         self.clock32ksrc = Clock32KSrc::LSE;
         self
