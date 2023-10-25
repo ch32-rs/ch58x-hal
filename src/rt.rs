@@ -126,7 +126,8 @@ pub static __INTERRUPTS: [Vector; 36] = [
     },
     // 3: Hard Fault Interrupt.
     Vector { handler: HardFault },
-    Vector { reserved: 0 }, // magic value from official SDK
+    // UNDOCUMENTED: magic value from official SDK, used for tracking user option modification
+    Vector { reserved: 0xF5F9BDA9 },
     // 5: ECALL-M
     Vector { handler: EcallM },
     Vector { reserved: 0 },

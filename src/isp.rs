@@ -72,7 +72,6 @@ extern "C" {
 }
 
 /// get 64 bit unique ID
-// FIXME: reads all zeros
 pub fn get_unique_id() -> [u8; 8] {
     let mut id = [0u8; 8];
     unsafe {
@@ -81,6 +80,7 @@ pub fn get_unique_id() -> [u8; 8] {
     id
 }
 
+/// get 6 bytes MAC address
 pub fn get_mac_address() -> [u8; 6] {
     let mut mac = [0u8; 6];
     unsafe {
@@ -89,12 +89,11 @@ pub fn get_mac_address() -> [u8; 6] {
     mac
 }
 
-pub fn get_boot_info() -> [u8; 12] {
-    let mut boot_info = [0u8; 12];
-    let mut aligned_boot_info = boot_info.as_ptr() as usize / 4 * 4;
-    let new_boot_info = aligned_boot_info as *mut u8;
+/// get 8 bytes BOOT information
+pub fn get_boot_info() -> [u8; 8] {
+    let mut boot_info = [0u8; 8];
     unsafe {
-        FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, ROM_CFG_BOOT_INFO, new_boot_info, 0);
+        FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, ROM_CFG_BOOT_INFO, boot_info.as_mut_ptr(), 0);
     }
     boot_info
 }
@@ -114,12 +113,59 @@ pub fn eeprom_write(start_addr: u32, buf: &[u8]) -> u32 {
     unsafe { FLASH_EEPROM_CMD(RomCmd::EepromWrite as u8, start_addr, buf.as_ptr(), buf.len() as _) }
 }
 
-/*
-pub fn read_flash_rom(start_addr: u32, len: u32) -> &'static [u8] {
+pub unsafe fn flash_power_down() {
+    FLASH_EEPROM_CMD(RomCmd::FlashRomPwrDown as u8, 0, ptr::null_mut(), 0);
+}
+pub unsafe fn flash_power_up() {
+    FLASH_EEPROM_CMD(RomCmd::FlashRomPwrUp as u8, 0, ptr::null_mut(), 0);
+}
+
+pub fn flash_rom_write(start_addr: u32, buf: &[u8]) -> bool {
+    unsafe { FLASH_EEPROM_CMD(RomCmd::FlashRomWrite as u8, start_addr, buf.as_ptr(), buf.len() as _) != 0 }
+}
+
+pub fn flash_rom_erase(start_addr: u32, len: u32) -> bool {
+    unsafe { FLASH_EEPROM_CMD(RomCmd::FlashRomErase as u8, start_addr, ptr::null_mut(), len) != 0 }
+}
+
+pub fn flash_rom_verify(start_addr: u32, buf: &mut [u8]) -> bool {
     unsafe {
-        FLASH_EEPROM_CMD(RomCmd::FlashRomVerify
-             as u8, start_addr, TEST_BUF.as_mut_ptr(), len);
-        &TEST_BUF[..len as usize]
+        FLASH_EEPROM_CMD(
+            RomCmd::FlashRomVerify as u8,
+            start_addr,
+            buf.as_mut_ptr(),
+            buf.len() as _,
+        ) != 0
     }
 }
-*/
+
+pub fn flash_rom_read(start_addr: u32, buf: &mut [u8]) {
+    let addr = start_addr as *mut u32;
+    for i in 0..buf.len() {
+        unsafe {
+            *buf.get_unchecked_mut(i) = *addr.add(i) as u8;
+        }
+    }
+}
+
+/// software reset FlashROM
+pub fn flash_rom_reset() {
+    unsafe {
+        FLASH_EEPROM_CMD(RomCmd::FlashRomSwReset as u8, 0, ptr::null_mut(), 0);
+    }
+}
+
+pub fn flash_rom_start_io() {
+    unsafe {
+        FLASH_EEPROM_CMD(RomCmd::FlashRomStartIo as u8, 0, ptr::null_mut(), 0);
+    }
+}
+
+/// Read user option
+pub fn get_user_option() -> u32 {
+    let mut opt = [0u8; 4];
+    unsafe {
+        FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, 0x7EFFC, opt.as_mut_ptr(), 4);
+    }
+    u32::from_le_bytes(opt)
+}

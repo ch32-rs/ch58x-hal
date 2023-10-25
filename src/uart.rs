@@ -2,7 +2,8 @@
 
 use core::marker::PhantomData;
 
-use crate::{into_ref, pac, peripherals, Peripheral, gpio::OutputDrive};
+use crate::gpio::OutputDrive;
+use crate::{into_ref, pac, peripherals, Peripheral};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Parity {
