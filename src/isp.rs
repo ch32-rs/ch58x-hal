@@ -161,11 +161,60 @@ pub fn flash_rom_start_io() {
     }
 }
 
-/// Read user option
-pub fn get_user_option() -> u32 {
+/// Read user option.
+/// UNDOCUMENTED: 10 bits for user option. 14 bits for flash protect setting
+pub fn get_raw_user_option() -> u32 {
     let mut opt = [0u8; 4];
     unsafe {
         FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, 0x7EFFC, opt.as_mut_ptr(), 4);
     }
     u32::from_le_bytes(opt)
 }
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct UserOption {
+    pub reset_enable: bool,
+    pub debug_enable: bool,
+    pub flash_rom_read_enable: bool,
+    // CAUTION: very unsafe, which might brick the chip(disable further ISP)
+    pub bootloader_enable: bool,
+    pub boot_pin_enable: bool,
+    pub uart_no_key_download_enbale: bool,
+    pub flash_protect_enable: bool,
+    pub flash_protect_mask: u16,
+}
+
+pub fn get_user_option() -> Option<UserOption> {
+    let mut opt = [0u8; 4];
+    let ret = unsafe { FLASH_EEPROM_CMD(RomCmd::GetRomInfo as u8, 0x7EFFC, opt.as_mut_ptr(), 4) };
+    if ret == 0 {
+        let reset_enable = opt[0] & (1 << 3) != 0;
+        let debug_enable = opt[0] & (1 << 4) != 0;
+        let bootloader_enable = opt[0] & (1 << 6) != 0;
+        let flash_rom_read_enable = opt[0] & (1 << 7) != 0;
+
+        let uart_no_key_download_enbale = opt[1] & 1 != 0;
+        let boot_pin_enable = opt[1] & (1 << 1) != 0;
+
+        let s = u32::from_le_bytes(opt);
+
+        let flash_protect_enable = s & (5 << 20) != 0;
+        let flash_protect_mask = ((s >> 10) & 0x3fff) as u16;
+
+        Some(UserOption {
+            reset_enable,
+            debug_enable,
+            bootloader_enable,
+            flash_rom_read_enable,
+            uart_no_key_download_enbale,
+            boot_pin_enable,
+            flash_protect_enable,
+            flash_protect_mask,
+        })
+    } else {
+        None
+    }
+}
+
+// very unsafe, which might brick the chip
+// pub unsafe set_user_option(opt: u32) { }
