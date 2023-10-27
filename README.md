@@ -30,3 +30,4 @@ Refer `Cargo.toml` and `examples` directory.
 ## References
 
 - [Slappy2022/ch58x-hal](https://github.com/Slappy2022/ch58x-hal)
+- [Slappy2022/ch58x-ble-rt](https://github.com/Slappy2022/ch58x-ble-rt)

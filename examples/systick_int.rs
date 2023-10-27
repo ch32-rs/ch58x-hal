@@ -103,23 +103,8 @@ fn main() -> ! {
     }
 }
 
-core::arch::global_asm!(
-    r#"
-    .section .trap, "ax"
-    .global SysTick
-SysTick:
-    addi sp, sp, -4
-    sw ra, 0(sp)
-    jal _rust_SysTick
-    lw ra, 0(sp)
-    addi sp, sp, 4
-    mret
-"#
-);
-
-#[allow(non_snake_case)]
-#[export_name = "_rust_SysTick"]
-extern "C" fn SysTick_IRQHandler() {
+#[ch32v_rt::interrupt]
+fn SysTick() {
     // FIXME: the usage of SWIE is unknown
     let systick = unsafe { &*pac::SYSTICK::PTR };
     // systick.ctlr.modify(|_, w| w.stie().clear_bit()); // disable interrupt

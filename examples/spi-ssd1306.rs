@@ -17,7 +17,6 @@ use embedded_hal_1::delay::DelayUs;
 use hal::adc::Adc;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::prelude::*;
-// use hal::interrupt::Interrupt;
 use hal::rtc::Rtc;
 use hal::spi::{BitOrder, Spi};
 use hal::systick::SysTick;
@@ -59,8 +58,6 @@ impl DisplaySize for DisplaySize128x32Variant1 {
 
 #[ch32v_rt::entry]
 fn main() -> ! {
-    // LED PA8
-
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz();
     let p = hal::init(config);

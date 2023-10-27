@@ -21,23 +21,8 @@ static mut SERIAL: Option<UartTx<'static, hal::peripherals::UART1>> = None;
 
 static mut BUTTON: Option<Input<hal::peripherals::PB22>> = None;
 
-global_asm!(
-    r#"
-    .section .trap, "ax"
-    .global GPIOB
-    GPIOB:
-    addi sp, sp, -4
-    sw ra, 0(sp)
-    jal _rust_GPIOB
-    lw ra, 0(sp)
-    addi sp, sp, 4
-    mret
-"#
-);
-
-#[allow(non_snake_case)]
-#[export_name = "_rust_GPIOB"]
-unsafe fn GPIOB_IRQHandler() {
+#[ch32v_rt::interrupt]
+unsafe fn GPIOB() {
     if let Some(button) = BUTTON.as_mut() {
         button.disable_interrupt();
 
