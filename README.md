@@ -1,5 +1,15 @@
 # ch58x-hal
 
+[![Crates.io][badge-license]][crates]
+[![Crates.io][badge-version]][crates]
+[![docs.rs][badge-docsrs]][docsrs]
+
+[badge-license]: https://img.shields.io/crates/l/ch58x-hal?style=for-the-badge
+[badge-version]: https://img.shields.io/crates/v/ch58x-hal?style=for-the-badge
+[badge-docsrs]: https://img.shields.io/docsrs/ch58x-hal?style=for-the-badge
+[crates]: https://crates.io/crates/ch58x-hal
+[docsrs]: https://docs.rs/ch58x-hal
+
 HAL for the CH58x RISC-V BLE microcotrollers from WCH.
 
 This crate is under random and active development. DO NOT USE in production.
