@@ -22,4 +22,4 @@ jobs:
         toolchain: nightly
         target: riscv32imac-unknown-none-elf
     - name: Build
-      run: cargo build --verbose --examples
+      run: cargo build --examples

@@ -24,7 +24,6 @@ pub mod uart;
 pub mod interrupt;
 pub mod isp;
 pub mod rt;
-pub(crate) mod traits;
 
 pub mod peripherals;
 
