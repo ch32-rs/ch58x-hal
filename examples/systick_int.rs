@@ -4,16 +4,11 @@
 
 use core::arch::global_asm;
 
-use embassy_time::{Delay, Instant};
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::interrupt::{self, Interrupt};
-// use hal::interrupt::Interrupt;
-use hal::pac;
-use hal::prelude::*;
 use hal::rtc::{DateTime, Rtc};
-use hal::systick::SysTick;
 use hal::uart::UartTx;
-use hal::{peripherals, with_safe_access};
+use hal::{pac, peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
 static mut SERIAL: Option<UartTx<peripherals::UART1>> = None;
@@ -41,7 +36,7 @@ fn main() -> ! {
 
     // GPIO
     let mut led = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
-    let download_button = Input::new(p.PB22, Pull::Up);
+    //let download_button = Input::new(p.PB22, Pull::Up);
     let reset_button = Input::new(p.PB23, Pull::Up);
 
     let uart = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
@@ -49,7 +44,7 @@ fn main() -> ! {
         SERIAL.replace(uart);
     }
 
-    let mut rtc = Rtc::new(p.RTC);
+    let rtc = Rtc::new(p.RTC);
 
     println!("\nHello World!");
     println!("System Clocks: {}", hal::sysctl::clocks().hclk);
