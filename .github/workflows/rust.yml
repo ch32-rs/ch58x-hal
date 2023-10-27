@@ -17,6 +17,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Prepare Rust
-      run: rustup target add riscv32imac-unknown-none-elf
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: nightly
+        target: riscv32imac-unknown-none-elf
     - name: Build
       run: cargo build --verbose --examples

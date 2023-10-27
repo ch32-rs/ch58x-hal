@@ -16,8 +16,9 @@ This should be the reference hal implementation for CH57x, CH58x, CH59x.
 - embassy time driver via SysTick
 - SysTick
 - I2C
-- ADC
-- SPI, partially
+- ADC, Temperature sensor, VBAT sensor
+- SPI
+- libISP
 
 ## Usage
 
