@@ -43,10 +43,8 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 #[ch32v_rt::entry]
 #[highcode]
 fn main() -> ! {
-    // LED PA8
-
     let mut config = hal::Config::default();
-    config.clock.use_pll_60mhz();
+    config.clock.use_pll_60mhz().enable_lse();
     let p = hal::init(config);
 
     let mut delay = SysTick::new(p.SYSTICK);
@@ -57,14 +55,13 @@ fn main() -> ! {
     let rst_btn = Input::new(p.PB23, Pull::Up);
 
     let uart = UartTx::new(p.UART1, p.PA9, Default::default()).unwrap();
-
     unsafe {
         SERIAL.replace(uart);
     }
 
     let rtc = Rtc::new(p.RTC);
 
-    println!("\nHello World!");
+    println!("\n\nHello World!");
     println!("System Clocks: {}", hal::sysctl::clocks().hclk);
     println!("ChipID: 0x{:02x}", hal::signature::get_chip_id());
     println!("RTC datetime: {}", rtc.now());

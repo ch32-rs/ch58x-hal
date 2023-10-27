@@ -80,9 +80,9 @@ pub struct UartTx<'d, T: BasicInstance> {
 
 impl<'d, T: BasicInstance> UartTx<'d, T> {
     /// Useful if you only want Uart Tx. It saves 1 pin and consumes a little less power.
-    pub fn new(
+    pub fn new<const REMAP: bool>(
         peri: impl Peripheral<P = T> + 'd,
-        tx: impl Peripheral<P = impl TxPin<T>> + 'd,
+        tx: impl Peripheral<P = impl TxPin<T, REMAP>> + 'd,
         config: Config,
     ) -> Result<Self, ConfigError> {
         //T::enable();
@@ -104,16 +104,18 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
     }
     */
 
-    fn new_inner(
+    fn new_inner<const REMAP: bool>(
         _peri: impl Peripheral<P = T> + 'd,
-        tx: impl Peripheral<P = impl TxPin<T>> + 'd,
+        tx: impl Peripheral<P = impl TxPin<T, REMAP>> + 'd,
         config: Config,
     ) -> Result<Self, ConfigError> {
         into_ref!(_peri, tx);
 
         // set up pin
         tx.set_as_output(OutputDrive::Standard);
-        T::set_remap(tx.is_remap());
+        if REMAP {
+            T::set_remap();
+        }
 
         // set up uart
         let rb = T::regs();
@@ -258,7 +260,7 @@ pub(crate) mod sealed {
 
         fn regs() -> &'static pac::uart0::RegisterBlock;
         // fn state() -> &'static ();
-        fn set_remap(enable: bool);
+        fn set_remap();
     }
 
     pub trait FullInstance: BasicInstance {}
@@ -267,20 +269,6 @@ pub trait BasicInstance: Peripheral<P = Self> + sealed::BasicInstance + 'static 
 
 // UART with CTS, DSR, RI, DCD, DTR, RTS
 pub trait FullInstance: sealed::FullInstance {}
-
-// pin traits
-
-macro_rules! pin_trait {
-    ($signal:ident, $instance:path) => {
-        pub trait $signal<T: $instance>: crate::gpio::Pin {
-            // value for R16_PIN_ALTERNATE
-            fn is_remap(&self) -> bool;
-        }
-    };
-}
-
-pin_trait!(RxPin, BasicInstance);
-pin_trait!(TxPin, BasicInstance);
 
 // uart peripheral traits
 
@@ -295,9 +283,9 @@ macro_rules! impl_uart {
             }
 
             /// Remap offset in R16_PIN_ALTERNATE
-            fn set_remap(enable: bool) {
+            fn set_remap() {
                 let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-                gpioctl.pin_alternate.modify(|_, w| w.$remap_field().bit(enable));
+                gpioctl.pin_alternate.modify(|_, w| w.$remap_field().set_bit());
             }
         }
 
@@ -309,3 +297,32 @@ impl_uart!(UART0, UART0, uart0); // FIXME: UartWithModem, a FullInstance
 impl_uart!(UART1, UART1, uart1);
 impl_uart!(UART2, UART2, uart2);
 impl_uart!(UART3, UART3, uart3);
+
+// pin traits
+
+macro_rules! pin_trait {
+    ($signal:ident, $instance:path) => {
+        pub trait $signal<T: $instance, const REMAP: bool>: crate::gpio::Pin {}
+    };
+}
+
+pin_trait!(RxPin, BasicInstance);
+pin_trait!(TxPin, BasicInstance);
+
+macro_rules! pin_trait_impl {
+    (crate::$mod:ident::$trait:ident, $instance:ident, $pin:ident, $remap:expr) => {
+        impl crate::$mod::$trait<crate::peripherals::$instance, $remap> for crate::peripherals::$pin {}
+    };
+}
+
+pin_trait_impl!(crate::uart::TxPin, UART0, PB7, false);
+pin_trait_impl!(crate::uart::TxPin, UART0, PA14, true);
+
+pin_trait_impl!(crate::uart::TxPin, UART1, PA9, false);
+pin_trait_impl!(crate::uart::TxPin, UART1, PB13, true);
+
+pin_trait_impl!(crate::uart::TxPin, UART2, PA7, false);
+pin_trait_impl!(crate::uart::TxPin, UART2, PB23, true);
+
+pin_trait_impl!(crate::uart::TxPin, UART3, PA5, false);
+pin_trait_impl!(crate::uart::TxPin, UART3, PB21, true);

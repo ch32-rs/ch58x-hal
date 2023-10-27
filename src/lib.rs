@@ -172,27 +172,3 @@ pub unsafe fn reset() -> ! {
     pfic.cfgr.write(|w| w.keycode().variant(KEY3).resetsys().set_bit());
     loop {}
 }
-
-// pin trait
-
-macro_rules! pin_trait_impl {
-    (crate::$mod:ident::$trait:ident, $instance:ident, $pin:ident, $remap:expr) => {
-        impl crate::$mod::$trait<crate::peripherals::$instance> for crate::peripherals::$pin {
-            fn is_remap(&self) -> bool {
-                $remap
-            }
-        }
-    };
-}
-
-pin_trait_impl!(crate::uart::TxPin, UART0, PB7, false);
-pin_trait_impl!(crate::uart::TxPin, UART0, PA14, true);
-
-pin_trait_impl!(crate::uart::TxPin, UART1, PA9, false);
-pin_trait_impl!(crate::uart::TxPin, UART1, PB13, true);
-
-pin_trait_impl!(crate::uart::TxPin, UART2, PA7, false);
-pin_trait_impl!(crate::uart::TxPin, UART2, PB23, true);
-
-pin_trait_impl!(crate::uart::TxPin, UART3, PA5, false);
-pin_trait_impl!(crate::uart::TxPin, UART3, PB21, true);
