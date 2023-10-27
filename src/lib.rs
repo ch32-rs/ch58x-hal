@@ -32,6 +32,7 @@ pub mod prelude;
 
 mod critical_section;
 
+#[cfg(feature = "embassy")]
 pub mod embassy;
 
 /// Bits per second
