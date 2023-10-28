@@ -16,6 +16,7 @@ pub mod rtc;
 pub mod signature;
 pub mod spi;
 pub mod sysctl;
+#[cfg(not(feature = "embassy"))]
 pub mod systick;
 pub mod timer;
 pub mod uart;

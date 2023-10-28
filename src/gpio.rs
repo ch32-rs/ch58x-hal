@@ -8,6 +8,11 @@
 
 #![macro_use]
 
+use core::future::Future;
+use core::task::{Context, Poll};
+
+use embassy_sync::waitqueue::AtomicWaker;
+
 use crate::{impl_peripheral, into_ref, pac, peripherals, Peripheral, PeripheralRef};
 
 /// GPIO flexible pin.
@@ -50,29 +55,8 @@ impl<'d, T: Pin> Flex<'d, T> {
     /// Put the pin into input mode.
     #[inline]
     pub fn set_as_input(&mut self, pull: Pull) {
-        let n = self.pin.pin();
-        let rb = self.pin.block();
         critical_section::with(|_| {
-            match pull {
-                Pull::None => unsafe {
-                    // In_floating
-                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                },
-                Pull::Up => unsafe {
-                    // In_PU
-                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    rb.pu.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                },
-                Pull::Down => unsafe {
-                    // In_PD
-                    rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                },
-            }
+            self.pin.set_as_input(pull);
         });
     }
 
@@ -83,124 +67,8 @@ impl<'d, T: Pin> Flex<'d, T> {
     #[inline]
     pub fn set_as_output(&mut self, drive: OutputDrive) {
         critical_section::with(|_| {
-            let rb = self.pin.block();
-            let n = self.pin.pin();
-            rb.dir.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
-            match drive {
-                OutputDrive::Standard => unsafe {
-                    rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                },
-                OutputDrive::HighDrive => unsafe {
-                    rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-            }
+            self.pin.set_as_output(drive);
         });
-    }
-
-    #[inline]
-    pub fn disable_interrupt(&mut self) {
-        critical_section::with(|_| {
-            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-            let n = self.pin.pin();
-            match self.pin.port() {
-                0 => unsafe {
-                    gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                },
-                1 if n >= 22 => unsafe {
-                    // map PB[23:22] to PB[9:8]
-                    gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << (n - 14))));
-                },
-                1 => unsafe {
-                    gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                },
-                _ => unreachable!(),
-            }
-        })
-    }
-
-    #[inline]
-    pub fn set_trigger(&mut self, trigger: InterruptTrigger) {
-        critical_section::with(|_| {
-            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-            let rb = self.pin.block();
-            let mut n = self.pin.pin();
-            use InterruptTrigger::*;
-            // map PB[23:22] to PB[9:8]
-
-            match self.pin.port() {
-                0 => unsafe {
-                    if matches!(trigger, LowLevel | HighLevel) {
-                        gpioctl.pa_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    } else {
-                        gpioctl.pa_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    }
-                },
-                1 => unsafe {
-                    if n >= 22 {
-                        n -= 14;
-                        gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
-                    }
-
-                    if matches!(trigger, LowLevel | HighLevel) {
-                        gpioctl.pb_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
-                    } else {
-                        gpioctl.pb_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                    }
-                },
-                _ => unreachable!(),
-            }
-            if matches!(trigger, LowLevel | FallingEdge) {
-                rb.clr.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
-            } else {
-                rb.out.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
-            }
-        });
-    }
-
-    // TODO: R16_PB_INT_MODE[9:8]由 RB_PIN_INTX 选择对应 PB[23:22]或 PB[9:8
-    #[inline]
-    pub fn enable_interrupt(&mut self) {
-        critical_section::with(|_| {
-            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-            let mut n = self.pin.pin();
-            // map PB[23:22] to PB[9:8]
-
-            match self.pin.port() {
-                0 => unsafe {
-                    gpioctl.pa_int_if.write(|w| w.bits(1 << n));
-                    gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-                1 => unsafe {
-                    if n >= 22 {
-                        n -= 14;
-                        gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
-                    }
-                    gpioctl.pb_int_if.write(|w| w.bits(1 << n));
-                    gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
-                },
-                _ => unreachable!(),
-            }
-        });
-    }
-
-    #[inline]
-    pub fn clear_interrupt(&mut self) {
-        let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-        let n = self.pin.pin();
-        // clear int_if, write 1 to clear
-        match self.pin.port() {
-            0 => unsafe {
-                gpioctl.pa_int_if.write(|w| w.bits(1 << n));
-            },
-            1 if n >= 22 => unsafe {
-                // remap to PB[9:8]
-                gpioctl.pb_int_if.modify(|r, w| w.bits(r.bits() | (1 << (n - 14))));
-            },
-            1 => unsafe {
-                gpioctl.pb_int_if.write(|w| w.bits(1 << n));
-            },
-            _ => unreachable!(),
-        }
     }
 
     #[inline]
@@ -266,6 +134,29 @@ impl<'d, T: Pin> Flex<'d, T> {
             self.set_low()
         }
     }
+
+    #[inline]
+    pub async fn wait_for_high(&mut self) {
+        let p = &mut *self.pin;
+        InputFuture::new(p, InterruptTrigger::HighLevel).await;
+    }
+
+    /*
+    #[inline]
+    pub async fn wait_for_low(&mut self) {
+        InputFuture::new(&mut self.pin, InterruptTrigger::LowLevel).await;
+    }
+
+    #[inline]
+    pub async fn wait_for_rising_edge(&mut self) {
+        InputFuture::new(&mut self.pin, InterruptTrigger::RaisingEdge).await;
+    }
+
+    #[inline]
+    pub async fn wait_for_falling_edge(&mut self) {
+        InputFuture::new(&mut self.pin, InterruptTrigger::FallingEdge).await;
+    }
+    */
 }
 
 // TOOD: Drop
@@ -327,22 +218,22 @@ impl<'d, T: Pin> Input<'d, T> {
 
     #[inline]
     pub fn disable_interrupt(&mut self) {
-        self.pin.disable_interrupt();
+        self.pin.pin.disable_interrupt();
     }
 
     #[inline]
     pub fn set_trigger(&mut self, trigger: InterruptTrigger) {
-        self.pin.set_trigger(trigger);
+        self.pin.pin.set_trigger(trigger);
     }
 
     #[inline]
     pub fn enable_interrupt(&mut self) {
-        self.pin.enable_interrupt();
+        self.pin.pin.enable_interrupt();
     }
 
     #[inline]
     pub fn clear_interrupt(&mut self) {
-        self.pin.clear_interrupt();
+        self.pin.pin.clear_interrupt();
     }
 }
 
@@ -368,6 +259,104 @@ impl From<Level> for bool {
         match level {
             Level::Low => false,
             Level::High => true,
+        }
+    }
+}
+
+const NEW_AW: AtomicWaker = AtomicWaker::new();
+const GPIOA_PIN_COUNT: usize = 16;
+static GPIOA_WAKERS: [AtomicWaker; GPIOA_PIN_COUNT] = [NEW_AW; GPIOA_PIN_COUNT];
+const GPIOB_PIN_COUNT: usize = 16; // FIXME: handle PB remap
+static GPIOB_WAKERS: [AtomicWaker; GPIOB_PIN_COUNT] = [NEW_AW; GPIOB_PIN_COUNT];
+
+pub(crate) unsafe fn init() {
+    use crate::interrupt;
+    use crate::interrupt::Interrupt;
+
+    interrupt::GPIOA::disable();
+    interrupt::GPIOA::set_priority(interrupt::Priority::P3);
+    interrupt::GPIOA::enable();
+
+    interrupt::GPIOB::disable();
+    interrupt::GPIOB::set_priority(interrupt::Priority::P3);
+    interrupt::GPIOB::enable();
+}
+
+fn irq_handler<const N: usize>(port: u8, wakers: &[AtomicWaker; N]) {
+    let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+
+    let int_if = if port == 0 {
+        gpioctl.pa_int_if.read().bits()
+    } else {
+        gpioctl.pb_int_if.read().bits()
+    };
+    for pin in 0..16 {
+        if int_if & (1 << pin) == 0 {
+            continue;
+        }
+        if port == 0 {
+            gpioctl.pa_int_if.write(|w| unsafe { w.bits(1 << pin) });
+        } else {
+            gpioctl.pb_int_if.write(|w| unsafe { w.bits(1 << pin) });
+        }
+        wakers[pin as usize].wake();
+    }
+}
+
+#[ch32v_rt::interrupt]
+#[cfg(feature = "embassy")]
+fn GPIOA() {
+    irq_handler(0, &GPIOA_WAKERS);
+}
+
+#[ch32v_rt::interrupt]
+#[cfg(feature = "embassy")]
+fn GPIOB() {
+    irq_handler(1, &GPIOB_WAKERS);
+}
+
+#[must_use = "futures do nothing unless you `.await` or poll them"]
+struct InputFuture<'a, T: Pin> {
+    pin: PeripheralRef<'a, T>,
+}
+
+impl<'d, T: Pin> InputFuture<'d, T> {
+    pub fn new(pin: impl Peripheral<P = T> + 'd, level: InterruptTrigger) -> Self {
+        into_ref!(pin);
+
+        pin.clear_interrupt();
+        pin.set_trigger(level);
+        pin.enable_interrupt();
+
+        Self { pin }
+    }
+}
+
+impl<'d, T: Pin> Future for InputFuture<'d, T> {
+    type Output = ();
+
+    fn poll(self: core::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // We need to register/re-register the waker for each poll because any
+        // calls to wake will deregister the waker.
+        let waker = match self.pin.port() {
+            0 => &GPIOA_WAKERS[self.pin.pin() as usize],
+            1 => &GPIOB_WAKERS[self.pin.pin() as usize], // TODO: handle PB remap
+            _ => unreachable!(),
+        };
+        waker.register(cx.waker());
+
+        let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+
+        let int_triggered = match self.pin.port() {
+            0 => gpioctl.pa_int_if.read().bits() & (1 << self.pin.pin()) != 0,
+            1 => gpioctl.pb_int_if.read().bits() & (1 << self.pin.pin()) != 0,
+            _ => unreachable!(),
+        };
+
+        if int_triggered {
+            Poll::Ready(())
+        } else {
+            Poll::Pending
         }
     }
 }
@@ -551,6 +540,113 @@ pub(crate) mod sealed {
                 },
             }
         }
+
+        #[inline]
+        fn disable_interrupt(&mut self) {
+            critical_section::with(|_| {
+                let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+                let n = self._pin();
+                match self._port() {
+                    0 => unsafe {
+                        gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    },
+                    1 if n >= 22 => unsafe {
+                        // map PB[23:22] to PB[9:8]
+                        gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << (n - 14))));
+                    },
+                    1 => unsafe {
+                        gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                    },
+                    _ => unreachable!(),
+                }
+            })
+        }
+
+        #[inline]
+        fn set_trigger(&mut self, trigger: InterruptTrigger) {
+            critical_section::with(|_| {
+                use InterruptTrigger::*;
+
+                let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+                let rb = self.block();
+                let mut n = self._pin();
+                // map PB[23:22] to PB[9:8]
+
+                match self._port() {
+                    0 => unsafe {
+                        if matches!(trigger, LowLevel | HighLevel) {
+                            gpioctl.pa_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                        } else {
+                            gpioctl.pa_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                        }
+                    },
+                    1 => unsafe {
+                        if n >= 22 {
+                            n -= 14;
+                            gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
+                        }
+
+                        if matches!(trigger, LowLevel | HighLevel) {
+                            gpioctl.pb_int_mode.modify(|r, w| w.bits(r.bits() & !(1 << n)));
+                        } else {
+                            gpioctl.pb_int_mode.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                        }
+                    },
+                    _ => unreachable!(),
+                }
+                if matches!(trigger, LowLevel | FallingEdge) {
+                    rb.clr.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
+                } else {
+                    rb.out.modify(|r, w| unsafe { w.bits(r.bits() | (1 << n)) });
+                }
+            });
+        }
+
+        // TODO: R16_PB_INT_MODE[9:8]由 RB_PIN_INTX 选择对应 PB[23:22]或 PB[9:8
+        #[inline]
+        fn enable_interrupt(&mut self) {
+            critical_section::with(|_| {
+                let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+                let mut n = self._pin();
+                // map PB[23:22] to PB[9:8]
+
+                match self._port() {
+                    0 => unsafe {
+                        gpioctl.pa_int_if.write(|w| w.bits(1 << n));
+                        gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    },
+                    1 => unsafe {
+                        if n >= 22 {
+                            n -= 14;
+                            gpioctl.pin_alternate.modify(|_, w| w.intx().set_bit());
+                        }
+                        gpioctl.pb_int_if.write(|w| w.bits(1 << n));
+                        gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() | (1 << n)));
+                    },
+                    _ => unreachable!(),
+                }
+            });
+        }
+
+        #[inline]
+        fn clear_interrupt(&mut self) {
+            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+            let n = self._pin();
+            // clear int_if, write 1 to clear
+            match self._port() {
+                0 => unsafe {
+                    gpioctl.pa_int_if.write(|w| w.bits(1 << n));
+                },
+                1 if n >= 22 => unsafe {
+                    // remap to PB[9:8]
+                    gpioctl.pb_int_if.modify(|r, w| w.bits(r.bits() | (1 << (n - 14))));
+                },
+                1 => unsafe {
+                    gpioctl.pb_int_if.write(|w| w.bits(1 << n));
+                },
+                _ => unreachable!(),
+            }
+        }
     }
 }
 
@@ -722,6 +818,114 @@ mod eh02 {
         fn toggle(&mut self) -> Result<(), Self::Error> {
             self.toggle();
             Ok(())
+        }
+    }
+}
+
+mod eh1 {
+    use core::convert::Infallible;
+
+    use embedded_hal_1::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin, ToggleableOutputPin};
+
+    use super::*;
+
+    impl<'d, T: Pin> ErrorType for Input<'d, T> {
+        type Error = Infallible;
+    }
+
+    impl<'d, T: Pin> InputPin for Input<'d, T> {
+        #[inline]
+        fn is_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_high())
+        }
+
+        #[inline]
+        fn is_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_low())
+        }
+    }
+
+    impl<'d, T: Pin> ErrorType for Output<'d, T> {
+        type Error = Infallible;
+    }
+
+    impl<'d, T: Pin> OutputPin for Output<'d, T> {
+        #[inline]
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            Ok(self.set_high())
+        }
+
+        #[inline]
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            Ok(self.set_low())
+        }
+    }
+
+    impl<'d, T: Pin> StatefulOutputPin for Output<'d, T> {
+        #[inline]
+        fn is_set_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_high())
+        }
+
+        /// Is the output pin set as low?
+        #[inline]
+        fn is_set_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_low())
+        }
+    }
+
+    impl<'d, T: Pin> ToggleableOutputPin for Output<'d, T> {
+        #[inline]
+        fn toggle(&mut self) -> Result<(), Self::Error> {
+            Ok(self.toggle())
+        }
+    }
+
+    impl<'d, T: Pin> InputPin for Flex<'d, T> {
+        #[inline]
+        fn is_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_high())
+        }
+
+        #[inline]
+        fn is_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_low())
+        }
+    }
+
+    impl<'d, T: Pin> OutputPin for Flex<'d, T> {
+        #[inline]
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            Ok(self.set_high())
+        }
+
+        #[inline]
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            Ok(self.set_low())
+        }
+    }
+
+    impl<'d, T: Pin> ToggleableOutputPin for Flex<'d, T> {
+        #[inline]
+        fn toggle(&mut self) -> Result<(), Self::Error> {
+            Ok(self.toggle())
+        }
+    }
+
+    impl<'d, T: Pin> ErrorType for Flex<'d, T> {
+        type Error = Infallible;
+    }
+
+    impl<'d, T: Pin> StatefulOutputPin for Flex<'d, T> {
+        #[inline]
+        fn is_set_high(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_high())
+        }
+
+        /// Is the output pin set as low?
+        #[inline]
+        fn is_set_low(&self) -> Result<bool, Self::Error> {
+            Ok(self.is_set_low())
         }
     }
 }

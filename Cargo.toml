@@ -36,7 +36,6 @@ embedded-hal-02 = { package = "embedded-hal", version = "0.2.7", features = [
     "unproven",
 ] }
 embedded-hal-1 = { version = "=1.0.0-rc.1", package = "embedded-hal" }
-
 embedded-hal-nb = "1.0.0-rc.1"
 
 # embassy time driver
@@ -44,6 +43,8 @@ embassy-time = { version = "0.1.5", features = [
     "nightly",
     "tick-hz-32_768",
 ], optional = true }
+embassy-sync = { version = "0.3.0", features = ["nightly"] }
+embedded-hal-async = "1.0.0-rc.1"
 
 [dev-dependencies]
 display-interface = "0.4.1"
@@ -63,6 +64,10 @@ embedded-alloc = "0.5.0"
 
 [[example]]
 name = "embassy-blinky"
+required-features = ["embassy"]
+
+[[example]]
+name = "embassy-gpio"
 required-features = ["embassy"]
 
 [profile.release]
