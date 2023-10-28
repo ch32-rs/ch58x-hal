@@ -5,6 +5,7 @@
 use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Timer};
+use embedded_hal_nb::serial::Write;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
@@ -39,7 +40,7 @@ async fn blink(pin: AnyPin) {
 async fn reset_if_requested(pin: AnyPin) {
     let mut reset_btn = Input::new(pin, Pull::Up);
 
-    reset_btn.wait_for_low().await;
+    reset_btn.wait_for_rising_edge().await;
 
     unsafe {
         hal::reset();
@@ -49,7 +50,7 @@ async fn reset_if_requested(pin: AnyPin) {
 #[embassy_executor::main(entry = "ch32v_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     let mut config = hal::Config::default();
-    config.clock.use_pll_60mhz().enable_lse();
+    config.clock.use_pll_60mhz();
     let p = hal::init(config);
     hal::embassy::init();
 
@@ -67,7 +68,8 @@ async fn main(spawner: Spawner) -> ! {
 
     let rtc = Rtc::new(p.RTC);
 
-    println!("\n\nHello World from ch58x-hal!");
+    println!("\n\n\n");
+    println!("Hello World from ch58x-hal!");
     println!(
         r#"
     ______          __
@@ -85,8 +87,9 @@ async fn main(spawner: Spawner) -> ! {
 
     loop {
         boot_btn.wait_for_rising_edge().await;
+
         println!("Boot pressed!!");
-        println!("inst => {:?}", Instant::now());
+        println!("inst => {}", rtc.now());
 
         // Delay.delay_ms(1000_u32); // blocking delay
         // Timer::after(Duration::from_millis(10000)).await;
