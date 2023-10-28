@@ -61,7 +61,7 @@ async fn main(spawner: Spawner) -> ! {
     // GPIO
     spawner.spawn(blink(p.PB4.degrade())).unwrap();
 
-    spawner.spawn(blink(p.PB23.degrade())).unwrap();
+    spawner.spawn(reset_if_requested(p.PB23.degrade())).unwrap();
 
     let mut boot_btn = Input::new(p.PB22, Pull::Up);
 
