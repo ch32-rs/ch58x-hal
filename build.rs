@@ -6,7 +6,9 @@ fn main() {
 
     fs::write(out_dir.join("libISP583.a"), include_bytes!("vendor/libISP583.a")).unwrap();
 
-    fs::write(out_dir.join("libCH58xBLE.a"), include_bytes!("vendor/LIBCH58xBLE.a")).unwrap();
+    if env::var("CARGO_FEATURE_BLE").is_ok() {
+        fs::write(out_dir.join("libCH58xBLE.a"), include_bytes!("vendor/LIBCH58xBLE.a")).unwrap();
+    }
 
     // Put the linker script somewhere the linker can find it.
     fs::write(out_dir.join("link.x"), include_bytes!("link.x")).unwrap();

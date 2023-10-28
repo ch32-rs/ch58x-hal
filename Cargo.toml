@@ -15,6 +15,7 @@ license = "MIT/Apache-2.0"
 [features]
 default = []
 embassy = ["dep:embassy-time"]
+ble = []
 
 [dependencies]
 #ch58x = { version = "0.2.0", path = "../ch32-rs-nightlies/ch58x", features = [
