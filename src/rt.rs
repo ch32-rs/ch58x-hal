@@ -76,7 +76,7 @@ pub enum Interrupt {
 
 // Overwrites PAC's interrupt handlers
 extern "C" {
-    fn Reset() -> !;
+    // fn Reset() -> !;
 
     fn NonMaskableInt();
 
@@ -165,7 +165,7 @@ pub static __INTERRUPTS: [Vector; 36] = [
     Vector { handler: TMR3 },
     Vector { handler: UART2 },
     Vector { handler: UART3 },
-    Vector { reserved: 0xaaaaaaaa },
+    Vector { handler: WDOG_BAT },
 ];
 
 macro_rules! cfg_global_asm {

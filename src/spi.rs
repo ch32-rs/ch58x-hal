@@ -7,7 +7,7 @@
 
 pub use embedded_hal_02::spi::{Mode, Polarity, MODE_0, MODE_3};
 
-use crate::gpio::{AnyPin, OutputDrive};
+use crate::gpio::{AnyPin, OutputDrive, Pull};
 use crate::prelude::Hertz;
 use crate::{into_ref, peripherals, Peripheral, PeripheralRef};
 
@@ -49,6 +49,7 @@ impl Default for Config {
 }
 
 // TODO
+#[allow(unused)]
 pub struct Spi<'d, T: Instance> {
     _peri: PeripheralRef<'d, T>,
     sck: Option<PeripheralRef<'d, AnyPin>>,
@@ -73,7 +74,7 @@ impl<'d, T: Instance> Spi<'d, T> {
         }
         sck.set_as_output(OutputDrive::Standard);
         mosi.set_as_output(OutputDrive::Standard);
-        miso.set_as_input();
+        miso.set_as_input(Pull::None);
 
         if REMAP {
             T::set_remap();
@@ -102,7 +103,7 @@ impl<'d, T: Instance> Spi<'d, T> {
             sck.set_high();
         }
         sck.set_as_output(OutputDrive::Standard);
-        miso.set_as_input();
+        miso.set_as_input(Pull::None);
 
         if REMAP {
             T::set_remap();

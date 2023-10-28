@@ -7,6 +7,7 @@ use core::marker::PhantomData;
 
 use fugit::HertzU32 as Hertz;
 
+use crate::gpio::Pull;
 use crate::{interrupt, into_ref, peripherals, Peripheral};
 
 // Any of BERR=1；ARLO=1；AF=1；OVR=1；PECERR=1； TIMEOUT=1；SMBAlert=1。
@@ -95,19 +96,16 @@ impl<'d, T: Instance> I2c<'d, T> {
         config: Config,
     ) -> Self {
         into_ref!(peri, scl, sda);
+        let _ = peri;
 
         if REMAP {
             let gpioctl = unsafe { &*crate::pac::GPIOCTL::PTR };
             gpioctl.pin_alternate.modify(|_, w| w.i2c().set_bit());
         }
-        scl.set_as_input();
-        sda.set_as_input();
-        if config.scl_pullup {
-            scl.set_pullup();
-        }
-        if config.sda_pullup {
-            sda.set_pullup();
-        }
+        let scl_pull = if config.scl_pullup { Pull::Up } else { Pull::None };
+        let sda_pull = if config.sda_pullup { Pull::Up } else { Pull::None };
+        scl.set_as_input(scl_pull);
+        sda.set_as_input(sda_pull);
 
         let rb = T::regs();
 
@@ -297,7 +295,7 @@ impl<'d, T: Instance> I2c<'d, T> {
     ) -> Result<(), Error> {
         if let Some((last, buffer)) = buffer.split_last_mut() {
             // Send a START condition and set ACK bit
-            T::regs().ctrl1.modify(|r, w| w.start().set_bit().ack().set_bit());
+            T::regs().ctrl1.modify(|_, w| w.start().set_bit().ack().set_bit());
 
             // Wait until START condition was generated
             while !self.check_and_clear_error_flags()?.sb().bit() {

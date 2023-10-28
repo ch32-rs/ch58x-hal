@@ -515,25 +515,26 @@ pub(crate) mod sealed {
             }
         }
 
-        // input floatingZF
         #[inline]
-        fn set_as_input(&self) {
+        fn set_as_input(&self, pull: Pull) {
             let rb = self.block();
             let pin = self._pin();
             unsafe {
                 rb.dir.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
-            }
-        }
-
-        #[inline]
-        fn set_pullup(&self) {
-            let rb = self.block();
-            let pin = self._pin();
-            unsafe {
-                rb.pu.modify(|r, w| w.bits(r.bits() | (1 << pin)));
-                rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                match pull {
+                    Pull::None => {
+                        rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                        rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                    }
+                    Pull::Up => {
+                        rb.pu.modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                        rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                    }
+                    Pull::Down => {
+                        rb.pu.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+                        rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
+                    }
+                }
             }
         }
 

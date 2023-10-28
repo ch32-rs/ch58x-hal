@@ -177,9 +177,9 @@ impl<'d, T: BasicInstance> UartRx<'d, T> {
     ) -> Result<Self, ConfigError> {
         use crate::interrupt::Interrupt;
         into_ref!(peri, rx);
+        let _ = peri;
 
-        rx.set_as_input();
-        rx.set_pullup();
+        rx.set_as_input(Pull::Up);
         if REMAP {
             T::set_remap();
         }
@@ -236,10 +236,83 @@ impl<'d, T: BasicInstance> UartRx<'d, T> {
     pub fn nb_read(&mut self) -> Result<u8, nb::Error<Error>> {
         let rb = T::regs();
         if self.check_rx_flags()? {
-            Ok(unsafe { rb.rbr().read().bits() as u8 })
+            Ok(rb.rbr().read().bits() as u8)
         } else {
             Err(nb::Error::WouldBlock)
         }
+    }
+}
+
+pub struct Uart<'d, T: BasicInstance> {
+    tx: UartTx<'d, T>,
+    rx: UartRx<'d, T>,
+}
+
+impl<'d, T: BasicInstance> Uart<'d, T> {
+    pub fn new<const REMAP: bool>(
+        peri: impl Peripheral<P = T> + 'd,
+        tx: impl Peripheral<P = impl TxPin<T, REMAP>> + 'd,
+        rx: impl Peripheral<P = impl RxPin<T, REMAP>> + 'd,
+        config: Config,
+    ) -> Result<Self, ConfigError> {
+        // T::enable();
+
+        Self::new_inner(peri, tx, rx, config)
+    }
+
+    fn new_inner<const REMAP: bool>(
+        peri: impl Peripheral<P = T> + 'd,
+        tx: impl Peripheral<P = impl TxPin<T, REMAP>> + 'd,
+        rx: impl Peripheral<P = impl RxPin<T, REMAP>> + 'd,
+        config: Config,
+    ) -> Result<Self, ConfigError> {
+        use crate::interrupt::Interrupt;
+        into_ref!(peri, tx, rx);
+        let _ = peri;
+
+        tx.set_as_output(OutputDrive::Standard);
+        rx.set_as_input(Pull::Up);
+
+        if REMAP {
+            T::set_remap();
+        }
+
+        let rb = T::regs();
+        configure(rb, &config, true, true)?;
+
+        T::Interrupt::unpend();
+        unsafe { T::Interrupt::enable() };
+
+        // create state once!
+        //let _s = T::state();
+
+        Ok(Self {
+            tx: UartTx { phantom: PhantomData },
+            rx: UartRx { phantom: PhantomData },
+        })
+    }
+
+    pub fn blocking_write(&mut self, buffer: &[u8]) -> Result<(), Error> {
+        self.tx.blocking_write(buffer)
+    }
+
+    pub fn blocking_flush(&mut self) -> Result<(), Error> {
+        self.tx.blocking_flush()
+    }
+
+    pub fn nb_read(&mut self) -> Result<u8, nb::Error<Error>> {
+        self.rx.nb_read()
+    }
+
+    pub fn blocking_read(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
+        self.rx.blocking_read(buffer)
+    }
+
+    /// Split the Uart into a transmitter and receiver, which is
+    /// particularly useful when having two tasks correlating to
+    /// transmitting and receiving.
+    pub fn split(self) -> (UartTx<'d, T>, UartRx<'d, T>) {
+        (self.tx, self.rx)
     }
 }
 
