@@ -137,26 +137,24 @@ impl<'d, T: Pin> Flex<'d, T> {
 
     #[inline]
     pub async fn wait_for_high(&mut self) {
-        let p = &mut *self.pin;
+        let p = &mut *self.pin; // required for Deref to work
         InputFuture::new(p, InterruptTrigger::HighLevel).await;
     }
 
-    /*
     #[inline]
     pub async fn wait_for_low(&mut self) {
-        InputFuture::new(&mut self.pin, InterruptTrigger::LowLevel).await;
+        InputFuture::new(&mut *self.pin, InterruptTrigger::LowLevel).await;
     }
 
     #[inline]
     pub async fn wait_for_rising_edge(&mut self) {
-        InputFuture::new(&mut self.pin, InterruptTrigger::RaisingEdge).await;
+        InputFuture::new(&mut *self.pin, InterruptTrigger::RaisingEdge).await;
     }
 
     #[inline]
     pub async fn wait_for_falling_edge(&mut self) {
-        InputFuture::new(&mut self.pin, InterruptTrigger::FallingEdge).await;
+        InputFuture::new(&mut *self.pin, InterruptTrigger::FallingEdge).await;
     }
-    */
 }
 
 // TOOD: Drop
@@ -235,6 +233,26 @@ impl<'d, T: Pin> Input<'d, T> {
     pub fn clear_interrupt(&mut self) {
         self.pin.pin.clear_interrupt();
     }
+
+    #[inline]
+    pub async fn wait_for_high(&mut self) {
+        self.pin.wait_for_high().await;
+    }
+
+    #[inline]
+    pub async fn wait_for_low(&mut self) {
+        self.pin.wait_for_low().await;
+    }
+
+    #[inline]
+    pub async fn wait_for_rising_edge(&mut self) {
+        self.pin.wait_for_rising_edge().await;
+    }
+
+    #[inline]
+    pub async fn wait_for_falling_edge(&mut self) {
+        self.pin.wait_for_falling_edge().await;
+    }
 }
 
 /// Digital input or output level.
@@ -266,7 +284,7 @@ impl From<Level> for bool {
 const NEW_AW: AtomicWaker = AtomicWaker::new();
 const GPIOA_PIN_COUNT: usize = 16;
 static GPIOA_WAKERS: [AtomicWaker; GPIOA_PIN_COUNT] = [NEW_AW; GPIOA_PIN_COUNT];
-const GPIOB_PIN_COUNT: usize = 16; // FIXME: handle PB remap
+const GPIOB_PIN_COUNT: usize = 24; // FIXME: handle PB remap
 static GPIOB_WAKERS: [AtomicWaker; GPIOB_PIN_COUNT] = [NEW_AW; GPIOB_PIN_COUNT];
 
 pub(crate) unsafe fn init() {
@@ -295,11 +313,24 @@ fn irq_handler<const N: usize>(port: u8, wakers: &[AtomicWaker; N]) {
             continue;
         }
         if port == 0 {
-            gpioctl.pa_int_if.write(|w| unsafe { w.bits(1 << pin) });
-        } else {
-            gpioctl.pb_int_if.write(|w| unsafe { w.bits(1 << pin) });
+            unsafe {
+                // clear IF, disable INT
+                gpioctl.pa_int_if.write(|w| w.bits(1 << pin));
+                gpioctl.pa_int_en.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+            }
+            wakers[pin as usize].wake();
+        } else if port == 1 {
+            unsafe {
+                gpioctl.pb_int_if.write(|w| w.bits(1 << pin));
+                gpioctl.pb_int_en.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
+            }
+            let pb8_9_remapped = gpioctl.pin_alternate.read().intx().bit();
+            if pb8_9_remapped && pin >= 8 && pin <= 9 {
+                wakers[(pin + 14) as usize].wake();
+            } else {
+                wakers[pin as usize].wake();
+            }
         }
-        wakers[pin as usize].wake();
     }
 }
 
@@ -345,18 +376,12 @@ impl<'d, T: Pin> Future for InputFuture<'d, T> {
         };
         waker.register(cx.waker());
 
-        let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-
-        let int_triggered = match self.pin.port() {
-            0 => gpioctl.pa_int_if.read().bits() & (1 << self.pin.pin()) != 0,
-            1 => gpioctl.pb_int_if.read().bits() & (1 << self.pin.pin()) != 0,
-            _ => unreachable!(),
-        };
-
-        if int_triggered {
-            Poll::Ready(())
-        } else {
+        if self.pin.is_interrupt_enabled() {
+            // not triggered yet
             Poll::Pending
+        } else {
+            // triggered
+            Poll::Ready(())
         }
     }
 }
@@ -563,6 +588,21 @@ pub(crate) mod sealed {
         }
 
         #[inline]
+        fn is_interrupt_enabled(&self) -> bool {
+            let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
+            let n = self._pin();
+            match self._port() {
+                0 => gpioctl.pa_int_en.read().bits() & (1 << n) != 0,
+                1 if n >= 22 => {
+                    // map PB[23:22] to PB[9:8]
+                    gpioctl.pb_int_en.read().bits() & (1 << (n - 14)) != 0
+                }
+                1 => gpioctl.pb_int_en.read().bits() & (1 << n) != 0,
+                _ => unreachable!(),
+            }
+        }
+
+        #[inline]
         fn set_trigger(&mut self, trigger: InterruptTrigger) {
             critical_section::with(|_| {
                 use InterruptTrigger::*;
@@ -602,7 +642,7 @@ pub(crate) mod sealed {
             });
         }
 
-        // TODO: R16_PB_INT_MODE[9:8]由 RB_PIN_INTX 选择对应 PB[23:22]或 PB[9:8
+        // R16_PB_INT_MODE[9:8]由 RB_PIN_INTX 选择对应 PB[23:22]或 PB[9:8
         #[inline]
         fn enable_interrupt(&mut self) {
             critical_section::with(|_| {

@@ -173,3 +173,23 @@ pub unsafe fn reset() -> ! {
     pfic.cfgr.write(|w| w.keycode().variant(KEY3).resetsys().set_bit());
     loop {}
 }
+
+pub static mut SERIAL: Option<uart::UartTx<peripherals::UART1>> = None;
+
+#[macro_export]
+macro_rules! println {
+    ($($arg:tt)*) => {
+        unsafe {
+            use core::fmt::Write;
+            use core::writeln;
+
+            if let Some(uart) = $crate::SERIAL.as_mut() {
+                writeln!(uart, $($arg)*).unwrap();
+            }
+        }
+    }
+}
+
+pub unsafe fn set_default_serial(serial: uart::UartTx<'static, peripherals::UART1>) {
+    SERIAL.replace(serial);
+}
