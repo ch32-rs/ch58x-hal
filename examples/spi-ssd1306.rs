@@ -65,7 +65,7 @@ fn main() -> ! {
     let mut delay = SysTick::new(p.SYSTICK);
 
     // GPIO
-    let mut led = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
     let download_button = Input::new(p.PB22, Pull::Up);
     let reset_button = Input::new(p.PB23, Pull::Up);
 
@@ -89,11 +89,11 @@ fn main() -> ! {
 
     // pin wiring
 
-    let dc = Output::new(p.PA10, Level::High, OutputDrive::Standard);
+    let dc = Output::new(p.PA10, Level::High, OutputDrive::_5mA);
     // active low
-    let mut res = Output::new(p.PA4, Level::High, OutputDrive::Standard);
+    let mut res = Output::new(p.PA4, Level::High, OutputDrive::_5mA);
     // SPI MODE_0, clk idle low, data valid on rising edge
-    let cs = Output::new(p.PA5, Level::Low, OutputDrive::Standard);
+    let cs = Output::new(p.PA5, Level::Low, OutputDrive::_5mA);
 
     res.set_low();
     delay_ms(100);

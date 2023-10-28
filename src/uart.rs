@@ -114,7 +114,7 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
         into_ref!(_peri, tx);
 
         // set up pin
-        tx.set_as_output(OutputDrive::Standard);
+        tx.set_as_output(OutputDrive::_5mA);
         if REMAP {
             T::set_remap();
         }
@@ -270,7 +270,7 @@ impl<'d, T: BasicInstance> Uart<'d, T> {
         into_ref!(peri, tx, rx);
         let _ = peri;
 
-        tx.set_as_output(OutputDrive::Standard);
+        tx.set_as_output(OutputDrive::_5mA);
         rx.set_as_input(Pull::Up);
 
         if REMAP {

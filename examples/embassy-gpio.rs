@@ -25,7 +25,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[embassy_executor::task]
 async fn blink(pin: AnyPin) {
-    let mut led = Output::new(pin, Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(pin, Level::Low, OutputDrive::_5mA);
 
     loop {
         led.set_high();

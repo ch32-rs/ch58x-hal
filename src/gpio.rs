@@ -174,9 +174,9 @@ pub enum Pull {
 pub enum OutputDrive {
     // The drive current is 5mA
     #[default]
-    Standard = 0,
+    _5mA = 0,
     // The drive current is 20mA
-    HighDrive = 1,
+    _20mA = 1,
 }
 
 /// GPIO input driver.
@@ -520,7 +520,7 @@ pub(crate) mod sealed {
             let rb = self.block();
             let pin = self._pin();
             unsafe {
-                if drive == OutputDrive::HighDrive {
+                if drive == OutputDrive::_20mA {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 } else {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
@@ -557,10 +557,10 @@ pub(crate) mod sealed {
             let rb = self.block();
             let pin = self._pin();
             match drive {
-                OutputDrive::Standard => unsafe {
+                OutputDrive::_5mA => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() & !(1 << pin)));
                 },
-                OutputDrive::HighDrive => unsafe {
+                OutputDrive::_20mA => unsafe {
                     rb.pd_drv.modify(|r, w| w.bits(r.bits() | (1 << pin)));
                 },
             }

@@ -35,7 +35,7 @@ fn main() -> ! {
 
     let mut delay = SysTick::new(p.SYSTICK);
 
-    let mut led = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
 
     let download_button = Input::new(p.PB22, Pull::Up);
     let reset_button = Input::new(p.PB23, Pull::Up);

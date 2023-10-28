@@ -42,7 +42,7 @@ fn RTC() {
 #[ch32v_rt::interrupt]
 fn HardFault() {
     let pa8 = unsafe { hal::peripherals::PA8::steal() };
-    let mut led = Output::new(pa8, Level::Low, OutputDrive::HighDrive);
+    let mut led = Output::new(pa8, Level::Low, OutputDrive::_20mA);
 
     println!("in hardfault");
     let mcause = riscv::register::mcause::read();
@@ -76,7 +76,7 @@ fn main() -> ! {
 
     let mut delay = SysTick::new(p.SYSTICK);
 
-    let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::Standard);
+    let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
 
     let mut download_button = Input::new(p.PB22, Pull::Up);
     let mut reset_button = Input::new(p.PB23, Pull::Up);

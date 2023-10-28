@@ -72,8 +72,8 @@ impl<'d, T: Instance> Spi<'d, T> {
         } else {
             sck.set_high();
         }
-        sck.set_as_output(OutputDrive::Standard);
-        mosi.set_as_output(OutputDrive::Standard);
+        sck.set_as_output(OutputDrive::_5mA);
+        mosi.set_as_output(OutputDrive::_5mA);
         miso.set_as_input(Pull::None);
 
         if REMAP {
@@ -102,7 +102,7 @@ impl<'d, T: Instance> Spi<'d, T> {
         } else {
             sck.set_high();
         }
-        sck.set_as_output(OutputDrive::Standard);
+        sck.set_as_output(OutputDrive::_5mA);
         miso.set_as_input(Pull::None);
 
         if REMAP {
@@ -126,8 +126,8 @@ impl<'d, T: Instance> Spi<'d, T> {
         } else {
             sck.set_high();
         }
-        sck.set_as_output(OutputDrive::Standard);
-        mosi.set_as_output(OutputDrive::Standard);
+        sck.set_as_output(OutputDrive::_5mA);
+        mosi.set_as_output(OutputDrive::_5mA);
 
         if REMAP {
             T::set_remap();
@@ -142,7 +142,7 @@ impl<'d, T: Instance> Spi<'d, T> {
     ) -> Self {
         into_ref!(mosi);
 
-        mosi.set_as_output(OutputDrive::Standard);
+        mosi.set_as_output(OutputDrive::_5mA);
 
         if REMAP {
             T::set_remap();

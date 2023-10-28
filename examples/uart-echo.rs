@@ -58,7 +58,7 @@ fn main() -> ! {
     let p = hal::init(config);
 
     // GPIO
-    let mut led = Output::new(p.PB4, Level::Low, OutputDrive::Standard);
+    let mut led = Output::new(p.PB4, Level::Low, OutputDrive::_5mA);
     // let boot_btn = Input::new(p.PB22, Pull::Up);
     // let rst_btn = Input::new(p.PB23, Pull::Up);
 
