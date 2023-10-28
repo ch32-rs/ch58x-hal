@@ -1,4 +1,4 @@
-//! SPI
+//! SPI, Serial Peripheral Interface
 //!
 //! CH583 has SPI0 and SPI1, CH582/CH581 has SPI0 only.
 //! SPI0 supports DMA, SPI1 does not.

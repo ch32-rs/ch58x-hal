@@ -76,8 +76,6 @@ pub enum Interrupt {
 
 // Overwrites PAC's interrupt handlers
 extern "C" {
-    // fn Reset() -> !;
-
     fn NonMaskableInt();
 
     fn HardFault();

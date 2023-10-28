@@ -174,6 +174,17 @@ pub unsafe fn reset() -> ! {
     loop {}
 }
 
+/// Software reset
+pub unsafe fn soft_reset() -> ! {
+    isp::flash_rom_reset();
+
+    let rb = unsafe { &*pac::SYS::PTR };
+    with_safe_access(|| {
+        rb.rst_wdog_ctrl.modify(|_, w| w.software_reset().set_bit());
+    });
+    loop {}
+}
+
 pub static mut SERIAL: Option<uart::UartTx<peripherals::UART1>> = None;
 
 #[macro_export]

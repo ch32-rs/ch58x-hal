@@ -43,14 +43,15 @@ async fn reset_if_requested(pin: AnyPin) {
     reset_btn.wait_for_rising_edge().await;
 
     unsafe {
-        hal::reset();
+        //       hal::reset();
+        hal::soft_reset();
     }
 }
 
 #[embassy_executor::main(entry = "ch32v_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     let mut config = hal::Config::default();
-    config.clock.use_pll_60mhz();
+    config.clock.use_pll_60mhz().enable_lse();
     let p = hal::init(config);
     hal::embassy::init();
 

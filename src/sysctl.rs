@@ -12,6 +12,16 @@ static mut CLOCK: Clocks = Clocks {
     hclk: Hertz::from_raw(6_400_000),
 };
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct Clocks {
+    pub hclk: Hertz,
+}
+
+#[inline]
+pub fn clocks() -> &'static Clocks {
+    unsafe { &CLOCK }
+}
+
 /// 32K clock source
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub enum Clock32KSrc {
@@ -94,6 +104,7 @@ impl Config {
     pub fn freeze(self) {
         let sys = unsafe { &*SYS::PTR };
 
+        // LClk32K_Select, config CK32K
         match self.clock32ksrc {
             Clock32KSrc::LSE => {
                 with_safe_access(|| {
@@ -112,7 +123,11 @@ impl Config {
                     riscv::asm::delay(clocks().hclk.to_Hz() / 1000);
                 }
             }
-            _ => (),
+            Clock32KSrc::LSI => {
+                with_safe_access(|| {
+                    sys.ck32k_config.modify(|_, w| w.clk_osc32k_xt().clear_bit());
+                });
+            }
         }
 
         with_safe_access(|| unsafe {
@@ -125,7 +140,7 @@ impl Config {
                     // HSE power on
                     with_safe_access(|| sys.hfck_pwr_ctrl.modify(|_, w| w.clk_xt32m_pon().set_bit()));
                     unsafe {
-                        riscv::asm::delay(1200);
+                        riscv::asm::delay(2400);
                     }
                 }
                 with_safe_access(|| unsafe {
@@ -136,6 +151,10 @@ impl Config {
                     riscv::asm::nop();
                     riscv::asm::nop();
                 });
+                unsafe {
+                    riscv::asm::nop();
+                    riscv::asm::nop();
+                }
                 with_safe_access(|| unsafe {
                     sys.flash_cfg.write(|w| w.bits(0x51));
                 });
@@ -147,7 +166,7 @@ impl Config {
                     // HSE power on
                     with_safe_access(|| sys.hfck_pwr_ctrl.modify(|_, w| w.clk_pll_pon().set_bit()));
                     unsafe {
-                        riscv::asm::delay(1200);
+                        riscv::asm::delay(4000);
                     }
                 }
                 with_safe_access(|| unsafe {
@@ -172,7 +191,9 @@ impl Config {
             }
             _ => {
                 // directly from CK32
-                sys.clk_sys_cfg.modify(|r, w| unsafe { w.bits(r.bits() | 0xC0) });
+                with_safe_access(|| unsafe {
+                    sys.clk_sys_cfg.modify(|r, w| w.bits(r.bits() | 0xC0));
+                });
                 Hertz::from_raw(32_768)
             }
         };
@@ -186,11 +207,4 @@ impl Config {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Clocks {
-    pub hclk: Hertz,
-}
-
-pub fn clocks() -> &'static Clocks {
-    unsafe { &CLOCK }
-}
+pub unsafe fn calibrate_lsi() {}

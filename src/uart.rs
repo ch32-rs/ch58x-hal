@@ -1,4 +1,4 @@
-//! UART: Uni
+//! UART, Universal Asynchronous Receiver/Transmitter
 
 use core::marker::PhantomData;
 
