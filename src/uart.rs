@@ -2,8 +2,10 @@
 
 use core::marker::PhantomData;
 
-use crate::gpio::OutputDrive;
+use crate::gpio::{OutputDrive, Pull};
 use crate::{into_ref, pac, peripherals, Peripheral};
+
+const UART_FIFO_SIZE: u8 = 8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Parity {
@@ -117,48 +119,8 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
             T::set_remap();
         }
 
-        // set up uart
         let rb = T::regs();
-
-        rb.fcr.write(|w| {
-            w.rx_fifo_clr()
-                .set_bit()
-                .tx_fifo_clr()
-                .set_bit()
-                .fifo_en() // enable 8 byte FIFO
-                .set_bit()
-                .fifo_trig()
-                .variant(0b00) // 1 bytes to send
-        });
-        rb.lcr.write(|w| w.word_sz().variant(config.data_bits as u8));
-        match config.stop_bits {
-            StopBits::STOP1 => rb.lcr.modify(|_, w| w.stop_bit().clear_bit()),
-            StopBits::STOP2 => rb.lcr.modify(|_, w| w.stop_bit().set_bit()),
-        }
-        match config.parity {
-            Parity::ParityNone => rb.lcr.modify(|_, w| w.par_en().clear_bit()),
-            _ => rb
-                .lcr
-                .modify(|_, w| w.par_en().set_bit().par_mod().variant(config.parity as u8)),
-        }
-
-        // baudrate = Fsys * 2 / R8_UARTx_DIV / 16 / R16_UARTx_DL
-        let (div, dl) = match (crate::sysctl::clocks().hclk.to_Hz(), config.baudrate) {
-            (60_000_000, 115200) => (13, 5),
-            (60_000_000, 8600) => (8, 109),
-            _ => {
-                let x = 10 * crate::sysctl::clocks().hclk.to_Hz() / 8 / config.baudrate;
-                let x = ((x + 5) / 10) & 0xffff;
-
-                (1, x as u16)
-            }
-        };
-
-        rb.div.write(|w| unsafe { w.bits(div) });
-        rb.dl.write(|w| unsafe { w.bits(dl) });
-
-        // enable TX
-        rb.ier.write(|w| w.txd_en().set_bit());
+        configure(rb, &config, true, false)?;
 
         // create state once!
         //let _s = T::state();
@@ -174,7 +136,6 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
 
     pub fn blocking_write(&mut self, buffer: &[u8]) -> Result<(), Error> {
         let rb = T::regs();
-        const UART_FIFO_SIZE: u8 = 8;
 
         for &c in buffer {
             // wait
@@ -192,7 +153,95 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
     }
 }
 
-// embedded-hal
+pub struct UartRx<'d, T: BasicInstance> {
+    phantom: PhantomData<&'d mut T>,
+}
+
+impl<'d, T: BasicInstance> UartRx<'d, T> {
+    /// Useful if you only want Uart Rx. It saves 1 pin and consumes a little less power.
+    pub fn new<const REMAP: bool>(
+        peri: impl Peripheral<P = T> + 'd,
+        // _irq: impl interrupt::typelevel::Binding<T::Interrupt, InterruptHandler<T>> + 'd,
+        rx: impl Peripheral<P = impl RxPin<T, REMAP>> + 'd,
+        config: Config,
+    ) -> Result<Self, ConfigError> {
+        // T::enable();
+
+        Self::new_inner(peri, rx, config)
+    }
+
+    fn new_inner<const REMAP: bool>(
+        peri: impl Peripheral<P = T> + 'd,
+        rx: impl Peripheral<P = impl RxPin<T, REMAP>> + 'd,
+        config: Config,
+    ) -> Result<Self, ConfigError> {
+        use crate::interrupt::Interrupt;
+        into_ref!(peri, rx);
+
+        rx.set_as_input();
+        rx.set_pullup();
+        if REMAP {
+            T::set_remap();
+        }
+
+        let rb = T::regs();
+        configure(rb, &config, false, true)?;
+
+        T::Interrupt::unpend();
+        unsafe { T::Interrupt::enable() };
+
+        // create state once!
+        //let _s = T::state();
+
+        Ok(Self { phantom: PhantomData })
+    }
+
+    fn check_rx_flags(&self) -> Result<bool, Error> {
+        let rb = T::regs();
+        let lsr = rb.lsr.read();
+        if lsr.err_rx_fifo().bit() {
+            if lsr.frame_err().bit() {
+                return Err(Error::Framing);
+            } else if lsr.par_err().bit() {
+                return Err(Error::Parity);
+            } else if lsr.over_err().bit() {
+                return Err(Error::Overrun);
+            }
+        }
+        Ok(lsr.data_rdy().bit())
+    }
+
+    // fifo disabled
+    /* pub fn blocking_read(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
+        let rb = T::regs();
+        for b in buffer {
+            while !self.check_rx_flags()? {}
+            unsafe { *b = rb.rbr().read().bits() as u8 };
+        }
+        Ok(())
+    } */
+
+    // fifo enabled
+    pub fn blocking_read(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
+        let rb = T::regs();
+        for b in buffer {
+            while !self.check_rx_flags()? {}
+            if rb.rfc.read().bits() > 0 {
+                *b = rb.rbr().read().bits() as u8;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn nb_read(&mut self) -> Result<u8, nb::Error<Error>> {
+        let rb = T::regs();
+        if self.check_rx_flags()? {
+            Ok(unsafe { rb.rbr().read().bits() as u8 })
+        } else {
+            Err(nb::Error::WouldBlock)
+        }
+    }
+}
 
 impl<'d, T: BasicInstance> core::fmt::Write for UartTx<'d, T> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -201,6 +250,63 @@ impl<'d, T: BasicInstance> core::fmt::Write for UartTx<'d, T> {
     }
 }
 
+fn configure(
+    rb: &pac::uart0::RegisterBlock,
+    config: &Config,
+    enable_tx: bool,
+    enable_rx: bool,
+) -> Result<(), ConfigError> {
+    if !enable_rx && !enable_tx {
+        panic!("USART: At least one of RX or TX should be enabled");
+    }
+
+    rb.fcr.write(|w| {
+        w.rx_fifo_clr()
+            .set_bit()
+            .tx_fifo_clr()
+            .set_bit()
+            .fifo_en() // enable 8 byte FIFO
+            .set_bit()
+            .fifo_trig()
+            .variant(0b00) // 1 bytes to send
+    });
+    rb.lcr.write(|w| w.word_sz().variant(config.data_bits as u8));
+    match config.stop_bits {
+        StopBits::STOP1 => rb.lcr.modify(|_, w| w.stop_bit().clear_bit()),
+        StopBits::STOP2 => rb.lcr.modify(|_, w| w.stop_bit().set_bit()),
+    }
+    match config.parity {
+        Parity::ParityNone => rb.lcr.modify(|_, w| w.par_en().clear_bit()),
+        _ => rb
+            .lcr
+            .modify(|_, w| w.par_en().set_bit().par_mod().variant(config.parity as u8)),
+    }
+
+    // baudrate = Fsys * 2 / R8_UARTx_DIV / 16 / R16_UARTx_DL
+    // match some common baudrates
+    let (div, dl) = match (crate::sysctl::clocks().hclk.to_Hz(), config.baudrate) {
+        (60_000_000, 115200) => (13, 5),
+        (60_000_000, 8600) => (8, 109),
+        _ => {
+            let x = 10 * crate::sysctl::clocks().hclk.to_Hz() / 8 / config.baudrate;
+            let x = ((x + 5) / 10) & 0xffff;
+
+            (1, x as u16)
+        }
+    };
+
+    rb.div.write(|w| unsafe { w.bits(div) });
+    rb.dl.write(|w| unsafe { w.bits(dl) });
+
+    // enable TX
+    if enable_tx {
+        rb.ier.modify(|_, w| w.txd_en().bit(true));
+    }
+
+    Ok(())
+}
+
+// embedded-hal
 mod eh1 {
     use super::*;
 
@@ -316,13 +422,21 @@ macro_rules! pin_trait_impl {
 }
 
 pin_trait_impl!(crate::uart::TxPin, UART0, PB7, false);
+pin_trait_impl!(crate::uart::RxPin, UART0, PB4, false);
 pin_trait_impl!(crate::uart::TxPin, UART0, PA14, true);
+pin_trait_impl!(crate::uart::RxPin, UART0, PA15, true);
 
 pin_trait_impl!(crate::uart::TxPin, UART1, PA9, false);
+pin_trait_impl!(crate::uart::RxPin, UART1, PA8, false);
 pin_trait_impl!(crate::uart::TxPin, UART1, PB13, true);
+pin_trait_impl!(crate::uart::RxPin, UART1, PB12, true);
 
 pin_trait_impl!(crate::uart::TxPin, UART2, PA7, false);
+pin_trait_impl!(crate::uart::RxPin, UART2, PA6, false);
 pin_trait_impl!(crate::uart::TxPin, UART2, PB23, true);
+pin_trait_impl!(crate::uart::RxPin, UART2, PB22, true);
 
 pin_trait_impl!(crate::uart::TxPin, UART3, PA5, false);
+pin_trait_impl!(crate::uart::RxPin, UART3, PA4, false);
 pin_trait_impl!(crate::uart::TxPin, UART3, PB21, true);
+pin_trait_impl!(crate::uart::RxPin, UART3, PB20, true);

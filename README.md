@@ -23,7 +23,7 @@ This should be the reference hal implementation for CH57x, CH58x, CH59x.
 
 - Basic: clock init, delay, interrupt, etc.
 - Dedicated runtime
-- Uart Tx only
+- Uart
 - GPIO
 - RTC, with datetime support
 - embassy time driver via SysTick
