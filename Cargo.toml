@@ -1,13 +1,13 @@
 [package]
 name = "ch58x-hal"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 authors = ["Andelf <andelf@gmail.com>"]
 repository = "https://github.com/ch32-rs/ch58x-hal"
 documentation = "https://docs.rs/ch58x-hal"
 homepage = "https://github.com/ch32-rs/ch58x-hal"
 categories = ["embedded", "no-std"]
-description = "HAL for the CH58x microcotrollers from WCH"
+description = "HAL for the CH583/CH582/CH581 RISC-V BLE microcotrollers from WCH"
 keywords = ["embedded-hal", "embassy", "ch582", "ch581", "ch583"]
 readme = "README.md"
 license = "MIT/Apache-2.0"
@@ -15,8 +15,6 @@ license = "MIT/Apache-2.0"
 [features]
 default = []
 embassy = ["dep:embassy-time"]
-defmt = []
-isp = []
 
 [dependencies]
 #ch58x = { version = "0.2.0", path = "../ch32-rs-nightlies/ch58x", features = [
