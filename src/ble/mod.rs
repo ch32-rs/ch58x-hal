@@ -22,6 +22,33 @@ pub fn lib_version() -> &'static str {
     }
 }
 
+/// Library format MAC Address, LSB first
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MacAddress([u8; 6]);
+
+impl MacAddress {
+    #[inline(always)]
+    pub fn from_raw(addr: [u8; 6]) -> Self {
+        MacAddress(addr)
+    }
+
+    /// Convert from human readable format, MSB first
+    pub fn from_msb(addr: [u8; 6]) -> Self {
+        MacAddress([addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]])
+    }
+}
+
+impl core::fmt::Display for MacAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let MacAddress(addr) = self;
+        write!(
+            f,
+            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+            addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]
+        )
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub mac_addr: [u8; 6],
