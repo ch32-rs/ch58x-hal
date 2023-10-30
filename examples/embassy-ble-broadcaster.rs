@@ -255,7 +255,7 @@ async fn main(spawner: Spawner) -> ! {
 
     spawner.spawn(broadcaster()).unwrap();
 
-    // spawner.spawn(blink(p.PA8.degrade())).unwrap();
+    spawner.spawn(blink(p.PA8.degrade())).unwrap();
 
     // Main_Circulation
     loop {
