@@ -48,9 +48,9 @@ static mut ADVERT_DATA: [u8; 19] = [
     // len
     0x04,                             // length of this data including the data type byte
     GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
-    b'b',
-    b'l',
-    b'e',
+    0x07, // 0x07D7,
+    0xD7,
+    0x01,
     // len
     0x0a,
     GAP_ADTYPE_LOCAL_NAME_SHORT,
@@ -63,6 +63,10 @@ static mut ADVERT_DATA: [u8; 19] = [
     b'h',
     b'a',
     b'l',
+    // len
+    0x02,
+    GAP_ADTYPE_POWER_LEVEL,
+    0, // 0dBm
 ];
 
 #[embassy_executor::task]
@@ -250,7 +254,7 @@ async fn main(spawner: Spawner) -> ! {
 
     spawner.spawn(broadcaster()).unwrap();
 
-    // spawner.spawn(blink(p.PA8.degrade())).unwrap();
+    spawner.spawn(blink(p.PA8.degrade())).unwrap();
 
     // Main_Circulation
     loop {

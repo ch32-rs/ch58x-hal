@@ -64,6 +64,22 @@ pub type tmosEvents = u16;
 pub type tmosTimer = u32;
 pub type BOOL = u8;
 
+
+/* Tx_POWER define(Accuracy:±2dBm) */
+pub const LL_TX_POWEER_MINUS_16_DBM: u8 = 0x01;
+pub const LL_TX_POWEER_MINUS_12_DBM: u8 = 0x02;
+pub const LL_TX_POWEER_MINUS_8_DBM: u8 = 0x04;
+pub const LL_TX_POWEER_MINUS_5_DBM: u8 = 0x07;
+pub const LL_TX_POWEER_MINUS_3_DBM: u8 = 0x09;
+pub const LL_TX_POWEER_MINUS_1_DBM: u8 = 0x0B;
+pub const LL_TX_POWEER_0_DBM: u8 = 0x0D;
+pub const LL_TX_POWEER_1_DBM: u8 = 0x0F;
+pub const LL_TX_POWEER_2_DBM: u8 = 0x13;
+pub const LL_TX_POWEER_3_DBM: u8 = 0x17;
+pub const LL_TX_POWEER_4_DBM: u8 = 0x1D;
+pub const LL_TX_POWEER_5_DBM: u8 = 0x29;
+pub const LL_TX_POWEER_6_DBM: u8 = 0x3D;
+
 /// BLE library config struct
 /// Library initialization call BLE_LibInit function
 #[repr(C)]
@@ -385,8 +401,10 @@ pub const GAP_ADTYPE_32BIT_MORE: u8 = 4;
 pub const GAP_ADTYPE_32BIT_COMPLETE: u8 = 5;
 pub const GAP_ADTYPE_128BIT_MORE: u8 = 6;
 pub const GAP_ADTYPE_128BIT_COMPLETE: u8 = 7;
+/// Shortened local name
 pub const GAP_ADTYPE_LOCAL_NAME_SHORT: u8 = 8;
 pub const GAP_ADTYPE_LOCAL_NAME_COMPLETE: u8 = 9;
+/// TX Power Level: -127 to +127 dBm
 pub const GAP_ADTYPE_POWER_LEVEL: u8 = 10;
 pub const GAP_ADTYPE_OOB_CLASS_OF_DEVICE: u8 = 13;
 pub const GAP_ADTYPE_OOB_SIMPLE_PAIRING_HASHC: u8 = 14;
@@ -427,6 +445,7 @@ pub const GAP_ADTYPE_ENCRYPTED_ADV_DATA: u8 = 49;
 pub const GAP_ADTYPE_PERI_ADV_RSP_TIMING_INFO: u8 = 50;
 pub const GAP_ADTYPE_ELECTRONIC_SHELF_LABEL: u8 = 52;
 pub const GAP_ADTYPE_3D_INFO_DATA: u8 = 61;
+/// Manufacturer Specific Data: first 2 octets contain the Company Identifier Code followed by the additional manufacturer specific data.
 pub const GAP_ADTYPE_MANUFACTURER_SPECIFIC: u8 = 255;
 pub const GAP_ADTYPE_FLAGS_LIMITED: u8 = 1;
 pub const GAP_ADTYPE_FLAGS_GENERAL: u8 = 2;
