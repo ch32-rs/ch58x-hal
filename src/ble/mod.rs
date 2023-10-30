@@ -51,12 +51,12 @@ impl core::fmt::Display for MacAddress {
 
 #[derive(Debug)]
 pub struct Config {
-    pub mac_addr: [u8; 6],
+    pub mac_addr: MacAddress,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let mac_addr = crate::isp::get_mac_address();
+        let mac_addr = MacAddress::from_raw(crate::isp::get_mac_address());
         Config { mac_addr }
     }
 }
@@ -95,16 +95,7 @@ pub fn init(config: Config) -> Result<(), NonZeroU8> {
     // No need to HAL_SLEEP
     // WakeUpTIme, sleepCB
 
-    // mac addr in reverse order
-    let mac_addr = &config.mac_addr;
-    cfg.MacAddr = [
-        mac_addr[5],
-        mac_addr[4],
-        mac_addr[3],
-        mac_addr[2],
-        mac_addr[1],
-        mac_addr[0],
-    ];
+    cfg.MacAddr = config.mac_addr.0;
 
     unsafe {
         BLE_LibInit(&cfg)?;
