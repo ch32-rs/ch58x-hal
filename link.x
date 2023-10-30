@@ -58,13 +58,6 @@ SECTIONS
         . = ALIGN(4);
     } >FLASH AT>FLASH
 
-    .text :
-    {
-        . = ALIGN(4);
-        KEEP(*(SORT_NONE(.handle_reset)))
-        *(.text .text.*)
-    } >FLASH AT>FLASH
-
     .highcode : ALIGN(4)
     {
         _highcode_lma = LOADADDR(.highcode);
@@ -75,6 +68,17 @@ SECTIONS
 		. = ALIGN(4);
         PROVIDE(_highcode_vma_end = .);
     } >RAM AT>FLASH
+
+    .text :
+    {
+        . = ALIGN(4);
+        KEEP(*(SORT_NONE(.handle_reset)))
+        *(.text .text.*)
+        *(.sdata2.*)
+		*(.glue_7)
+		*(.glue_7t)
+		*(.gnu.linkonce.t.*)
+    } >FLASH AT>FLASH
 
     .rodata : ALIGN(4)
     {
@@ -91,6 +95,7 @@ SECTIONS
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
         PROVIDE( __global_pointer$ = . + 0x800 );
+        /* These sections are used by the BLE lib */
         *(.sdata .sdata.*)
         *(.gnu.linkonce.s.*)
         . = ALIGN(8);
@@ -106,7 +111,11 @@ SECTIONS
     .bss : ALIGN(4)
     {
         PROVIDE( _sbss = .);
-        *(.sbss .sbss.* .bss .bss.*)
+        *(.sbss .sbss.*)
+        *(.bss .bss.*)
+        *(.gnu.linkonce.sb.*)
+        *(.gnu.linkonce.b.*)
+        *(COMMON*)
         PROVIDE( _ebss = .);
     } >RAM AT>FLASH
 
