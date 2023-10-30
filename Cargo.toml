@@ -69,15 +69,12 @@ required-features = ["embassy"]
 name = "embassy-gpio"
 required-features = ["embassy"]
 
-# [[example]]
-# name = "demo-ble"
-# required-features = ["ble"]
+[[example]]
+name = "embassy-ble-broadcaster"
+required-features = ["embassy", "ble"]
 
 [profile.release]
-# panic = "abort"
 # panic = "unwind"
-# lto = true
-# strip = true
 panic = "abort"
 opt-level = "z"
 lto = true
