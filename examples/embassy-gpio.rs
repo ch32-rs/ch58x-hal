@@ -43,7 +43,7 @@ async fn reset_if_requested(pin: AnyPin) {
     reset_btn.wait_for_rising_edge().await;
 
     unsafe {
-        //       hal::reset();
+        // hal::reset();
         hal::soft_reset();
     }
 }
