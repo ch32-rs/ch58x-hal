@@ -37,7 +37,7 @@ static mut SCAN_RSP_DATA: [u8; 16] = [
 ];
 // GAP - Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertisting)
-static mut ADVERT_DATA: [u8; 19] = [
+static mut ADVERT_DATA: [u8; 22] = [
     // Flags; this sets the device to use limited discoverable
     // mode (advertises for 30 seconds at a time) instead of general
     // discoverable mode (advertises indefinitely)
@@ -48,8 +48,8 @@ static mut ADVERT_DATA: [u8; 19] = [
     // len
     0x04,                             // length of this data including the data type byte
     GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
-    0x07, // 0x07D7,
     0xD7,
+    0x07, // 0x07D7,
     0x01,
     // len
     0x0a,
@@ -123,13 +123,14 @@ unsafe extern "C" fn broadcaster_callback(new_state: u32) {
 // No tmos msg handling logic here, so maybe I can rewrite this to embassy task.
 #[embassy_executor::task]
 async fn broadcaster() {
-    let mut cbs = gapRolesBroadcasterCBs_t {
+    static CALLBACKS: gapRolesBroadcasterCBs_t = gapRolesBroadcasterCBs_t {
         pfnStateChange: Some(broadcaster_callback),
         pfnScanRecv: None,
     };
 
     unsafe {
-        let r = GAPRole_BroadcasterStartDevice(&mut cbs);
+        println!("set up callback=> {:?}", CALLBACKS);
+        let r = GAPRole_BroadcasterStartDevice(&CALLBACKS);
         println!("GAPRole_BroadcasterStartDevice: {:?}", r);
     }
 }
@@ -217,7 +218,7 @@ async fn main(spawner: Spawner) -> ! {
         println!("TMOS_TimerInit: {:?}", r);
 
         // HAL_SleepInit, rtc wake up and trig_en, enable RTC irq
-        BLE_RegInit();
+        //  BLE_RegInit();
     }
     // start ble reg calibrate loop
     spawner.spawn(calibrate_ble_reg(120_000)).unwrap();
@@ -254,7 +255,7 @@ async fn main(spawner: Spawner) -> ! {
 
     spawner.spawn(broadcaster()).unwrap();
 
-    spawner.spawn(blink(p.PA8.degrade())).unwrap();
+    // spawner.spawn(blink(p.PA8.degrade())).unwrap();
 
     // Main_Circulation
     loop {

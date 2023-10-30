@@ -487,7 +487,7 @@ extern "C" {
     pub fn GAPRole_SetParameter(param: u16, len: u16, pValue: *const ::core::ffi::c_void) -> bStatus_t;
 
     #[doc = " @brief   Does the device initialization.  Only call this function once.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  SUCCESS or bleAlreadyInRequestedMode"]
-    pub fn GAPRole_BroadcasterStartDevice(pAppCallbacks: *mut gapRolesBroadcasterCBs_t) -> bStatus_t;
+    pub fn GAPRole_BroadcasterStartDevice(pAppCallbacks: *const gapRolesBroadcasterCBs_t) -> bStatus_t;
 
     #[doc = " @brief   Set a GAP Parameter value.  Use this function to change  the default GAP parameter values.\n\n @param   paramID - parameter ID: @ref GAP_PARAMETER_ID_DEFINES\n @param   paramValue - new param value\n\n @return  SUCCESS or INVALIDPARAMETER (invalid paramID)"]
     pub fn GAP_SetParamValue(paramID: u16, paramValue: u16) -> bStatus_t;
