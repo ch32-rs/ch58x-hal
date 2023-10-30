@@ -12,6 +12,7 @@ pub mod dma;
 pub mod gpio;
 pub mod i2c;
 // pub mod lcd;
+pub mod ble;
 pub mod rtc;
 pub mod signature;
 pub mod spi;
@@ -20,7 +21,6 @@ pub mod sysctl;
 pub mod systick;
 pub mod timer;
 pub mod uart;
-pub mod ble;
 
 pub mod interrupt;
 pub mod isp;
@@ -203,4 +203,12 @@ macro_rules! println {
 
 pub unsafe fn set_default_serial(serial: uart::UartTx<'static, peripherals::UART1>) {
     SERIAL.replace(serial);
+}
+
+pub fn stack_free() -> usize {
+    extern "C" {
+        static mut _ebss: u32;
+        static mut _stack_top: u32;
+    }
+    unsafe { &mut _stack_top as *mut u32 as usize - &mut _ebss as *mut u32 as usize }
 }

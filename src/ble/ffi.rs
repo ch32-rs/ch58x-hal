@@ -40,30 +40,14 @@ use core::num::NonZeroU8;
 #define bleProcedureComplete            0x1A   //!< The Procedure is completed
 #define bleInvalidMtuSize               0x1B   //!< SDU size is larger than peer MTU.
  */
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Status {
-    Ok,
-    Error(NonZeroU8),
-}
 
-impl Status {
-    pub fn is_ok(self) -> bool {
-        self == Status::Ok
-    }
-
-    pub fn is_err(self) -> bool {
-        !self.is_ok()
-    }
-}
-
-pub type bStatus_t = Status;
+// UNSAFE: size_of is 1
+pub type bStatus_t = Result<(), NonZeroU8>;
 
 pub type tmosTaskID = u8;
 pub type tmosEvents = u16;
 pub type tmosTimer = u32;
 pub type BOOL = u8;
-
 
 /* Tx_POWER define(Accuracy:±2dBm) */
 pub const LL_TX_POWEER_MINUS_16_DBM: u8 = 0x01;
@@ -229,6 +213,10 @@ extern "C" {
 
     #[doc = " @brief   ble register reset and rf calibration\n\n @param   None\n\n @return  None"]
     pub fn BLE_RegInit();
+
+    #[doc = " @brief   generate a valid access address\n\n @param   None.\n\n @return  access address\n the Access Address meets the following requirements:\n It shall have no more than six consecutive zeros or ones.\n It shall not be t he advertising channel packets�� Access Address.\n It shall not be a sequence that differ s from the advertising channel packets' Access Address by only one bit.\n It shall not have all four octets equal.\n It shall have no more  than 24 transitions.\n It shall have a minimum of two transitions in the most significant six bits."]
+    pub fn BLE_AccessAddressGenerate() -> u32;
+
 }
 
 extern "C" {
@@ -447,10 +435,11 @@ pub const GAP_ADTYPE_ELECTRONIC_SHELF_LABEL: u8 = 52;
 pub const GAP_ADTYPE_3D_INFO_DATA: u8 = 61;
 /// Manufacturer Specific Data: first 2 octets contain the Company Identifier Code followed by the additional manufacturer specific data.
 pub const GAP_ADTYPE_MANUFACTURER_SPECIFIC: u8 = 255;
+
+/// GAP_ADTYPE_FLAGS_MODES GAP ADTYPE Flags Discovery Modes
 pub const GAP_ADTYPE_FLAGS_LIMITED: u8 = 1;
 pub const GAP_ADTYPE_FLAGS_GENERAL: u8 = 2;
 pub const GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED: u8 = 4;
-
 
 // gapRole_States_t
 pub const GAPROLE_STATE_ADV_MASK: u32 = 15;

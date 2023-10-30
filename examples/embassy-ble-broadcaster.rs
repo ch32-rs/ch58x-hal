@@ -9,6 +9,7 @@ use embassy_time::{Delay, Duration, Instant, Timer};
 use hal::ble::ffi::*;
 use hal::ble::get_raw_temperature;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
+use hal::interrupt::Interrupt;
 use hal::prelude::*;
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
@@ -37,7 +38,7 @@ static mut SCAN_RSP_DATA: [u8; 16] = [
 ];
 // GAP - Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertisting)
-static mut ADVERT_DATA: [u8; 22] = [
+static mut ADVERT_DATA: [u8; 30] = [
     // Flags; this sets the device to use limited discoverable
     // mode (advertises for 30 seconds at a time) instead of general
     // discoverable mode (advertises indefinitely)
@@ -49,7 +50,7 @@ static mut ADVERT_DATA: [u8; 22] = [
     0x04,                             // length of this data including the data type byte
     GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
     0xD7,
-    0x07, // 0x07D7,
+    0x07, // 0x07D7, Nanjing Qinheng Microelectronics Co., Ltd.
     0x01,
     // len
     0x0a,
@@ -67,6 +68,14 @@ static mut ADVERT_DATA: [u8; 22] = [
     0x02,
     GAP_ADTYPE_POWER_LEVEL,
     0, // 0dBm
+    7,
+    GAP_ADTYPE_LOCAL_NAME_COMPLETE,
+    b'a',
+    b'n',
+    b'd',
+    b'e',
+    b'l',
+    b'f',
 ];
 
 #[embassy_executor::task]
@@ -115,7 +124,9 @@ unsafe extern "C" fn broadcaster_callback(new_state: u32) {
         GAPROLE_ERROR => {
             println!("error..");
         }
-        _ => (),
+        _ => {
+            println!("!!! unknown state: {}", new_state);
+        }
     }
 }
 
@@ -169,7 +180,7 @@ async fn main(spawner: Spawner) -> ! {
     println!("ChipID: 0x{:02x}", hal::signature::get_chip_id());
     println!("RTC datetime: {}", rtc.now());
 
-    // HEAP for BLE
+    // HEAP for BLE, 6K
     use core::mem::MaybeUninit;
     const HEAP_SIZE: usize = 1024 * 6;
     // use u32 to align
@@ -182,12 +193,12 @@ async fn main(spawner: Spawner) -> ! {
     // CH58X_BLEInit
     unsafe {
         let mut cfg: bleConfig_t = core::mem::zeroed();
-        cfg.MEMAddr = (HEAP_MEM.as_ptr() as u32) / 16 * 16;
+        cfg.MEMAddr = (HEAP_MEM.as_ptr() as u32);
         cfg.MEMLen = HEAP_SIZE as _;
         cfg.BufMaxLen = 27;
         cfg.BufNumber = 5;
         cfg.TxNumEvent = 1;
-        cfg.TxPower = 0x3D; // 0x01, to 0x3D
+        cfg.TxPower = LL_TX_POWEER_0_DBM;
 
         // No SNV (SNVAddr, SNVBlock, SNVNum, readFlashCB, writeFlashCB)
 
@@ -257,12 +268,18 @@ async fn main(spawner: Spawner) -> ! {
 
     spawner.spawn(blink(p.PA8.degrade())).unwrap();
 
+    println!("Gen Addr: {:08x}", unsafe { BLE_AccessAddressGenerate() });
+    println!("Gen Addr: {:08x}", unsafe { BLE_AccessAddressGenerate() });
+
     // Main_Circulation
     loop {
         Timer::after(Duration::from_micros(300)).await;
-        critical_section::with(|_| unsafe {
+        unsafe {
+            hal::interrupt::SysTick::pend();
             TMOS_SystemProcess();
-        })
+            hal::interrupt::SysTick::unpend();
+        }
+
         // println!("tick");
     }
 }

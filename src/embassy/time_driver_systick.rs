@@ -57,7 +57,7 @@ impl SystickDriver {
         self.period.store(cnt_per_tick as u32, Ordering::Relaxed);
 
         // UNDOCUMENTED:  Avoid initial interrupt
-        rb.cmp.write(|w| unsafe { w.bits(u64::MAX-1) });
+        rb.cmp.write(|w| unsafe { w.bits(u64::MAX - 1) });
         critical_section::with(|_| {
             rb.sr.write(|w| w.cntif().bit(false)); // clear
                                                    // Configration: Upcount, No reload, HCLK/8 as clock source

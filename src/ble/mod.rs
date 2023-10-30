@@ -1,14 +1,100 @@
 use core::ffi::CStr;
+use core::mem::MaybeUninit;
+use core::num::NonZeroU8;
 
 use crate::{pac, println};
 
 pub mod ffi;
 
+const HEAP_SIZE: usize = 1024 * 6;
+// use u32 to align to 4
+
+#[repr(C, align(4))]
+struct BLEHeap([MaybeUninit<u8>; HEAP_SIZE]);
+
+static mut BLE_HEAP: BLEHeap = BLEHeap([MaybeUninit::uninit(); HEAP_SIZE]);
+
+/// "CH58x_BLE_LIB_V1.9"
 pub fn lib_version() -> &'static str {
     unsafe {
         let version = CStr::from_ptr(ffi::VER_LIB.as_ptr());
         version.to_str().unwrap()
     }
+}
+
+#[derive(Debug)]
+pub struct Config {
+    pub mac_addr: [u8; 6],
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        let mac_addr = crate::isp::get_mac_address();
+        Config { mac_addr }
+    }
+}
+
+/// Wrapper of BLEInit and HAL_Init
+pub fn init(config: Config) -> Result<(), NonZeroU8> {
+    use ffi::{bleConfig_t, BLE_LibInit, BLE_RegInit, TMOS_TimerInit, LL_TX_POWEER_6_DBM};
+    const BLE_TX_NUM_EVENT: u8 = 1;
+    const BLE_BUFF_NUM: u8 = 5;
+    const BLE_BUFF_MAX_LEN: u16 = 27;
+    const BLE_TX_POWER: u8 = LL_TX_POWEER_6_DBM;
+    const PERIPHERAL_MAX_CONNECTION: u8 = 1;
+    const CENTRAL_MAX_CONNECTION: u8 = 3;
+
+    let mut cfg: bleConfig_t = unsafe { core::mem::zeroed() };
+
+    cfg.MEMAddr = unsafe { BLE_HEAP.0.as_ptr() as u32 };
+    cfg.MEMLen = HEAP_SIZE as _;
+
+    cfg.BufMaxLen = BLE_BUFF_MAX_LEN;
+    cfg.BufNumber = BLE_BUFF_NUM;
+    cfg.TxNumEvent = BLE_TX_NUM_EVENT;
+    cfg.TxPower = BLE_TX_POWER;
+
+    // No SNV (SNVAddr, SNVBlock, SNVNum, readFlashCB, writeFlashCB)
+
+    cfg.SelRTCClock = 0; // use LSE: ( 0 外部(32768Hz)，默认:1：内部(32000Hz)，2：内部(32768Hz)
+
+    cfg.ConnectNumber = (PERIPHERAL_MAX_CONNECTION & 3) | (CENTRAL_MAX_CONNECTION << 2);
+
+    cfg.srandCB = Some(srand); // tmos_rand will call this
+
+    cfg.rcCB = None; // use LSE, no calibrate
+    cfg.tsCB = Some(get_raw_temperature);
+
+    // No need to HAL_SLEEP
+    // WakeUpTIme, sleepCB
+
+    // mac addr in reverse order
+    let mac_addr = &config.mac_addr;
+    cfg.MacAddr = [
+        mac_addr[5],
+        mac_addr[4],
+        mac_addr[3],
+        mac_addr[2],
+        mac_addr[1],
+        mac_addr[0],
+    ];
+
+    unsafe {
+        BLE_LibInit(&cfg)?;
+    }
+
+    unsafe {
+        TMOS_TimerInit(core::ptr::null_mut())?;
+
+        BLE_RegInit();
+    }
+
+    Ok(())
+}
+
+pub unsafe extern "C" fn srand() -> u32 {
+    let systick = unsafe { &*pac::SYSTICK::PTR };
+    systick.cnt.read().bits() as u32
 }
 
 pub unsafe extern "C" fn get_raw_temperature() -> u16 {
