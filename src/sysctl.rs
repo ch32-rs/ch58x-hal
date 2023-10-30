@@ -113,9 +113,9 @@ impl Config {
                 unsafe {
                     riscv::asm::delay(clocks().hclk.to_Hz() / 10 / 4);
                 }
-                with_safe_access(|| unsafe {
-                    sys.xt32k_tune.modify(|_, w| w.xt32k_i_tune().bits(0b01));
-                });
+                //with_safe_access(|| unsafe {
+                //    sys.xt32k_tune.modify(|_, w| w.xt32k_i_tune().bits(0b01));
+                //});
                 with_safe_access(|| {
                     sys.ck32k_config.modify(|_, w| w.clk_osc32k_xt().set_bit());
                 });
@@ -125,7 +125,8 @@ impl Config {
             }
             Clock32KSrc::LSI => {
                 with_safe_access(|| {
-                    sys.ck32k_config.modify(|_, w| w.clk_osc32k_xt().clear_bit());
+                    sys.ck32k_config
+                        .modify(|_, w| w.clk_osc32k_xt().clear_bit().clk_int32k_pon().set_bit());
                 });
             }
         }

@@ -20,15 +20,15 @@ pub mod sysctl;
 pub mod systick;
 pub mod timer;
 pub mod uart;
+pub mod ble;
 
-// #[cfg(feature = "isp")]
 pub mod interrupt;
 pub mod isp;
 pub mod rt;
 
 pub mod peripherals;
 
-pub mod peripheral;
+mod peripheral;
 pub mod prelude;
 
 mod critical_section;

@@ -13,7 +13,7 @@ readme = "README.md"
 license = "MIT/Apache-2.0"
 
 [features]
-default = []
+default = ["ble"]
 embassy = ["dep:embassy-time"]
 ble = []
 
@@ -68,6 +68,10 @@ required-features = ["embassy"]
 [[example]]
 name = "embassy-gpio"
 required-features = ["embassy"]
+
+# [[example]]
+# name = "demo-ble"
+# required-features = ["ble"]
 
 [profile.release]
 # panic = "abort"
