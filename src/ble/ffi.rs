@@ -252,6 +252,7 @@ extern "C" {
     // tmosTaskID, u8
     // tmosEvents, u16
 
+    #[doc = " @brief   register process event callback function\n\n @param   eventCb-events callback function\n\n @return  0xFF - error,others-task id"]
     pub fn TMOS_ProcessEventRegister(
         eventCb: Option<unsafe extern "C" fn(taskID: tmosTaskID, event: tmosEvents) -> tmosEvents>,
     ) -> tmosTaskID;
@@ -944,6 +945,9 @@ extern "C" {
     // Use static lifetime, the holder struct must be static
     #[doc = " @brief   Does the device initialization.  Only call this function once.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  SUCCESS or bleAlreadyInRequestedMode"]
     pub fn GAPRole_BroadcasterStartDevice(pAppCallbacks: &'static gapRolesBroadcasterCBs_t) -> bStatus_t;
+
+    #[doc = " @brief   used to cancel the HCI_LE_Periodic_Advertising_Create_Sync command while\n          it is pending.\n\n @param   None.\n\n @return  bStatus_t: HCI Error Code.<BR>\n"]
+    pub fn GAPRole_CancelSync() -> bStatus_t;
 
     #[doc = " @brief   Set a GAP Parameter value.  Use this function to change  the default GAP parameter values.\n\n @param   paramID - parameter ID: @ref GAP_PARAMETER_ID_DEFINES\n @param   paramValue - new param value\n\n @return  SUCCESS or INVALIDPARAMETER (invalid paramID)"]
     pub fn GAP_SetParamValue(paramID: u16, paramValue: u16) -> bStatus_t;
