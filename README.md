@@ -23,15 +23,18 @@ This should be the reference hal implementation for CH57x, CH58x, CH59x.
 
 - Basic: clock init, delay, interrupt, etc.
 - Dedicated runtime: interrupt table, hardware stack push, highcode support, critical section implementation
-- embassy time driver via SysTick, defaults to 32KHz tick
+- embassy support
+  - time driver with SysTick, defaults to 32KHz tick
+  - about 7k flash rom overhead
 - GPIO, with async support
 - UART, basic blocking tx, rx
-- RTC, with a nice datetime support
-- SysTick (conflicts with embassy time driver)
+- RTC, with datetime support
+- SysTick delay (conflicts with embassy time driver)
 - I2C
-- ADC, Temperature sensor, VBAT sensor
+- ADC, with Temperature sensor, VBAT sensor
 - SPI
 - libISP ROM functions
+- BLE library support
 
 ## Usage
 
