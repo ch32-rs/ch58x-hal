@@ -34,7 +34,7 @@ This should be the reference hal implementation for CH57x, CH58x, CH59x.
 - ADC, with Temperature sensor, VBAT sensor
 - SPI
 - libISP ROM functions
-- BLE library support
+- Basic BLE library support
 
 ## Usage
 

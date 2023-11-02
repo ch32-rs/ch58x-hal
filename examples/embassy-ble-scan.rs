@@ -11,7 +11,6 @@ use hal::ble::ffi::*;
 use hal::ble::{get_raw_temperature, MacAddress};
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
 use hal::interrupt::Interrupt;
-use hal::prelude::*;
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
 use hal::{ble, peripherals, println};
@@ -132,9 +131,9 @@ async fn main(spawner: Spawner) -> ! {
     println!("RTC datetime: {}", rtc.now());
 
     let r = ble::init(ble::Config {
-        mac_addr: [0x22, 0x33, 0x44, 0x55, 0x66, 0x77],
+        mac_addr: [0x22, 0x33, 0x44, 0x55, 0x66, 0x77].into(),
     });
-    println!("ble init: {:?}", r);
+    println!("BLE init: {:?}", r);
     println!("MemFree: {}K", hal::stack_free() / 1024);
 
     // start ble reg calibrate loop

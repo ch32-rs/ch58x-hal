@@ -49,6 +49,12 @@ impl core::fmt::Display for MacAddress {
     }
 }
 
+impl From<[u8; 6]> for MacAddress {
+    fn from(addr: [u8; 6]) -> Self {
+        MacAddress::from_msb(addr)
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub mac_addr: MacAddress,
