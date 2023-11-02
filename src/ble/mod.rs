@@ -112,8 +112,7 @@ pub fn init(config: Config) -> Result<(), NonZeroU8> {
     cfg.rcCB = None; // use LSE, no calibrate
     cfg.tsCB = Some(get_raw_temperature);
 
-    // No need to HAL_SLEEP
-    // WakeUpTIme, sleepCB
+    // No need to set HAL_SLEEP(WakeUpTIme, sleepCB)
 
     cfg.MacAddr = config.mac_addr.0;
 

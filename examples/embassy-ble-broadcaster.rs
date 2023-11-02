@@ -38,22 +38,19 @@ static mut SCAN_RSP_DATA: [u8; 16] = [
 ];
 // GAP - Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertisting)
-static mut ADVERT_DATA: [u8; 30] = [
-    // Flags; this sets the device to use limited discoverable
-    // mode (advertises for 30 seconds at a time) instead of general
-    // discoverable mode (advertises indefinitely)
+static mut ADVERT_DATA: [u8; 22] = [
     0x02, // length of this data
     GAP_ADTYPE_FLAGS,
     GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
-    // Broadcast of the data
-    // len
+
+    // https://www.bluetooth.com/specifications/assigned-numbers/
     0x04,                             // length of this data including the data type byte
     GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
     0xD7,
     0x07, // 0x07D7, Nanjing Qinheng Microelectronics Co., Ltd.
     0x01,
-    // len
-    0x0a,
+
+    0x0a, // len
     GAP_ADTYPE_LOCAL_NAME_SHORT,
     b'c',
     b'h',
@@ -64,18 +61,10 @@ static mut ADVERT_DATA: [u8; 30] = [
     b'h',
     b'a',
     b'l',
-    // len
-    0x02,
+
+    0x02, // len
     GAP_ADTYPE_POWER_LEVEL,
     0, // 0dBm
-    7,
-    GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-    b'a',
-    b'n',
-    b'd',
-    b'e',
-    b'l',
-    b'f',
 ];
 
 #[embassy_executor::task]
