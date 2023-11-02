@@ -33,6 +33,7 @@ pub struct Config {
     pub clk: SamplingClock,
     pub pga_gain: Gain,
     pub diff_en: bool,
+    pub buf_en: bool,
 }
 
 impl Default for Config {
@@ -41,6 +42,7 @@ impl Default for Config {
             clk: SamplingClock::_3_2MHz,
             pga_gain: Gain::GAIN1_2,
             diff_en: false,
+            buf_en: true,
         }
     }
 }
@@ -51,6 +53,7 @@ impl Config {
             clk: SamplingClock::_3_2MHz,
             pga_gain: Gain::GAIN2,
             diff_en: true,
+            buf_en: false,
         }
     }
 
@@ -59,6 +62,7 @@ impl Config {
             clk: SamplingClock::_3_2MHz,
             pga_gain: Gain::GAIN1_4,
             diff_en: false,
+            buf_en: false,
         }
     }
 }
@@ -170,22 +174,10 @@ where
                 .clk_div()
                 .variant(config.clk as u8)
                 .buf_en()
-                .bit(!config.diff_en)
+                .bit(config.buf_en)
                 .pga_gain()
                 .variant(config.pga_gain as u8)
         });
-        /* rb.cfg.modify(|_, w| {
-            w.power_on()
-                .set_bit()
-                .diff_en()
-                .set_bit() // must for temp
-                .clk_div()
-                .variant(config.clk as u8)
-                .buf_en()
-                .clear_bit()
-                .pga_gain()
-                .variant(0b00)
-        }); */
 
         Self { adc }
     }
@@ -198,7 +190,7 @@ where
                 .clk_div()
                 .variant(config.clk as u8)
                 .buf_en()
-                .bit(!config.diff_en)
+                .bit(!config.buf_en)
                 .pga_gain()
                 .variant(config.pga_gain as u8)
         });
