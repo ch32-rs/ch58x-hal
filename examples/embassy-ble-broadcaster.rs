@@ -242,7 +242,7 @@ async fn main(spawner: Spawner) -> ! {
     // Broadcaster_Init();
     unsafe {
         // Setup the GAP Broadcaster Role Profile
-        GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &1 as *const _ as _);
+        GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
         GAPRole_SetParameter(GAPROLE_ADV_EVENT_TYPE, 1, &0x03 as *const _ as _);
         GAPRole_SetParameter(
             GAPROLE_SCAN_RSP_DATA,

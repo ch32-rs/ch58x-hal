@@ -2,6 +2,7 @@ use core::ffi::CStr;
 use core::mem::MaybeUninit;
 use core::num::NonZeroU8;
 
+use self::ffi::{tmos_msg_deallocate, tmos_msg_receive, SYS_EVENT_MSG};
 use crate::{pac, println};
 
 pub mod ffi;
@@ -67,9 +68,22 @@ impl Default for Config {
     }
 }
 
+unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
+    if events & SYS_EVENT_MSG != 0 {
+        let msg = tmos_msg_receive(task_id);
+        if !msg.is_null() {
+            let _ = tmos_msg_deallocate(msg);
+        }
+        return events ^ SYS_EVENT_MSG;
+    } else {
+        unimplemented!()
+    }
+}
+
 /// Wrapper of BLEInit and HAL_Init
 pub fn init(config: Config) -> Result<(), NonZeroU8> {
     use ffi::{bleConfig_t, BLE_LibInit, BLE_RegInit, TMOS_TimerInit, LL_TX_POWEER_6_DBM};
+
     const BLE_TX_NUM_EVENT: u8 = 1;
     const BLE_BUFF_NUM: u8 = 5;
     const BLE_BUFF_MAX_LEN: u16 = 27;

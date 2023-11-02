@@ -42,6 +42,7 @@ use core::num::NonZeroU8;
  */
 
 // UNSAFE: size_of is 1
+#[allow(improper_ctypes)]
 pub type bStatus_t = Result<(), NonZeroU8>;
 
 pub type tmosTaskID = u8;
@@ -245,6 +246,13 @@ pub struct tmos_event_hdr_t {
     pub status: u8,
 }
 
+/// A message is waiting event
+pub const SYS_EVENT_MSG: u16 = 0x8000;
+
+/// Task ID isn't setup properly
+pub const INVALID_TASK_ID: u8 = 0xFF;
+pub const TASK_NO_TASK: u8 = 0xFF;
+
 // TMOS
 extern "C" {
 
@@ -262,6 +270,12 @@ extern "C" {
 
     #[doc = " @brief   start a event after period of time\n\n @param   taskID - task ID to set event for\n @param   event - event to be notified with\n @param   time - timeout value\n\n @return  TRUE,FALSE."]
     pub fn tmos_start_task(taskID: tmosTaskID, event: tmosEvents, time: tmosTimer) -> BOOL;
+
+    #[doc = " @brief   receive a msg\n\n @param   taskID  - task ID of task need to receive msg\n\n @return *uint8_t - message information or NULL if no message"]
+    pub fn tmos_msg_receive(taskID: tmosTaskID) -> *mut u8;
+
+    #[doc = " @brief   delete a msg\n\n @param  *msg_ptr - point of msg\n\n @return  SUCCESS."]
+    pub fn tmos_msg_deallocate(msg_ptr: *mut u8) -> bStatus_t;
 
     #[doc = " @brief   Process system\n\n @param   None.\n\n @return  None."]
     pub fn TMOS_SystemProcess();
