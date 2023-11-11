@@ -52,10 +52,11 @@ fn main() -> ! {
     let now = rtc.now();
     writeln!(serial, "Boot time: {} weekday={}", now, now.isoweekday()).unwrap();
 
-    let marchid = riscv::register::marchid::read().unwrap();
-    writeln!(serial, "marchid: 0x{:08x?}", marchid.bits());
-    let mias = riscv::register::misa::read().unwrap();
-    writeln!(serial, "mias: 0x{:08x?}", mias.bits());
+    // requires machine mode
+    // let marchid = riscv::register::marchid::read().unwrap();
+    // writeln!(serial, "marchid: 0x{:08x?}", marchid.bits());
+    // let mias = riscv::register::misa::read().unwrap();
+    // writeln!(serial, "mias: 0x{:08x?}", mias.bits());
 
     // ADC part
     let mut adc_config = hal::adc::Config::for_temperature();
@@ -75,27 +76,6 @@ fn main() -> ! {
 
         let vi = adc.read_as_millivolts(&mut temp_sensor);
         writeln!(serial, "ADC voltage: {}mV", vi).unwrap();
-
-        /*
-
-        // start adc convert
-        let data = adc.read(&mut vbat_channel);
-        writeln!(serial, "adc raw data: {}", data).unwrap();
-        // avoid using soft-fp, about 20k flash increase
-        // let vref = 1.05;
-        // let vi = ((data as f32) / 4096.0 + 0.5) * vref;
-        let vref = 1050;
-        let vi = ((data as u32) * vref) / 4096 + 1050 / 2;
-        writeln!(serial, "Vbat voltage: {}mV", vi).unwrap();
-
-        let vi = adc.read_as_millivolts(&mut vbat_channel);
-        writeln!(serial, "Vbat voltage: {}mV", vi).unwrap();
-
-        //let raw_temp = adc.read(&mut temp_sensor);
-        //writeln!(serial, "raw_temp: {}", raw_temp);
-        //let temp = adc_to_temperature_celsius(raw_temp);
-        //writeln!(serial, "sensor temp: {}C", temp).unwrap();
-        */
 
         writeln!(
             serial,
