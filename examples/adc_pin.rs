@@ -52,11 +52,6 @@ fn main() -> ! {
     let now = rtc.now();
     writeln!(serial, "Boot time: {} weekday={}", now, now.isoweekday()).unwrap();
 
-    let marchid = riscv::register::marchid::read().unwrap();
-    writeln!(serial, "marchid: 0x{:08x?}", marchid.bits());
-    let mias = riscv::register::misa::read().unwrap();
-    writeln!(serial, "mias: 0x{:08x?}", mias.bits());
-
     // ADC part
     let mut adc = Adc::new(p.ADC, hal::adc::Config::default());
 
