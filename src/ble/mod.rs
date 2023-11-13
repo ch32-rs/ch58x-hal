@@ -25,6 +25,8 @@ static mut BLE_HEAP: BLEHeap = BLEHeap([MaybeUninit::uninit(); HEAP_SIZE]);
 
 static CHANNEL: PubSubChannel<CriticalSectionRawMutex, u16, 4, 2, 2> = PubSubChannel::new();
 
+pub type EventSubscriber = Subscriber<'static, CriticalSectionRawMutex, u16, 4, 2, 2>;
+
 /// Library format MAC Address, LSB first
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MacAddress([u8; 6]);
@@ -42,8 +44,6 @@ impl Default for Config {
 }
 
 unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
-    crate::println!("!! hal_tmos_task: task_id: {}, events: {}", task_id, events);
-
     if events & SYS_EVENT_MSG != 0 {
         let msg = tmos_msg_receive(task_id);
         if !msg.is_null() {
@@ -56,6 +56,8 @@ unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
         tmos_start_task(task_id, HAL_REG_INIT_EVENT, HAL_TMOS_TASK_INTERVAL);
         return events ^ HAL_REG_INIT_EVENT;
     } else {
+        crate::println!("!! hal_tmos_task: task_id: {}, events: 0x{:04x}", task_id, events);
+
         CHANNEL.publish_immediate(events);
         // assume all events are handled here, actually the
         return 0;

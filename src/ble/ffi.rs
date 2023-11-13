@@ -1023,6 +1023,9 @@ extern "C" {
     #[doc = " @brief   Initialization function for the GAP Role Task.\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
     pub fn GAPRole_BroadcasterInit() -> bStatus_t;
 
+    #[doc = " @brief   Does the Broadcaster receive scan request call initialization.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  None"]
+    pub fn GAPRole_BroadcasterSetCB(pAppCallbacks: &'static gapRolesBroadcasterCBs_t);
+
     #[doc = " @internal\n\n @brief   Observer Profile Task initialization function.\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
     pub fn GAPRole_ObserverInit() -> bStatus_t;
 
@@ -1184,11 +1187,12 @@ pub const GAPBOND_PAIRING_MODE_NO_PAIRING: u8 = 0;
 pub const GAPBOND_PAIRING_MODE_WAIT_FOR_REQ: u8 = 1;
 pub const GAPBOND_PAIRING_MODE_INITIATE: u8 = 2;
 
-pub const GAPBOND_IO_CAP_DISPLAY_ONLY: u16 = 0;
-pub const GAPBOND_IO_CAP_DISPLAY_YES_NO: u16 = 1;
-pub const GAPBOND_IO_CAP_KEYBOARD_ONLY: u16 = 2;
-pub const GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT: u16 = 3;
-pub const GAPBOND_IO_CAP_KEYBOARD_DISPLAY: u16 = 4;
+// GAPBOND_IO_CAP_DEFINES GAP Bond Manager I/O Capabilities
+pub const GAPBOND_IO_CAP_DISPLAY_ONLY: u8 = 0;
+pub const GAPBOND_IO_CAP_DISPLAY_YES_NO: u8 = 1;
+pub const GAPBOND_IO_CAP_KEYBOARD_ONLY: u8 = 2;
+pub const GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT: u8 = 3;
+pub const GAPBOND_IO_CAP_KEYBOARD_DISPLAY: u8 = 4;
 
 pub const GAPBOND_KEYDIST_SENCKEY: u16 = 1;
 pub const GAPBOND_KEYDIST_SIDKEY: u16 = 2;
