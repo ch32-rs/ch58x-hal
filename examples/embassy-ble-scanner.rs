@@ -27,17 +27,6 @@ async fn blink(pin: AnyPin) {
     }
 }
 
-#[embassy_executor::task]
-async fn calibrate_ble_reg(interval_ms: u32) {
-    loop {
-        unsafe {
-            BLE_RegInit();
-        }
-        println!("BLE_RegInit done");
-        Timer::after(Duration::from_millis(interval_ms as _)).await;
-    }
-}
-
 type CS = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 
 static EVENTS: Channel<CS, bool, 10> = Channel::new();
@@ -130,14 +119,12 @@ async fn main(spawner: Spawner) -> ! {
     println!("ChipID: 0x{:02x}", hal::signature::get_chip_id());
     println!("RTC datetime: {}", rtc.now());
 
-    let r = ble::init(ble::Config {
+    let (task_id, _) = ble::init(ble::Config {
         mac_addr: [0x22, 0x33, 0x44, 0x55, 0x66, 0x77].into(),
-    });
-    println!("BLE init: {:?}", r);
+    })
+    .unwrap();
+    println!("BLE init task id: {:?}", task_id);
     println!("MemFree: {}K", hal::stack_free() / 1024);
-
-    // start ble reg calibrate loop
-    spawner.spawn(calibrate_ble_reg(120_000)).unwrap();
 
     unsafe {
         GAPRole_ObserverInit();

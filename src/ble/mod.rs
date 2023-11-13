@@ -2,59 +2,32 @@ use core::ffi::CStr;
 use core::mem::MaybeUninit;
 use core::num::NonZeroU8;
 
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::pubsub::{PubSubBehavior, PubSubChannel, Subscriber};
+
 use self::ffi::{tmos_msg_deallocate, tmos_msg_receive, SYS_EVENT_MSG};
-use crate::{pac, println};
+use crate::ble::ffi::{tmos_start_task, BLE_RegInit};
+use crate::pac;
 
 pub mod ffi;
 
+const HAL_REG_INIT_EVENT: u16 = 0x2000;
+
+// 120s in 625us unit(ticks)
+const HAL_TMOS_TASK_INTERVAL: u32 = (120000) * 1000 / 625;
+
 const HEAP_SIZE: usize = 1024 * 6;
-// use u32 to align to 4
 
 #[repr(C, align(4))]
 struct BLEHeap([MaybeUninit<u8>; HEAP_SIZE]);
 
 static mut BLE_HEAP: BLEHeap = BLEHeap([MaybeUninit::uninit(); HEAP_SIZE]);
 
-/// "CH58x_BLE_LIB_V1.9"
-pub fn lib_version() -> &'static str {
-    unsafe {
-        let version = CStr::from_ptr(ffi::VER_LIB.as_ptr());
-        version.to_str().unwrap()
-    }
-}
+static CHANNEL: PubSubChannel<CriticalSectionRawMutex, u16, 4, 2, 2> = PubSubChannel::new();
 
 /// Library format MAC Address, LSB first
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MacAddress([u8; 6]);
-
-impl MacAddress {
-    #[inline(always)]
-    pub fn from_raw(addr: [u8; 6]) -> Self {
-        MacAddress(addr)
-    }
-
-    /// Convert from human readable format, MSB first
-    pub fn from_msb(addr: [u8; 6]) -> Self {
-        MacAddress([addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]])
-    }
-}
-
-impl core::fmt::Display for MacAddress {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let MacAddress(addr) = self;
-        write!(
-            f,
-            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]
-        )
-    }
-}
-
-impl From<[u8; 6]> for MacAddress {
-    fn from(addr: [u8; 6]) -> Self {
-        MacAddress::from_msb(addr)
-    }
-}
 
 #[derive(Debug)]
 pub struct Config {
@@ -69,20 +42,30 @@ impl Default for Config {
 }
 
 unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
+    crate::println!("!! hal_tmos_task: task_id: {}, events: {}", task_id, events);
+
     if events & SYS_EVENT_MSG != 0 {
         let msg = tmos_msg_receive(task_id);
         if !msg.is_null() {
             let _ = tmos_msg_deallocate(msg);
         }
         return events ^ SYS_EVENT_MSG;
+    } else if events & HAL_REG_INIT_EVENT != 0 {
+        BLE_RegInit();
+
+        tmos_start_task(task_id, HAL_REG_INIT_EVENT, HAL_TMOS_TASK_INTERVAL);
+        return events ^ HAL_REG_INIT_EVENT;
     } else {
-        unimplemented!()
+        CHANNEL.publish_immediate(events);
+        // assume all events are handled here, actually the
+        return 0;
     }
 }
 
 /// Wrapper of BLEInit and HAL_Init
-pub fn init(config: Config) -> Result<(), NonZeroU8> {
-    use ffi::{bleConfig_t, BLE_LibInit, BLE_RegInit, TMOS_TimerInit, LL_TX_POWEER_6_DBM};
+/// Returns a global task id.
+pub fn init(config: Config) -> Result<(u8, Subscriber<'static, CriticalSectionRawMutex, u16, 4, 2, 2>), NonZeroU8> {
+    use ffi::{bleConfig_t, BLE_LibInit, TMOS_ProcessEventRegister, TMOS_TimerInit, LL_TX_POWEER_6_DBM};
 
     const BLE_TX_NUM_EVENT: u8 = 1;
     const BLE_BUFF_NUM: u8 = 5;
@@ -118,15 +101,15 @@ pub fn init(config: Config) -> Result<(), NonZeroU8> {
 
     unsafe {
         BLE_LibInit(&cfg)?;
-    }
 
-    unsafe {
         TMOS_TimerInit(core::ptr::null_mut())?;
 
-        BLE_RegInit();
-    }
+        // regeister HAL tmos task
+        let hal_task_id = TMOS_ProcessEventRegister(Some(hal_tmos_task));
+        tmos_start_task(hal_task_id, HAL_REG_INIT_EVENT, HAL_TMOS_TASK_INTERVAL);
 
-    Ok(())
+        Ok((hal_task_id, CHANNEL.subscriber().unwrap()))
+    }
 }
 
 pub unsafe extern "C" fn srand() -> u32 {
@@ -158,4 +141,41 @@ pub unsafe extern "C" fn get_raw_temperature() -> u16 {
     rb.cfg.write(|w| w.bits(regs[3]));
 
     data
+}
+
+/// "CH58x_BLE_LIB_V1.9"
+pub fn lib_version() -> &'static str {
+    unsafe {
+        let version = CStr::from_ptr(ffi::VER_LIB.as_ptr());
+        version.to_str().unwrap()
+    }
+}
+
+impl MacAddress {
+    #[inline(always)]
+    pub fn from_raw(addr: [u8; 6]) -> Self {
+        MacAddress(addr)
+    }
+
+    /// Convert from human readable format, MSB first
+    pub fn from_msb(addr: [u8; 6]) -> Self {
+        MacAddress([addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]])
+    }
+}
+
+impl core::fmt::Display for MacAddress {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let MacAddress(addr) = self;
+        write!(
+            f,
+            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+            addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]
+        )
+    }
+}
+
+impl From<[u8; 6]> for MacAddress {
+    fn from(addr: [u8; 6]) -> Self {
+        MacAddress::from_msb(addr)
+    }
 }

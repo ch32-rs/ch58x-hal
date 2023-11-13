@@ -314,6 +314,7 @@ pub struct gapRolesBroadcasterCBs_t {
 }
 
 // GAPRole_SetParameter() parameters
+// GAPROLE_PROFILE_PARAMETERS GAP Role Manager Parameters
 pub const GAPROLE_PROFILEROLE: u16 = 768;
 pub const GAPROLE_IRK: u16 = 769;
 pub const GAPROLE_SRK: u16 = 770;
@@ -331,9 +332,12 @@ pub const GAPROLE_STATE: u16 = 781;
 pub const GAPROLE_MAX_SCAN_RES: u16 = 782;
 pub const GAPROLE_MIN_CONN_INTERVAL: u16 = 785;
 pub const GAPROLE_MAX_CONN_INTERVAL: u16 = 786;
+// v5.x
 pub const GAPROLE_PHY_TX_SUPPORTED: u16 = 787;
 pub const GAPROLE_PHY_RX_SUPPORTED: u16 = 788;
 pub const GAPROLE_PERIODIC_ADVERT_DATA: u16 = 789;
+/// bit0:Enable/Disable Periodic Advertising. Read/Write. Size is uint8_t. Default is FALSE=Disable.
+/// bit1:Include the ADI field in AUX_SYNC_IND PDUs
 pub const GAPROLE_PERIODIC_ADVERT_ENABLED: u16 = 790;
 pub const GAPROLE_CTE_CONNECTIONLESS_ENABLED: u16 = 791;
 
@@ -465,6 +469,42 @@ pub const GAP_ADTYPE_FLAGS_LIMITED: u8 = 1;
 pub const GAP_ADTYPE_FLAGS_GENERAL: u8 = 2;
 pub const GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED: u8 = 4;
 
+// GAP_ADVERTISEMENT_TYPE_DEFINES GAP Advertising Event Types
+pub const GAP_ADTYPE_ADV_IND: u8 = 0;
+pub const GAP_ADTYPE_ADV_HDC_DIRECT_IND: u8 = 1;
+pub const GAP_ADTYPE_ADV_SCAN_IND: u8 = 2;
+pub const GAP_ADTYPE_ADV_NONCONN_IND: u8 = 3;
+pub const GAP_ADTYPE_ADV_LDC_DIRECT_IND: u8 = 4;
+//v5.x
+pub const GAP_ADTYPE_EXT_CONN_DIRECT: u8 = 5;
+pub const GAP_ADTYPE_EXT_SCAN_UNDIRECT: u8 = 6;
+pub const GAP_ADTYPE_EXT_NONCONN_NONSCAN_UNDIRECT: u8 = 7;
+pub const GAP_ADTYPE_EXT_CONN_UNDIRECT: u8 = 8;
+pub const GAP_ADTYPE_EXT_SCAN_DIRECT: u8 = 9;
+pub const GAP_ADTYPE_EXT_NONCONN_NONSCAN_DIRECT: u8 = 10;
+
+// GAP_ADVERTISEMENT_TYPE_DEFINES GAP Advertising PHY VAL TYPE(GAP_PHY_VAL_TYPE)
+pub const GAP_PHY_VAL_LE_1M: u16 = 1;
+pub const GAP_PHY_VAL_LE_2M: u16 = 2;
+pub const GAP_PHY_VAL_LE_CODED: u16 = 3;
+
+// GAP_ADVERTISEMENT_TYPE_DEFINES GAP Scan PHY VAL TYPE(GAP_PHY_BIT_TYPE)
+pub const GAP_PHY_BIT_LE_1M: u32 = 1;
+pub const GAP_PHY_BIT_LE_2M: u32 = 2;
+pub const GAP_PHY_BIT_LE_CODED: u32 = 4;
+pub const GAP_PHY_BIT_ALL: u32 = 7;
+pub const GAP_PHY_BIT_LE_CODED_S2: u32 = 8;
+
+// PHY_OPTIONS preferred coding when transmitting on the LE Coded PHY
+pub const GAP_PHY_OPTIONS_NOPRE: u32 = 0;
+pub const GAP_PHY_OPTIONS_S2: u32 = 1;
+pub const GAP_PHY_OPTIONS_S8: u32 = 2;
+pub const GAP_PHY_OPTIONS_S2_REQUIRES: u32 = 3;
+pub const GAP_PHY_OPTIONS_S8_REQUIRES: u32 = 4;
+
+// GAP_ADVERTISEMENT_TYPE_DEFINES GAP Periodic Advertising Properties
+pub const GAP_PERI_PROPERTIES_INCLUDE_TXPOWER: u16 = 64;
+
 // gapRole_States_t
 pub const GAPROLE_STATE_ADV_MASK: u32 = 15;
 pub const GAPROLE_STATE_ADV_SHIFT: u32 = 0;
@@ -489,13 +529,6 @@ pub const GAPROLE_CONNECTIONLESS_CTE_WAIT: u32 = 512;
 pub const GAPROLE_CONNECTIONLESS_CTE_ERROR: u32 = 768;
 pub const GAPROLE_PERIODIC_STATE_VALID: u32 = 16777216;
 pub const GAPROLE_CTE_T_STATE_VALID: u32 = 33554432;
-
-// GAP_ADVERTISEMENT_TYPE_DEFINES GAP Scan PHY VAL TYPE(GAP_PHY_BIT_TYPE)
-pub const GAP_PHY_BIT_LE_1M: u16 = 1;
-pub const GAP_PHY_BIT_LE_2M: u16 = 2;
-pub const GAP_PHY_BIT_LE_CODED: u16 = 4;
-pub const GAP_PHY_BIT_ALL: u16 = 7;
-pub const GAP_PHY_BIT_LE_CODED_S2: u16 = 8;
 
 // GAP_DEVDISC_MODE_DEFINES GAP Device Discovery Modes
 /// No discoverable setting.
@@ -931,6 +964,59 @@ pub struct gapRoleObserverCB_t {
     pub eventCB: pfnGapObserverRoleEventCB_t,
 }
 
+#[doc = " Passcode Callback Function"]
+pub type pfnPasscodeCB_t = ::core::option::Option<
+    unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, uiInputs: u8, uiOutputs: u8),
+>;
+
+#[doc = " Pairing State Callback Function"]
+pub type pfnPairStateCB_t = ::core::option::Option<unsafe extern "C" fn(connectionHandle: u16, state: u8, status: u8)>;
+
+#[doc = " OOB Callback Function"]
+pub type pfnOobCB_t = ::core::option::Option<
+    unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, r_local: *mut u8, c_local: *mut u8),
+>;
+
+#[doc = " Callback Registration Structure"]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gapBondCBs_t {
+    #[doc = "!< Passcode callback"]
+    pub passcodeCB:
+        Option<unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, uiInputs: u8, uiOutputs: u8)>,
+    #[doc = "!< Pairing state callback"]
+    pub pairStateCB: Option<unsafe extern "C" fn(connectionHandle: u16, state: u8, status: u8)>,
+    #[doc = "!< oob callback"]
+    pub oobCB:
+        Option<unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, r_local: *mut u8, c_local: *mut u8)>,
+}
+
+#[doc = " Callback structure - must be setup by the application and used when gapRoles_StartDevice() is called."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gapRolesCBs_t {
+    #[doc = "!< Whenever the device changes state"]
+    pub pfnStateChange:
+        ::core::option::Option<unsafe extern "C" fn(newState: gapRole_States_t, pEvent: *mut gapRoleEvent_t)>,
+    #[doc = "!< When a valid RSSI is read from controller"]
+    pub pfnRssiRead: ::core::option::Option<unsafe extern "C" fn(connHandle: u16, newRSSI: i8)>,
+    #[doc = "!< When the connection parameteres are updated"]
+    pub pfnParamUpdate:
+        Option<unsafe extern "C" fn(connHandle: u16, connInterval: u16, connSlaveLatency: u16, connTimeout: u16)>,
+}
+
+#[doc = " Central Callback Structure"]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gapCentralRoleCB_t {
+    #[doc = "!< RSSI callback. Callback when the device has read an new RSSI value during a connection."]
+    pub rssiCB: Option<unsafe extern "C" fn(connHandle: u16, newRSSI: i8)>,
+    #[doc = "!< Event callback. Central Event Callback Function"]
+    pub eventCB: Option<unsafe extern "C" fn(pEvent: *mut gapRoleEvent_t)>,
+    #[doc = "!< Length Change Event Callback. HCI Data Length Change Event Callback Function"]
+    pub ChangCB: Option<unsafe extern "C" fn(connHandle: u16, maxTxOctets: u16, maxRxOctets: u16)>,
+}
+
 // GAP
 extern "C" {
 
@@ -953,8 +1039,39 @@ extern "C" {
     #[doc = " @internal\n\n @brief   Initialization function for the GAP Role Task.\n          This is called during initialization and should contain\n          any application specific initialization (ie. hardware\n          initialization/setup, table initialization, power up\n          notificaiton ... ).\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
     pub fn GAPRole_PeripheralInit() -> bStatus_t;
 
+    // Use static lifetime, the holder struct must be static
+    #[doc = " @brief   Does the device initialization.  Only call this function once.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  SUCCESS or bleAlreadyInRequestedMode"]
+    pub fn GAPRole_PeripheralStartDevice(
+        taskid: u8,
+        pCB: &'static gapBondCBs_t,
+        pAppCallbacks: &'static gapRolesCBs_t,
+    ) -> bStatus_t;
+
+    #[doc = " @brief   Update the parameters of an existing connection\n\n @param   connHandle - the connection Handle\n @param   connIntervalMin - minimum connection interval in 1.25ms units\n @param   connIntervalMax - maximum connection interval in 1.25ms units\n @param   latency - the new slave latency\n @param   connTimeout - the new timeout value\n @param   taskId - taskID will recv L2CAP_SIGNAL_EVENT message\n\n @return  SUCCESS, bleNotConnected or bleInvalidRange"]
+    pub fn GAPRole_PeripheralConnParamUpdateReq(
+        connHandle: u16,
+        connIntervalMin: u16,
+        connIntervalMax: u16,
+        latency: u16,
+        connTimeout: u16,
+        taskId: u8,
+    ) -> bStatus_t;
+
+    #[doc = " @internal\n\n @brief   Central Profile Task initialization function.\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
+    pub fn GAPRole_CentralInit() -> bStatus_t;
+
+    #[doc = " @brief   Start the device in Central role.  This function is typically\n          called once during system startup.\n\n @param   pAppCallbacks - pointer to application callbacks\n\n @return  SUCCESS: Operation successful.<BR>\n          bleAlreadyInRequestedMode: Device already started.<BR>"]
+    pub fn GAPRole_CentralStartDevice(
+        taskid: u8,
+        pCB: *mut gapBondCBs_t,
+        pAppCallbacks: *mut gapCentralRoleCB_t,
+    ) -> bStatus_t;
+
     #[doc = " @brief   Set a GAP Role parameter.\n\n @note    You can call this function with a GAP Parameter ID and it will set a GAP Parameter.\n\n @param   param - Profile parameter ID: @ref GAPROLE_PROFILE_PARAMETERS\n @param   len - length of data to write\n @param   pValue - pointer to data to write.  This is dependent on the parameter ID and\n                   WILL be cast to the appropriate data type (example: data type of uint16_t\n                   will be cast to uint16_t pointer).\n\n @return  SUCCESS or INVALIDPARAMETER (invalid paramID)"]
     pub fn GAPRole_SetParameter(param: u16, len: u16, pValue: *const ::core::ffi::c_void) -> bStatus_t;
+
+    #[doc = " @brief   Get a GAP Role parameter.\n\n @note    You can call this function with a GAP Parameter ID and it will get a GAP Parameter.\n\n @param   param - Profile parameter ID: @ref GAPROLE_PROFILE_PARAMETERS\n @param   pValue - pointer to location to get the value.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate\n          data type (example: data type of uint16_t will be cast to\n          uint16_t pointer).\n\n @return      SUCCESS or INVALIDPARAMETER (invalid paramID)"]
+    pub fn GAPRole_GetParameter(param: u16, pValue: *mut ::core::ffi::c_void) -> bStatus_t;
 
     // Use static lifetime, the holder struct must be static
     #[doc = " @brief   Does the device initialization.  Only call this function once.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  SUCCESS or bleAlreadyInRequestedMode"]
@@ -968,9 +1085,207 @@ extern "C" {
 
 }
 
+pub type pfnEcc_key_t =
+    ::core::option::Option<unsafe extern "C" fn(pub_: *mut u8, priv_: *mut u8) -> ::core::ffi::c_int>;
+pub type pfnEcc_dhkey_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        peer_pub_key_x: *mut u8,
+        peer_pub_key_y: *mut u8,
+        our_priv_key: *mut u8,
+        out_dhkey: *mut u8,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pfnEcc_alg_f4_t = ::core::option::Option<
+    unsafe extern "C" fn(u: *mut u8, v: *mut u8, x: *mut u8, z: u8, out_enc_data: *mut u8) -> ::core::ffi::c_int,
+>;
+pub type pfnEcc_alg_g2_t = ::core::option::Option<
+    unsafe extern "C" fn(u: *mut u8, v: *mut u8, x: *mut u8, y: *mut u8, passkey: *mut u32) -> ::core::ffi::c_int,
+>;
+pub type pfnEcc_alg_f5_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        w: *mut u8,
+        n1: *mut u8,
+        n2: *mut u8,
+        a1t: u8,
+        a1: *mut u8,
+        a2t: u8,
+        a2: *mut u8,
+        mackey: *mut u8,
+        ltk: *mut u8,
+    ) -> ::core::ffi::c_int,
+>;
+pub type pfnEcc_alg_f6_t = ::core::option::Option<
+    unsafe extern "C" fn(
+        w: *mut u8,
+        n1: *mut u8,
+        n2: *mut u8,
+        r: *mut u8,
+        iocap: *mut u8,
+        a1t: u8,
+        a1: *mut u8,
+        a2t: u8,
+        a2: *mut u8,
+        check: *mut u8,
+    ) -> ::core::ffi::c_int,
+>;
+#[doc = " Callback Registration Structure"]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gapEccCBs_t {
+    pub gen_key_pair: pfnEcc_key_t,
+    pub gen_dhkey: pfnEcc_dhkey_t,
+    #[doc = "!< LE Secure Connections confirm value generation function f4"]
+    pub alg_f4: pfnEcc_alg_f4_t,
+    #[doc = "!< LE Secure Connections numeric comparison value generation function g2"]
+    pub alg_g2: pfnEcc_alg_g2_t,
+    #[doc = "!< LE Secure Connect ions key generation function  f5"]
+    pub alg_f5: pfnEcc_alg_f5_t,
+    #[doc = "!< LE Secure  Connections check value generation function  f6"]
+    pub alg_f6: pfnEcc_alg_f6_t,
+}
+
+pub const GAPBOND_PERI_PAIRING_MODE: u16 = 1024;
+pub const GAPBOND_PERI_MITM_PROTECTION: u16 = 1025;
+pub const GAPBOND_PERI_IO_CAPABILITIES: u16 = 1026;
+pub const GAPBOND_PERI_OOB_ENABLED: u16 = 1027;
+pub const GAPBOND_PERI_OOB_DATA: u16 = 1028;
+pub const GAPBOND_PERI_BONDING_ENABLED: u16 = 1029;
+pub const GAPBOND_PERI_KEY_DIST_LIST: u16 = 1030;
+pub const GAPBOND_PERI_DEFAULT_PASSCODE: u16 = 1031;
+pub const GAPBOND_CENT_PAIRING_MODE: u16 = 1032;
+pub const GAPBOND_CENT_MITM_PROTECTION: u16 = 1033;
+pub const GAPBOND_CENT_IO_CAPABILITIES: u16 = 1034;
+pub const GAPBOND_CENT_OOB_ENABLED: u16 = 1035;
+pub const GAPBOND_CENT_OOB_DATA: u16 = 1036;
+pub const GAPBOND_CENT_BONDING_ENABLED: u16 = 1037;
+pub const GAPBOND_CENT_KEY_DIST_LIST: u16 = 1038;
+pub const GAPBOND_CENT_DEFAULT_PASSCODE: u16 = 1039;
+pub const GAPBOND_ERASE_ALLBONDS: u16 = 1040;
+pub const GAPBOND_AUTO_FAIL_PAIRING: u16 = 1041;
+pub const GAPBOND_AUTO_FAIL_REASON: u16 = 1042;
+pub const GAPBOND_KEYSIZE: u16 = 1043;
+pub const GAPBOND_AUTO_SYNC_WL: u16 = 1044;
+pub const GAPBOND_BOND_COUNT: u16 = 1045;
+pub const GAPBOND_BOND_FAIL_ACTION: u16 = 1046;
+pub const GAPBOND_ERASE_SINGLEBOND: u16 = 1047;
+pub const GAPBOND_BOND_AUTO: u16 = 1048;
+pub const GAPBOND_BOND_UPDATE: u16 = 1049;
+pub const GAPBOND_DISABLE_SINGLEBOND: u16 = 1050;
+pub const GAPBOND_ENABLE_SINGLEBOND: u16 = 1051;
+pub const GAPBOND_DISABLE_ALLBONDS: u16 = 1052;
+pub const GAPBOND_ENABLE_ALLBONDS: u16 = 1053;
+pub const GAPBOND_ERASE_AUTO: u16 = 1054;
+pub const GAPBOND_AUTO_SYNC_RL: u16 = 1055;
+pub const GAPBOND_SET_ENC_PARAMS: u16 = 1056;
+pub const GAPBOND_PERI_SC_PROTECTION: u16 = 1057;
+pub const GAPBOND_CENT_SC_PROTECTION: u16 = 1058;
+
+pub const GAPBOND_PAIRING_MODE_NO_PAIRING: u8 = 0;
+pub const GAPBOND_PAIRING_MODE_WAIT_FOR_REQ: u8 = 1;
+pub const GAPBOND_PAIRING_MODE_INITIATE: u8 = 2;
+
+pub const GAPBOND_IO_CAP_DISPLAY_ONLY: u16 = 0;
+pub const GAPBOND_IO_CAP_DISPLAY_YES_NO: u16 = 1;
+pub const GAPBOND_IO_CAP_KEYBOARD_ONLY: u16 = 2;
+pub const GAPBOND_IO_CAP_NO_INPUT_NO_OUTPUT: u16 = 3;
+pub const GAPBOND_IO_CAP_KEYBOARD_DISPLAY: u16 = 4;
+
+pub const GAPBOND_KEYDIST_SENCKEY: u16 = 1;
+pub const GAPBOND_KEYDIST_SIDKEY: u16 = 2;
+pub const GAPBOND_KEYDIST_SSIGN: u16 = 4;
+pub const GAPBOND_KEYDIST_SLINK: u16 = 8;
+pub const GAPBOND_KEYDIST_MENCKEY: u16 = 16;
+pub const GAPBOND_KEYDIST_MIDKEY: u16 = 32;
+pub const GAPBOND_KEYDIST_MSIGN: u16 = 64;
+pub const GAPBOND_KEYDIST_MLINK: u16 = 128;
+pub const GAPBOND_PAIRING_STATE_STARTED: u16 = 0;
+pub const GAPBOND_PAIRING_STATE_COMPLETE: u16 = 1;
+pub const GAPBOND_PAIRING_STATE_BONDED: u16 = 2;
+pub const GAPBOND_PAIRING_STATE_BOND_SAVED: u16 = 3;
+
+extern "C" {
+    #[doc = " @brief       Set a GAP Bond Manager parameter.\n\n @note    You can call this function with a GAP Parameter ID and it will set the GAP Parameter.\n\n @param   param - Profile parameter ID: @ref GAPBOND_PROFILE_PARAMETERS\n @param   len - length of data to write\n @param   pValue - pointer to data to write.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate\n          data type (example: data type of uint16_t will be cast to\n          uint16_t pointer).\n\n @return      SUCCESS or INVALIDPARAMETER (invalid paramID)"]
+    pub fn GAPBondMgr_SetParameter(param: u16, len: u8, pValue: *const ::core::ffi::c_void) -> bStatus_t;
+
+    #[doc = " @brief   Get a GAP Bond Manager parameter.\n\n @note    You can call this function with a GAP Parameter ID and it will get a GAP Parameter.\n\n @param   param - Profile parameter ID: @ref GAPBOND_PROFILE_PARAMETERS\n @param   pValue - pointer to location to get the value.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate data type.\n          (example: data type of uint16_t will be cast to uint16_t pointer)\n\n @return      SUCCESS or INVALIDPARAMETER (invalid paramID)"]
+    pub fn GAPBondMgr_GetParameter(param: u16, pValue: *mut ::core::ffi::c_void) -> bStatus_t;
+
+    #[doc = " @brief   Respond to a passcode request.\n\n @param   connectionHandle - connection handle of the connected device or 0xFFFF if all devices in database.\n @param   status - SUCCESS if passcode is available, otherwise see @ref SMP_PAIRING_FAILED_DEFINES.\n @param   passcode - integer value containing the passcode.\n\n @return  SUCCESS - bond record found and changed\n          bleIncorrectMode - Link not found."]
+    pub fn GAPBondMgr_PasscodeRsp(connectionHandle: u16, status: u8, passcode: u32) -> bStatus_t;
+
+    #[doc = " @brief   Respond to a passcode request.\n\n @param   connHandle - connection handle of the connected device or 0xFFFF if all devices in database.\n @param   status - SUCCESS if oob data is available, otherwise see @ref SMP_PAIRING_FAILED_DEFINES.\n @param   oob - containing the oob data.\n @param   c_peer - containing the peer confirm.\n\n @return  SUCCESS - bond record found and changed\n          bleIncorrectMode - Link not found."]
+    pub fn GAPBondMgr_OobRsp(connHandle: u16, status: u8, oob: *mut u8, c_peer: *mut u8) -> bStatus_t;
+
+    #[doc = " @brief   Initialization function for the ecc-function callback.\n\n @param   pEcc - callback registration Structure @ref gapEccCBs_t.\n\n @return  null."]
+    pub fn GAPBondMgr_EccInit(pEcc: *mut gapEccCBs_t);
+
+    #[doc = " @brief   Send a security request\n\n @param   connHandle - connection handle\n\n @return  SUCCESS: will send\n          bleNotConnected: Link not found\n          bleIncorrectMode: wrong GAP role, must be a Peripheral Role"]
+    pub fn GAPBondMgr_PeriSecurityReq(connHandle: u16) -> bStatus_t;
+}
+
 // LL
 extern "C" {
     #[doc = " @brief   set tx power level\n\n @param   power - tx power level\n\n @return  Command Status."]
     pub fn LL_SetTxPowerLevel(power: u8) -> bStatus_t;
 
+}
+
+pub const GGS_DEVICE_NAME_ATT: u8 = 0;
+pub const GGS_APPEARANCE_ATT: u8 = 1;
+pub const GGS_PERI_PRIVACY_FLAG_ATT: u8 = 2;
+pub const GGS_RECONNCT_ADDR_ATT: u8 = 3;
+pub const GGS_PERI_CONN_PARAM_ATT: u8 = 4;
+pub const GGS_PERI_PRIVACY_FLAG_PROPS: u8 = 5;
+pub const GGS_W_PERMIT_DEVICE_NAME_ATT: u8 = 6;
+pub const GGS_W_PERMIT_APPEARANCE_ATT: u8 = 7;
+pub const GGS_W_PERMIT_PRIVACY_FLAG_ATT: u8 = 8;
+pub const GGS_CENT_ADDR_RES_ATT: u8 = 9;
+pub const GGS_ENC_DATA_KEY_MATERIAL: u8 = 11;
+pub const GGS_LE_GATT_SEC_LEVELS: u8 = 12;
+
+extern "C" {
+    #[doc = " @brief   Set a GAP GATT Server parameter.\n\n @param   param - Profile parameter ID<BR>\n @param   len - length of data to right\n @param   value - pointer to data to write.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate\n          data type (example: data type of uint16_t will be cast to\n          uint16_t pointer).<BR>\n\n @return  bStatus_t"]
+    pub fn GGS_SetParameter(param: u8, len: u8, value: *mut ::core::ffi::c_void) -> bStatus_t;
+
+    #[doc = " @brief   Get a GAP GATT Server parameter.\n\n @param   param - Profile parameter ID<BR>\n @param   value - pointer to data to put.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate\n          data type (example: data type of uint16_t will be cast to\n          uint16_t pointer).<BR>\n\n @return  bStatus_t"]
+    pub fn GGS_GetParameter(param: u8, value: *mut ::core::ffi::c_void) -> bStatus_t;
+
+    #[doc = " @brief   Add function for the GAP GATT Service.\n\n @param   services - services to add. This is a bit map and can\n                     contain more than one service.\n\n @return  SUCCESS: Service added successfully.<BR>\n          INVALIDPARAMETER: Invalid service field.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>"]
+    pub fn GGS_AddService(services: u32) -> bStatus_t;
+}
+
+// GATT
+pub const GATT_PERMIT_READ: u32 = 1;
+pub const GATT_PERMIT_WRITE: u32 = 2;
+pub const GATT_PERMIT_AUTHEN_READ: u32 = 4;
+pub const GATT_PERMIT_AUTHEN_WRITE: u32 = 8;
+pub const GATT_PERMIT_AUTHOR_READ: u32 = 16;
+pub const GATT_PERMIT_AUTHOR_WRITE: u32 = 32;
+pub const GATT_PERMIT_ENCRYPT_READ: u32 = 64;
+pub const GATT_PERMIT_ENCRYPT_WRITE: u32 = 128;
+pub const GATT_PROP_BCAST: u32 = 1;
+pub const GATT_PROP_READ: u32 = 2;
+pub const GATT_PROP_WRITE_NO_RSP: u32 = 4;
+pub const GATT_PROP_WRITE: u32 = 8;
+pub const GATT_PROP_NOTIFY: u32 = 16;
+pub const GATT_PROP_INDICATE: u32 = 32;
+pub const GATT_PROP_AUTHEN: u32 = 64;
+pub const GATT_PROP_EXTENDED: u32 = 128;
+pub const GATT_LOCAL_READ: u32 = 255;
+pub const GATT_LOCAL_WRITE: u32 = 254;
+pub const GATT_MIN_ENCRYPT_KEY_SIZE: u32 = 7;
+pub const GATT_MAX_ENCRYPT_KEY_SIZE: u32 = 16;
+pub const GATT_INVALID_HANDLE: u32 = 0;
+pub const GATT_MIN_HANDLE: u32 = 1;
+pub const GATT_MAX_HANDLE: u32 = 65535;
+pub const GATT_MAX_MTU: u32 = 65535;
+pub const GATT_MAX_NUM_CONN: u32 = 4;
+pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
+pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
+pub const GATT_CFG_NO_OPERATION: u32 = 0;
+pub const GATT_ALL_SERVICES: u32 = 4294967295;
+
+extern "C" {
+    #[doc = " @brief   Add function for the GATT Service.\n\n @param   services - services to add. This is a bit map and can\n                     contain more than one service.\n\n @return  SUCCESS: Service added successfully.<BR>\n          INVALIDPARAMETER: Invalid service field.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>"]
+    pub fn GATTServApp_AddService(services: u32) -> bStatus_t;
 }
