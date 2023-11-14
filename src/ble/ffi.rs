@@ -50,6 +50,45 @@ pub type tmosEvents = u16;
 pub type tmosTimer = u32;
 pub type BOOL = u8;
 
+// UUID defined
+extern "C" {
+    // GATT Services
+    pub static gapServiceUUID: [u8; 0usize];
+    pub static gattServiceUUID: [u8; 0usize];
+
+    // GATT Attribute Types
+    pub static primaryServiceUUID: [u8; 0usize];
+    pub static secondaryServiceUUID: [u8; 0usize];
+    pub static includeUUID: [u8; 0usize];
+    pub static characterUUID: [u8; 0usize];
+
+    // GATT Characteristic Descriptors
+    pub static charExtPropsUUID: [u8; 0usize];
+    pub static charUserDescUUID: [u8; 0usize];
+    pub static clientCharCfgUUID: [u8; 0usize];
+    pub static servCharCfgUUID: [u8; 0usize];
+    pub static charFormatUUID: [u8; 0usize];
+    pub static charAggFormatUUID: [u8; 0usize];
+    pub static validRangeUUID: [u8; 0usize];
+    pub static extReportRefUUID: [u8; 0usize];
+    pub static reportRefUUID: [u8; 0usize];
+
+    // GATT Characteristic Types
+    pub static deviceNameUUID: [u8; 0usize];
+    pub static appearanceUUID: [u8; 0usize];
+    pub static periPrivacyFlagUUID: [u8; 0usize];
+    pub static reconnectAddrUUID: [u8; 0usize];
+    pub static periConnParamUUID: [u8; 0usize];
+    pub static serviceChangedUUID: [u8; 0usize];
+    pub static centAddrResUUID: [u8; 0usize];
+}
+
+/*** Opcode fields: bitmasks ***/
+/// Size of 16-bit Bluetooth UUID
+pub const ATT_BT_UUID_SIZE: u8 = 2;
+/// Size of 128-bit UUID
+pub const ATT_UUID_SIZE: u8 = 16;
+
 /* Tx_POWER define(Accuracy:±2dBm) */
 pub const LL_TX_POWEER_MINUS_16_DBM: u8 = 0x01;
 pub const LL_TX_POWEER_MINUS_12_DBM: u8 = 0x02;
@@ -291,33 +330,6 @@ extern "C" {
 
 // GAP Role
 
-#[doc = " gapRole_States_t defined"]
-pub type gapRole_States_t = ::core::ffi::c_ulong;
-
-#[doc = " Type of device."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapScanRec_t {
-    #[doc = "!< Indicates advertising event type used by the advertiser: @ref GAP_ADVERTISEMENT_REPORT_TYPE_DEFINES"]
-    pub eventType: u8,
-    #[doc = "!< Scan Address Type:0x00-Public Device Address or Public Identity Address 0x01-Random Device Address or Random (static) Identity Address"]
-    pub addrType: u8,
-    #[doc = "!< Device's Address"]
-    pub addr: [u8; 6usize],
-    pub rssi: i8,
-}
-
-#[doc = " Callback when the device has been started.  Callback event to\n the Notify of a state change."]
-pub type gapRolesBroadcasterStateNotify_t = Option<unsafe extern "C" fn(newState: gapRole_States_t)>;
-pub type gapRolesScanReqRecv_t = Option<unsafe extern "C" fn(pEvent: *mut gapScanRec_t)>;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapRolesBroadcasterCBs_t {
-    #[doc = "!< Whenever the device changes state"]
-    pub pfnStateChange: gapRolesBroadcasterStateNotify_t,
-    pub pfnScanRecv: gapRolesScanReqRecv_t,
-}
-
 // GAPRole_SetParameter() parameters
 // GAPROLE_PROFILE_PARAMETERS GAP Role Manager Parameters
 pub const GAPROLE_PROFILEROLE: u16 = 768;
@@ -415,6 +427,7 @@ pub const TGAP_ADV_SECONDARY_PHY_OPTIONS: u16 = 65;
 pub const TGAP_PARAMID_MAX: u16 = 66;
 
 // GAPROLE_SCAN_RSP_DATA
+// GAP_ADTYPE_DEFINES GAP Advertisement Data Types
 pub const GAP_ADTYPE_FLAGS: u8 = 1;
 pub const GAP_ADTYPE_16BIT_MORE: u8 = 2;
 pub const GAP_ADTYPE_16BIT_COMPLETE: u8 = 3;
@@ -432,6 +445,7 @@ pub const GAP_ADTYPE_OOB_SIMPLE_PAIRING_HASHC: u8 = 14;
 pub const GAP_ADTYPE_OOB_SIMPLE_PAIRING_RANDR: u8 = 15;
 pub const GAP_ADTYPE_SM_TK: u8 = 16;
 pub const GAP_ADTYPE_SM_OOB_FLAG: u8 = 17;
+/// Min and Max values of the connection interval (2 octets Min, 2 octets Max) (0xFFFF indicates no conn interval min or max)
 pub const GAP_ADTYPE_SLAVE_CONN_INTERVAL_RANGE: u8 = 18;
 pub const GAP_ADTYPE_SIGNED_DATA: u8 = 19;
 pub const GAP_ADTYPE_SERVICES_LIST_16BIT: u8 = 20;
@@ -545,557 +559,8 @@ pub const DEVDISC_MODE_LIMITED: u8 = 0x02;
 /// Not filtered.
 pub const DEVDISC_MODE_ALL: u8 = 0x03;
 
-// event.gap.opcode
-/// Sent when the Device Initialization is complete.
-pub const GAP_DEVICE_INIT_DONE_EVENT: u8 = 0x00;
-/// Sent when the Device Discovery Process is complete.
-pub const GAP_DEVICE_DISCOVERY_EVENT: u8 = 0x01;
-/// Sent when the Advertising Data or SCAN_RSP Data has been updated.
-pub const GAP_ADV_DATA_UPDATE_DONE_EVENT: u8 = 0x02;
-/// Sent when the Make Discoverable Request is complete.
-pub const GAP_MAKE_DISCOVERABLE_DONE_EVENT: u8 = 0x03;
-/// Sent when the Advertising has ended.
-pub const GAP_END_DISCOVERABLE_DONE_EVENT: u8 = 0x04;
-/// Sent when the Establish Link Request is complete.
-pub const GAP_LINK_ESTABLISHED_EVENT: u8 = 0x05;
-/// Sent when a connection was terminated.
-pub const GAP_LINK_TERMINATED_EVENT: u8 = 0x06;
-/// Sent when an Update Parameters Event is received.
-pub const GAP_LINK_PARAM_UPDATE_EVENT: u8 = 0x07;
-/// Sent when a random address was changed.
-pub const GAP_RANDOM_ADDR_CHANGED_EVENT: u8 = 0x08;
-/// Sent when the device's signature counter is updated.
-pub const GAP_SIGNATURE_UPDATED_EVENT: u8 = 0x09;
-/// Sent when the Authentication (pairing) process is complete.
-pub const GAP_AUTHENTICATION_COMPLETE_EVENT: u8 = 0x0A;
-/// Sent when a Passkey is needed. This is part of the pairing process.
-pub const GAP_PASSKEY_NEEDED_EVENT: u8 = 0x0B;
-/// Sent when a Slave Security Request is received.
-pub const GAP_SLAVE_REQUESTED_SECURITY_EVENT: u8 = 0x0C;
-/// Sent during the Device Discovery Process when a device is discovered.
-pub const GAP_DEVICE_INFO_EVENT: u8 = 0x0D;
-/// Sent when the bonding process is complete.
-pub const GAP_BOND_COMPLETE_EVENT: u8 = 0x0E;
-/// Sent when an unexpected Pairing Request is received.
-pub const GAP_PAIRING_REQ_EVENT: u8 = 0x0F;
-/// Sent when a direct Advertising Data is received.
-pub const GAP_DIRECT_DEVICE_INFO_EVENT: u8 = 0x10;
-/// Sent when a PHY Update Event is received.
-pub const GAP_PHY_UPDATE_EVENT: u8 = 0x11;
-/// Sent when a Extended Advertising Data is received.
-pub const GAP_EXT_ADV_DEVICE_INFO_EVENT: u8 = 0x12;
-/// Sent when the Set Periodic Advertising enable is complete.
-pub const GAP_MAKE_PERIODIC_ADV_DONE_EVENT: u8 = 0x13;
-/// Sent when the Set Periodic Advertising disable is complete.
-pub const GAP_END_PERIODIC_ADV_DONE_EVENT: u8 = 0x14;
-/// Sent when a Periodic Advertising Sync Establish is complete.
-pub const GAP_SYNC_ESTABLISHED_EVENT: u8 = 0x15;
-/// Sent when a Periodic Advertising Data is received.
-pub const GAP_PERIODIC_ADV_DEVICE_INFO_EVENT: u8 = 0x16;
-/// Sent when a Periodic Advertising Sync was lost.
-pub const GAP_SYNC_LOST_EVENT: u8 = 0x17;
-/// Sent when a SCAN_REQ PDU or an AUX_SCAN_REQ PDU has been received by the advertiser.
-pub const GAP_SCAN_REQUEST_EVENT: u8 = 0x19;
-/// resv
-pub const GAP_OOB_NEEDED_EVENT: u8 = 0x1A;
-/// Sent when the Set Connectionless CTE Transmit enable is complete.
-pub const GAP_MAKE_CONNECTIONESS_CTE_DONE_EVENT: u8 = 0x1B;
-/// Sent when the Set Connectionless CTE Transmit disable is complete.
-pub const GAP_END_CONNECTIONESS_CTE_DONE_EVENT: u8 = 0x1C;
-/// Sent when the periodic advertising sync transfer received.
-pub const GAP_PERI_ADV_SYNC_TRAN_RECEIVED_EVENT: u8 = 0x1D;
-
-#[doc = " GAP event header format."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapEventHdr_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP type of command. Ref: @ref GAP_MSG_EVENT_DEFINES"]
-    pub opcode: u8,
-}
-
-#[doc = " Type of device."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapDevRec_t {
-    #[doc = "!< Indicates advertising event type used by the advertiser: @ref GAP_ADVERTISEMENT_REPORT_TYPE_DEFINES"]
-    pub eventType: u8,
-    #[doc = "!< Address Type: @ref GAP_ADDR_TYPE_DEFINES"]
-    pub addrType: u8,
-    #[doc = "!< Device's Address"]
-    pub addr: [u8; 6usize],
-}
-
-#[doc = " GAP_DEVICE_INIT_DONE_EVENT message format.  This message is sent to the\n app when the Device Initialization is done [initiated by calling\n GAP_DeviceInit()]."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapDeviceInitDoneEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_DEVICE_INIT_DONE_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Device's BD_ADDR"]
-    pub devAddr: [u8; 6usize],
-    #[doc = "!< HC_LE_Data_Packet_Length"]
-    pub dataPktLen: u16,
-    #[doc = "!< HC_Total_Num_LE_Data_Packets"]
-    pub numDataPkts: u8,
-}
-#[doc = " GAP_SIGNATURE_UPDATED_EVENT message format.  This message is sent to the\n app when the signature counter has changed.  This message is to inform the\n application in case it wants to save it to be restored on reboot or reconnect.\n This message is sent to update a connection's signature counter and to update\n this device's signature counter.  If devAddr == BD_ADDR, then this message pertains\n to this device."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapSignUpdateEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_SIGNATURE_UPDATED_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Device's address type for devAddr"]
-    pub addrType: u8,
-    #[doc = "!< Device's BD_ADDR, could be own address"]
-    pub devAddr: [u8; 6usize],
-    #[doc = "!< new Signed Counter"]
-    pub signCounter: u32,
-}
-#[doc = " GAP_DEVICE_INFO_EVENT message format.  This message is sent to the\n app during a Device Discovery Request, when a new advertisement or scan\n response is received."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapDeviceInfoEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_DEVICE_INFO_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Advertisement Type: @ref GAP_ADVERTISEMENT_REPORT_TYPE_DEFINES"]
-    pub eventType: u8,
-    #[doc = "!< address type: @ref GAP_ADDR_TYPE_DEFINES"]
-    pub addrType: u8,
-    #[doc = "!< Address of the advertisement or SCAN_RSP"]
-    pub addr: [u8; 6usize],
-    #[doc = "!< Advertisement or SCAN_RSP RSSI"]
-    pub rssi: i8,
-    #[doc = "!< Length (in bytes) of the data field (evtData)"]
-    pub dataLen: u8,
-    #[doc = "!< Data field of advertisement or SCAN_RSP"]
-    pub pEvtData: *mut u8,
-}
-#[doc = " GAP_DIRECT_DEVICE_INFO_EVENT message format.  This message is sent to the\n app during a Device Discovery Request, when a new advertisement or scan\n response is received."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapDirectDeviceInfoEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_DIRECT_DEVICE_INFO_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Advertisement Type: @ref GAP_ADVERTISEMENT_REPORT_TYPE_DEFINES"]
-    pub eventType: u8,
-    #[doc = "!< address type: @ref GAP_ADDR_TYPE_DEFINES"]
-    pub addrType: u8,
-    #[doc = "!< Address of the advertisement or SCAN_RSP"]
-    pub addr: [u8; 6usize],
-    #[doc = "!< public or random address type"]
-    pub directAddrType: u8,
-    #[doc = "!< device address"]
-    pub directAddr: [u8; 6usize],
-    #[doc = "!< Advertisement or SCAN_RSP RSSI"]
-    pub rssi: i8,
-}
-#[doc = " GAP_EXT_ADV_DEVICE_INFO_EVENT message format.  This message is sent to the\n app during a Device Discovery Request, when a new advertisement or scan\n response is received."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapExtAdvDeviceInfoEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_EXT_ADV_DEVICE_INFO_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Advertisement Type: @ref GAP_ADVERTISEMENT_REPORT_TYPE_DEFINES"]
-    pub eventType: u8,
-    #[doc = "!< address type: @ref GAP_ADDR_TYPE_DEFINES"]
-    pub addrType: u8,
-    #[doc = "!< Address of the advertisement or SCAN_RSP"]
-    pub addr: [u8; 6usize],
-    #[doc = "!< Advertiser PHY on the primary advertising channel"]
-    pub primaryPHY: u8,
-    #[doc = "!< Advertiser PHY on the secondary advertising channel"]
-    pub secondaryPHY: u8,
-    #[doc = "!< Value of the Advertising SID subfield in the ADI field of the PDU"]
-    pub advertisingSID: u8,
-    #[doc = "!< Advertisement or SCAN_RSP power"]
-    pub txPower: i8,
-    #[doc = "!< Advertisement or SCAN_RSP RSSI"]
-    pub rssi: i8,
-    #[doc = "!< the interval of periodic advertising"]
-    pub periodicAdvInterval: u16,
-    #[doc = "!< public or random address type"]
-    pub directAddressType: u8,
-    #[doc = "!< device address"]
-    pub directAddress: [u8; 6usize],
-    #[doc = "!< Length (in bytes) of the data field (evtData)"]
-    pub dataLen: u8,
-    #[doc = "!< Data field of advertisement or SCAN_RSP"]
-    pub pEvtData: *mut u8,
-}
-#[doc = " Type of device discovery (Scan) to perform."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapDevDiscReq_t {
-    #[doc = "!< Requesting App's Task ID, used to return results"]
-    pub taskID: u8,
-    #[doc = "!< Discovery Mode: @ref GAP_DEVDISC_MODE_DEFINES"]
-    pub mode: u8,
-    #[doc = "!< TRUE for active scanning"]
-    pub activeScan: u8,
-    #[doc = "!< TRUE to only allow advertisements from devices in the white list."]
-    pub whiteList: u8,
-}
-#[doc = " GAP_ADV_DATA_UPDATE_DONE_EVENT message format.  This message is sent to the\n app when Advertising Data Update is complete."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapAdvDataUpdateEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_ADV_DATA_UPDATE_DONE_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< TRUE if advertising data, FALSE if SCAN_RSP"]
-    pub adType: u8,
-}
-#[doc = " GAP_PERIODIC_ADV_DEVICE_INFO_EVENT message format.  This message is sent to the\n app during Periodic Advertising Sync, when received a Periodic Advertising packet"]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapPeriodicAdvDeviceInfoEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_PERIODIC_ADV_DEVICE_INFO_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Identifying the periodic advertising train"]
-    pub syncHandle: u16,
-    #[doc = "!< Periodic advertising tx power,Units: dBm"]
-    pub txPower: i8,
-    #[doc = "!< Periodic advertising rssi,Units: dBm"]
-    pub rssi: i8,
-    pub unUsed: u8,
-    #[doc = "!< Data complete"]
-    pub dataStatus: u8,
-    #[doc = "!< Length (in bytes) of the data field (evtData)"]
-    pub dataLength: u8,
-    #[doc = "!< Data field of periodic advertising data"]
-    pub pEvtData: *mut u8,
-}
-#[doc = " GAP_DEVICE_DISCOVERY_EVENT message format. This message is sent to the\n Application after a scan is performed."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapDevDiscEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_DEVICE_DISCOVERY_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Number of devices found during scan"]
-    pub numDevs: u8,
-    #[doc = "!< array of device records"]
-    pub pDevList: *mut gapDevRec_t,
-}
-
-#[doc = " GAP_SYNC_ESTABLISHED_EVENT message format.  This message is sent to the\n app when the Periodic Advertising Sync Establish is complete."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapSyncEstablishedEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_SYNC_ESTABLISHED_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Periodic advertising sync status"]
-    pub status: u8,
-    #[doc = "!< Identifying the periodic advertising train"]
-    pub syncHandle: u16,
-    #[doc = "!< Value of the Advertising SID subfield in the ADI field of the PDU"]
-    pub advertisingSID: u8,
-    #[doc = "!< Device address type: @ref GAP_ADDR_TYPE_DEFINES"]
-    pub devAddrType: u8,
-    #[doc = "!< Device address of sync"]
-    pub devAddr: [u8; 6usize],
-    #[doc = "!< Advertiser PHY"]
-    pub advertisingPHY: u8,
-    #[doc = "!< Periodic advertising interval"]
-    pub periodicInterval: u16,
-    #[doc = "!< Clock Accuracy"]
-    pub clockAccuracy: u8,
-}
-#[doc = " GAP_SYNC_LOST_EVENT message format.  This message is sent to the\n app when the Periodic Advertising Sync timeout period."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapSyncLostEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_SYNC_LOST_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Identifying the periodic advertising train"]
-    pub syncHandle: u16,
-}
-#[doc = " GAP_SCAN_REQUEST_EVENT message format.  This message is sent to the\n app when the advertiser receives a SCAN_REQ PDU or an AUX_SCAN_REQ PDU"]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapScanReqReseiveEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_SCAN_REQUEST_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< identifying the periodic advertising train"]
-    pub advHandle: u8,
-    #[doc = "!< the type of the address"]
-    pub scannerAddrType: u8,
-    #[doc = "!< the address of scanner device"]
-    pub scannerAddr: [u8; 6usize],
-}
-
-#[doc = " GAP_LINK_ESTABLISHED_EVENT message format.  This message is sent to the app\n when the link request is complete.<BR>\n <BR>\n For an Observer, this message is sent to complete the Establish Link Request.<BR>\n For a Peripheral, this message is sent to indicate that a link has been created."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapEstLinkReqEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_LINK_ESTABLISHED_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< Device address type: @ref GAP_ADDR_TYPE_DEFINES"]
-    pub devAddrType: u8,
-    #[doc = "!< Device address of link"]
-    pub devAddr: [u8; 6usize],
-    #[doc = "!< Connection Handle from controller used to ref the device"]
-    pub connectionHandle: u16,
-    #[doc = "!< Connection formed as Central or Peripheral"]
-    pub connRole: u8,
-    #[doc = "!< Connection Interval"]
-    pub connInterval: u16,
-    #[doc = "!< Connection Latency"]
-    pub connLatency: u16,
-    #[doc = "!< Connection Timeout"]
-    pub connTimeout: u16,
-    #[doc = "!< Clock Accuracy"]
-    pub clockAccuracy: u8,
-}
-
-#[doc = " GAP_LINK_PARAM_UPDATE_EVENT message format.  This message is sent to the app\n when the connection parameters update request is complete."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapLinkUpdateEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_LINK_PARAM_UPDATE_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< bStatus_t"]
-    pub status: u8,
-    #[doc = "!< Connection handle of the update"]
-    pub connectionHandle: u16,
-    #[doc = "!< Requested connection interval"]
-    pub connInterval: u16,
-    #[doc = "!< Requested connection latency"]
-    pub connLatency: u16,
-    #[doc = "!< Requested connection timeout"]
-    pub connTimeout: u16,
-}
-#[doc = " GAP_LINK_TERMINATED_EVENT message format.  This message is sent to the\n app when a link to a device is terminated."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapTerminateLinkEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_LINK_TERMINATED_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< connection Handle"]
-    pub connectionHandle: u16,
-    #[doc = "!< termination reason from LL"]
-    pub reason: u8,
-    pub connRole: u8,
-}
-
-#[doc = " GAP_PHY_UPDATE_EVENT message format.  This message is sent to the app(GAP_MSG_EVENT)\n when the PHY update request is complete."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapPhyUpdateEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status"]
-    pub hdr: tmos_event_hdr_t,
-    #[doc = "!< GAP_PHY_UPDATE_EVENT"]
-    pub opcode: u8,
-    #[doc = "!< bStatus_t"]
-    pub status: u8,
-    #[doc = "!< Connection handle of the update"]
-    pub connectionHandle: u16,
-    #[doc = "!< tx phy(GAP_PHY_VAL_TYPE)"]
-    pub connTxPHYS: u8,
-    #[doc = "!< rx phy(GAP_PHY_VAL_TYPE)"]
-    pub connRxPHYS: u8,
-}
-#[doc = " gapRole Event Structure"]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union gapRoleEvent_t {
-    #[doc = "!< GAP_MSG_EVENT and status."]
-    pub gap: gapEventHdr_t,
-    #[doc = "!< GAP initialization done."]
-    pub initDone: gapDeviceInitDoneEvent_t,
-    #[doc = "!< Discovery device information event structure."]
-    pub deviceInfo: gapDeviceInfoEvent_t,
-    #[doc = "!< Discovery direct device information event structure."]
-    pub deviceDirectInfo: gapDirectDeviceInfoEvent_t,
-    #[doc = "!< Advertising Data Update is complete."]
-    pub dataUpdate: gapAdvDataUpdateEvent_t,
-    #[doc = "!< Discovery periodic device information event structure."]
-    pub devicePeriodicInfo: gapPeriodicAdvDeviceInfoEvent_t,
-    #[doc = "!< Discovery extend advertising device information event structure."]
-    pub deviceExtAdvInfo: gapExtAdvDeviceInfoEvent_t,
-    #[doc = "!< Discovery complete event structure."]
-    pub discCmpl: gapDevDiscEvent_t,
-    #[doc = "!< sync established event structure."]
-    pub syncEstEvt: gapSyncEstablishedEvent_t,
-    #[doc = "!< sync lost event structure."]
-    pub syncLostEvt: gapSyncLostEvent_t,
-    #[doc = "!< Scan_Request_Received event structure."]
-    pub scanReqEvt: gapScanReqReseiveEvent_t,
-    #[doc = "!< Link complete event structure."]
-    pub linkCmpl: gapEstLinkReqEvent_t,
-    #[doc = "!< Link update event structure."]
-    pub linkUpdate: gapLinkUpdateEvent_t,
-    #[doc = "!< Link terminated event structure."]
-    pub linkTerminate: gapTerminateLinkEvent_t,
-    #[doc = "!< Link phy update event structure."]
-    pub linkPhyUpdate: gapPhyUpdateEvent_t,
-}
-
-#[doc = " Observer Event Callback Function"]
-pub type pfnGapObserverRoleEventCB_t = ::core::option::Option<unsafe extern "C" fn(pEvent: &gapRoleEvent_t)>;
-#[doc = " Observer Callback Structure"]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapRoleObserverCB_t {
-    #[doc = "!< Event callback."]
-    pub eventCB: pfnGapObserverRoleEventCB_t,
-}
-
-#[doc = " Passcode Callback Function"]
-pub type pfnPasscodeCB_t = ::core::option::Option<
-    unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, uiInputs: u8, uiOutputs: u8),
->;
-
-#[doc = " Pairing State Callback Function"]
-pub type pfnPairStateCB_t = ::core::option::Option<unsafe extern "C" fn(connectionHandle: u16, state: u8, status: u8)>;
-
-#[doc = " OOB Callback Function"]
-pub type pfnOobCB_t = ::core::option::Option<
-    unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, r_local: *mut u8, c_local: *mut u8),
->;
-
-#[doc = " Callback Registration Structure"]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapBondCBs_t {
-    #[doc = "!< Passcode callback"]
-    pub passcodeCB:
-        Option<unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, uiInputs: u8, uiOutputs: u8)>,
-    #[doc = "!< Pairing state callback"]
-    pub pairStateCB: Option<unsafe extern "C" fn(connectionHandle: u16, state: u8, status: u8)>,
-    #[doc = "!< oob callback"]
-    pub oobCB:
-        Option<unsafe extern "C" fn(deviceAddr: *mut u8, connectionHandle: u16, r_local: *mut u8, c_local: *mut u8)>,
-}
-
-#[doc = " Callback structure - must be setup by the application and used when gapRoles_StartDevice() is called."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapRolesCBs_t {
-    #[doc = "!< Whenever the device changes state"]
-    pub pfnStateChange:
-        ::core::option::Option<unsafe extern "C" fn(newState: gapRole_States_t, pEvent: *mut gapRoleEvent_t)>,
-    #[doc = "!< When a valid RSSI is read from controller"]
-    pub pfnRssiRead: ::core::option::Option<unsafe extern "C" fn(connHandle: u16, newRSSI: i8)>,
-    #[doc = "!< When the connection parameteres are updated"]
-    pub pfnParamUpdate:
-        Option<unsafe extern "C" fn(connHandle: u16, connInterval: u16, connSlaveLatency: u16, connTimeout: u16)>,
-}
-
-#[doc = " Central Callback Structure"]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gapCentralRoleCB_t {
-    #[doc = "!< RSSI callback. Callback when the device has read an new RSSI value during a connection."]
-    pub rssiCB: Option<unsafe extern "C" fn(connHandle: u16, newRSSI: i8)>,
-    #[doc = "!< Event callback. Central Event Callback Function"]
-    pub eventCB: Option<unsafe extern "C" fn(pEvent: *mut gapRoleEvent_t)>,
-    #[doc = "!< Length Change Event Callback. HCI Data Length Change Event Callback Function"]
-    pub ChangCB: Option<unsafe extern "C" fn(connHandle: u16, maxTxOctets: u16, maxRxOctets: u16)>,
-}
-
-// GAP
-extern "C" {
-
-    #[doc = " @brief   Initialization function for the GAP Role Task.\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
-    pub fn GAPRole_BroadcasterInit() -> bStatus_t;
-
-    #[doc = " @brief   Does the Broadcaster receive scan request call initialization.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  None"]
-    pub fn GAPRole_BroadcasterSetCB(pAppCallbacks: &'static gapRolesBroadcasterCBs_t);
-
-    #[doc = " @internal\n\n @brief   Observer Profile Task initialization function.\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
-    pub fn GAPRole_ObserverInit() -> bStatus_t;
-
-    // use static lifetime, the holder struct must be static
-    #[doc = " @brief   Start the device in Observer role.  This function is typically\n          called once during system startup.\n\n @param   pAppCallbacks - pointer to application callbacks\n\n @return  SUCCESS: Operation successful.<BR>\n          bleAlreadyInRequestedMode: Device already started.<BR>"]
-    pub fn GAPRole_ObserverStartDevice(pAppCallbacks: &'static gapRoleObserverCB_t) -> bStatus_t;
-
-    #[doc = " @brief   Start a device discovery scan.\n\n @param   mode - discovery mode: @ref GAP_DEVDISC_MODE_DEFINES\n @param   activeScan - TRUE to perform active scan\n @param   whiteList - TRUE to only scan for devices in the white list\n\n @return  SUCCESS: Discovery scan started.<BR>\n          bleIncorrectMode: Invalid profile role.<BR>\n          bleAlreadyInRequestedMode: Not available.<BR>"]
-    pub fn GAPRole_ObserverStartDiscovery(mode: u8, activeScan: u8, whiteList: u8) -> bStatus_t;
-
-    #[doc = " @brief   Cancel a device discovery scan.\n\n @return  SUCCESS: Cancel started.<BR>\n          bleInvalidTaskID: Not the task that started discovery.<BR>\n          bleIncorrectMode: Not in discovery mode.<BR>"]
-    pub fn GAPRole_ObserverCancelDiscovery() -> bStatus_t;
-
-    #[doc = " @internal\n\n @brief   Initialization function for the GAP Role Task.\n          This is called during initialization and should contain\n          any application specific initialization (ie. hardware\n          initialization/setup, table initialization, power up\n          notificaiton ... ).\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
-    pub fn GAPRole_PeripheralInit() -> bStatus_t;
-
-    // Use static lifetime, the holder struct must be static
-    #[doc = " @brief   Does the device initialization.  Only call this function once.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  SUCCESS or bleAlreadyInRequestedMode"]
-    pub fn GAPRole_PeripheralStartDevice(
-        taskid: u8,
-        pCB: &'static gapBondCBs_t,
-        pAppCallbacks: &'static gapRolesCBs_t,
-    ) -> bStatus_t;
-
-    #[doc = " @brief   Update the parameters of an existing connection\n\n @param   connHandle - the connection Handle\n @param   connIntervalMin - minimum connection interval in 1.25ms units\n @param   connIntervalMax - maximum connection interval in 1.25ms units\n @param   latency - the new slave latency\n @param   connTimeout - the new timeout value\n @param   taskId - taskID will recv L2CAP_SIGNAL_EVENT message\n\n @return  SUCCESS, bleNotConnected or bleInvalidRange"]
-    pub fn GAPRole_PeripheralConnParamUpdateReq(
-        connHandle: u16,
-        connIntervalMin: u16,
-        connIntervalMax: u16,
-        latency: u16,
-        connTimeout: u16,
-        taskId: u8,
-    ) -> bStatus_t;
-
-    #[doc = " @internal\n\n @brief   Central Profile Task initialization function.\n\n @param   None.\n\n @return  SUCCESS,bleInvalidRange"]
-    pub fn GAPRole_CentralInit() -> bStatus_t;
-
-    #[doc = " @brief   Start the device in Central role.  This function is typically\n          called once during system startup.\n\n @param   pAppCallbacks - pointer to application callbacks\n\n @return  SUCCESS: Operation successful.<BR>\n          bleAlreadyInRequestedMode: Device already started.<BR>"]
-    pub fn GAPRole_CentralStartDevice(
-        taskid: u8,
-        pCB: *mut gapBondCBs_t,
-        pAppCallbacks: *mut gapCentralRoleCB_t,
-    ) -> bStatus_t;
-
-    #[doc = " @brief   Set a GAP Role parameter.\n\n @note    You can call this function with a GAP Parameter ID and it will set a GAP Parameter.\n\n @param   param - Profile parameter ID: @ref GAPROLE_PROFILE_PARAMETERS\n @param   len - length of data to write\n @param   pValue - pointer to data to write.  This is dependent on the parameter ID and\n                   WILL be cast to the appropriate data type (example: data type of uint16_t\n                   will be cast to uint16_t pointer).\n\n @return  SUCCESS or INVALIDPARAMETER (invalid paramID)"]
-    pub fn GAPRole_SetParameter(param: u16, len: u16, pValue: *const ::core::ffi::c_void) -> bStatus_t;
-
-    #[doc = " @brief   Get a GAP Role parameter.\n\n @note    You can call this function with a GAP Parameter ID and it will get a GAP Parameter.\n\n @param   param - Profile parameter ID: @ref GAPROLE_PROFILE_PARAMETERS\n @param   pValue - pointer to location to get the value.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate\n          data type (example: data type of uint16_t will be cast to\n          uint16_t pointer).\n\n @return      SUCCESS or INVALIDPARAMETER (invalid paramID)"]
-    pub fn GAPRole_GetParameter(param: u16, pValue: *mut ::core::ffi::c_void) -> bStatus_t;
-
-    // Use static lifetime, the holder struct must be static
-    #[doc = " @brief   Does the device initialization.  Only call this function once.\n\n @param   pAppCallbacks - pointer to application callbacks.\n\n @return  SUCCESS or bleAlreadyInRequestedMode"]
-    pub fn GAPRole_BroadcasterStartDevice(pAppCallbacks: &'static gapRolesBroadcasterCBs_t) -> bStatus_t;
-
-    #[doc = " @brief   used to cancel the HCI_LE_Periodic_Advertising_Create_Sync command while\n          it is pending.\n\n @param   None.\n\n @return  bStatus_t: HCI Error Code.<BR>\n"]
-    pub fn GAPRole_CancelSync() -> bStatus_t;
-
-    #[doc = " @brief   Set a GAP Parameter value.  Use this function to change  the default GAP parameter values.\n\n @param   paramID - parameter ID: @ref GAP_PARAMETER_ID_DEFINES\n @param   paramValue - new param value\n\n @return  SUCCESS or INVALIDPARAMETER (invalid paramID)"]
-    pub fn GAP_SetParamValue(paramID: u16, paramValue: u16) -> bStatus_t;
-
-}
-
-pub type pfnEcc_key_t =
-    ::core::option::Option<unsafe extern "C" fn(pub_: *mut u8, priv_: *mut u8) -> ::core::ffi::c_int>;
-pub type pfnEcc_dhkey_t = ::core::option::Option<
+pub type pfnEcc_key_t = Option<unsafe extern "C" fn(pub_: *mut u8, priv_: *mut u8) -> ::core::ffi::c_int>;
+pub type pfnEcc_dhkey_t = Option<
     unsafe extern "C" fn(
         peer_pub_key_x: *mut u8,
         peer_pub_key_y: *mut u8,
@@ -1103,13 +568,13 @@ pub type pfnEcc_dhkey_t = ::core::option::Option<
         out_dhkey: *mut u8,
     ) -> ::core::ffi::c_int,
 >;
-pub type pfnEcc_alg_f4_t = ::core::option::Option<
+pub type pfnEcc_alg_f4_t = Option<
     unsafe extern "C" fn(u: *mut u8, v: *mut u8, x: *mut u8, z: u8, out_enc_data: *mut u8) -> ::core::ffi::c_int,
 >;
-pub type pfnEcc_alg_g2_t = ::core::option::Option<
+pub type pfnEcc_alg_g2_t = Option<
     unsafe extern "C" fn(u: *mut u8, v: *mut u8, x: *mut u8, y: *mut u8, passkey: *mut u32) -> ::core::ffi::c_int,
 >;
-pub type pfnEcc_alg_f5_t = ::core::option::Option<
+pub type pfnEcc_alg_f5_t = Option<
     unsafe extern "C" fn(
         w: *mut u8,
         n1: *mut u8,
@@ -1122,7 +587,7 @@ pub type pfnEcc_alg_f5_t = ::core::option::Option<
         ltk: *mut u8,
     ) -> ::core::ffi::c_int,
 >;
-pub type pfnEcc_alg_f6_t = ::core::option::Option<
+pub type pfnEcc_alg_f6_t = Option<
     unsafe extern "C" fn(
         w: *mut u8,
         n1: *mut u8,
@@ -1239,6 +704,8 @@ extern "C" {
 
 }
 
+// GAP GATT Server Parameters used with GGS Get/Set Parameter and Application's Callback functions
+// uint8_t[GAP_DEVICE_NAME_LEN]
 pub const GGS_DEVICE_NAME_ATT: u8 = 0;
 pub const GGS_APPEARANCE_ATT: u8 = 1;
 pub const GGS_PERI_PRIVACY_FLAG_ATT: u8 = 2;
@@ -1252,6 +719,7 @@ pub const GGS_CENT_ADDR_RES_ATT: u8 = 9;
 pub const GGS_ENC_DATA_KEY_MATERIAL: u8 = 11;
 pub const GGS_LE_GATT_SEC_LEVELS: u8 = 12;
 
+// GAP GATT Service
 extern "C" {
     #[doc = " @brief   Set a GAP GATT Server parameter.\n\n @param   param - Profile parameter ID<BR>\n @param   len - length of data to right\n @param   value - pointer to data to write.  This is dependent on\n          the parameter ID and WILL be cast to the appropriate\n          data type (example: data type of uint16_t will be cast to\n          uint16_t pointer).<BR>\n\n @return  bStatus_t"]
     pub fn GGS_SetParameter(param: u8, len: u8, value: *mut ::core::ffi::c_void) -> bStatus_t;
@@ -1264,37 +732,159 @@ extern "C" {
 }
 
 // GATT
-pub const GATT_PERMIT_READ: u32 = 1;
-pub const GATT_PERMIT_WRITE: u32 = 2;
-pub const GATT_PERMIT_AUTHEN_READ: u32 = 4;
-pub const GATT_PERMIT_AUTHEN_WRITE: u32 = 8;
-pub const GATT_PERMIT_AUTHOR_READ: u32 = 16;
-pub const GATT_PERMIT_AUTHOR_WRITE: u32 = 32;
-pub const GATT_PERMIT_ENCRYPT_READ: u32 = 64;
-pub const GATT_PERMIT_ENCRYPT_WRITE: u32 = 128;
-pub const GATT_PROP_BCAST: u32 = 1;
-pub const GATT_PROP_READ: u32 = 2;
-pub const GATT_PROP_WRITE_NO_RSP: u32 = 4;
-pub const GATT_PROP_WRITE: u32 = 8;
-pub const GATT_PROP_NOTIFY: u32 = 16;
-pub const GATT_PROP_INDICATE: u32 = 32;
-pub const GATT_PROP_AUTHEN: u32 = 64;
-pub const GATT_PROP_EXTENDED: u32 = 128;
+
+// GATT Attribute Access Permissions Bit Fields
+pub const GATT_PERMIT_READ: u8 = 1;
+pub const GATT_PERMIT_WRITE: u8 = 2;
+pub const GATT_PERMIT_AUTHEN_READ: u8 = 4;
+pub const GATT_PERMIT_AUTHEN_WRITE: u8 = 8;
+pub const GATT_PERMIT_AUTHOR_READ: u8 = 16;
+pub const GATT_PERMIT_AUTHOR_WRITE: u8 = 32;
+pub const GATT_PERMIT_ENCRYPT_READ: u8 = 64;
+pub const GATT_PERMIT_ENCRYPT_WRITE: u8 = 128;
+
+// GATT local read or write operation
 pub const GATT_LOCAL_READ: u32 = 255;
 pub const GATT_LOCAL_WRITE: u32 = 254;
-pub const GATT_MIN_ENCRYPT_KEY_SIZE: u32 = 7;
-pub const GATT_MAX_ENCRYPT_KEY_SIZE: u32 = 16;
+
+// Attribute handle definitions
 pub const GATT_INVALID_HANDLE: u32 = 0;
 pub const GATT_MIN_HANDLE: u32 = 1;
 pub const GATT_MAX_HANDLE: u32 = 65535;
+
 pub const GATT_MAX_MTU: u32 = 65535;
+
 pub const GATT_MAX_NUM_CONN: u32 = 4;
-pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
-pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
+
 pub const GATT_CFG_NO_OPERATION: u32 = 0;
+
+// All profile services bit fields
 pub const GATT_ALL_SERVICES: u32 = 4294967295;
 
+// GATT Characteristic Properties Bit Fields
+pub const GATT_PROP_BCAST: u8 = 1;
+pub const GATT_PROP_READ: u8 = 2;
+pub const GATT_PROP_WRITE_NO_RSP: u8 = 4;
+pub const GATT_PROP_WRITE: u8 = 8;
+pub const GATT_PROP_NOTIFY: u8 = 16;
+pub const GATT_PROP_INDICATE: u8 = 32;
+pub const GATT_PROP_AUTHEN: u8 = 64;
+pub const GATT_PROP_EXTENDED: u8 = 128;
+
+// GATT Client Characteristic Configuration Bit Fields
+pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
+pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
+
+// GATT Encryption Key Size Limits
+pub const GATT_MIN_ENCRYPT_KEY_SIZE: u8 = 7;
+pub const GATT_MAX_ENCRYPT_KEY_SIZE: u8 = 16;
+
+#[doc = " @brief   Callback function prototype to read an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          read operations:\n          - Read Request: ATT_READ_REQ\n          - Read Blob Request: ATT_READ_BLOB_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to respond to\n          ATT_READ_REQ and ATT_READ_BLOB_REQ message with ATT_READ_RSP and ATT_READ_BLOB_RSP\n          message respectively.\n\n @note    Payload 'pValue' used with ATT_READ_RSP and ATT_READ_BLOB_RSP must be allocated using GATT_bm_alloc().\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be read (to be returned)\n @param   pLen - length of data (to be returned)\n @param   offset - offset of the first octet to be read\n @param   maxLen - maximum length of data to be read\n @param   method - type of read message\n\n @return  SUCCESS: Read was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
+pub type pfnGATTReadAttrCB_t = Option<
+    unsafe extern "C" fn(
+        connHandle: u16,
+        pAttr: *mut gattAttribute_t,
+        pValue: *mut u8,
+        pLen: *mut u16,
+        offset: u16,
+        maxLen: u16,
+        method: u8,
+    ) -> u8,
+>;
+#[doc = " @brief   Callback function prototype to write an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          write operations:\n          - Write Request: ATT_WRITE_REQ\n          - Write Command: ATT_WRITE_CMD\n          - Write Long: ATT_EXECUTE_WRITE_REQ\n          - Reliable Writes: Multiple ATT_PREPARE_WRITE_REQ followed by one final ATT_EXECUTE_WRITE_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to 1) respond to\n          ATT_WRITE_REQ and ATT_EXECUTE_WRITE_REQ message with ATT_WRITE_RSP and ATT_EXECUTE_WRITE_RSP\n          message respectively, and 2) free each request payload 'pValue' using BM_free().\n\n @note    Write Command (ATT_WRITE_CMD) does NOT require a response message.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be written\n @param   pLen - length of data\n @param   offset - offset of the first octet to be written\n @param   method - type of write message\n\n @return  SUCCESS: Write was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
+pub type pfnGATTWriteAttrCB_t = Option<
+    unsafe extern "C" fn(
+        connHandle: u16,
+        pAttr: *mut gattAttribute_t,
+        pValue: *mut u8,
+        len: u16,
+        offset: u16,
+        method: u8,
+    ) -> u8,
+>;
+#[doc = " @brief   Callback function prototype to authorize a Read or Write operation\n          on a given attribute.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   opcode - request opcode (ATT_READ_REQ or ATT_WRITE_REQ)\n\n @return  SUCCESS: Operation authorized.<BR>\n          ATT_ERR_INSUFFICIENT_AUTHOR: Authorization required.<BR>"]
+pub type pfnGATTAuthorizeAttrCB_t =
+    Option<unsafe extern "C" fn(connHandle: u16, pAttr: *mut gattAttribute_t, opcode: u8) -> bStatus_t>;
+
+#[doc = " GATT Attribute Type format."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gattAttrType_t {
+    #[doc = "!< Length of UUID (2 or 16)"]
+    pub len: u8,
+    #[doc = "!< Pointer to UUID"]
+    pub uuid: *const u8,
+}
+
+unsafe impl Sync for gattAttrType_t {}
+unsafe impl Send for gattAttrType_t {}
+
+#[doc = " GATT Attribute format."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gattAttribute_t {
+    #[doc = "!< Attribute type (2 or 16 octet UUIDs)"]
+    pub type_: gattAttrType_t,
+    #[doc = "!< Attribute permissions"]
+    pub permissions: u8,
+    #[doc = "!< Attribute handle - assigned internally by attribute server"]
+    pub handle: u16,
+    #[doc = "!< Attribute value - encoding of the octet array is defined in\n!< the applicable profile. The maximum length of an attribute\n!< value shall be 512 octets."]
+    pub pValue: *const u8,
+}
+
+unsafe impl Sync for gattAttribute_t {}
+unsafe impl Send for gattAttribute_t {}
+
+#[doc = " GATT Structure for service callback functions - must be setup by the application\n and used when GATTServApp_RegisterService() is called."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gattServiceCBs_t {
+    #[doc = "!< Read callback function pointer. pfnGATTReadAttrCB_t"]
+    pub pfnReadAttrCB: pfnGATTReadAttrCB_t,
+    #[doc = "!< Write callback function pointer"]
+    pub pfnWriteAttrCB: pfnGATTWriteAttrCB_t,
+    #[doc = "!< Authorization callback function pointer"]
+    pub pfnAuthorizeAttrCB: pfnGATTAuthorizeAttrCB_t,
+}
+
+#[doc = " GATT Structure for Client Characteristic Configuration."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gattCharCfg_t {
+    #[doc = "!< Client connection handle"]
+    pub connHandle: u16,
+    #[doc = "!< Characteristic configuration value for this client"]
+    pub value: u8,
+}
+
 extern "C" {
+    #[doc = " @brief   Register a service's attribute list and callback functions with\n          the GATT Server Application.\n\n @param   pAttrs - Array of attribute records to be registered\n @param   numAttrs - Number of attributes in array\n @param   encKeySize - Minimum encryption key size required by service (7-16 bytes)\n @param   pServiceCBs - Service callback function pointers\n\n @return  SUCCESS: Service registered successfully.<BR>\n          INVALIDPARAMETER: Invalid service fields.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>\n          bleInvalidRange: Encryption key size's out of range.<BR>"]
+    pub fn GATTServApp_RegisterService(
+        pAttrs: *mut gattAttribute_t,
+        numAttrs: u16,
+        encKeySize: u8,
+        pServiceCBs: *const gattServiceCBs_t,
+    ) -> bStatus_t;
     #[doc = " @brief   Add function for the GATT Service.\n\n @param   services - services to add. This is a bit map and can\n                     contain more than one service.\n\n @return  SUCCESS: Service added successfully.<BR>\n          INVALIDPARAMETER: Invalid service field.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>"]
     pub fn GATTServApp_AddService(services: u32) -> bStatus_t;
+    #[doc = " @brief   Deregister a service's attribute list and callback functions from\n          the GATT Server Application.\n\n @note    It's the caller's responsibility to free the service attribute\n          list returned from this API.\n\n @param   handle - handle of service to be deregistered\n @param   p2pAttrs - pointer to array of attribute records (to be returned)\n\n @return  SUCCESS: Service deregistered successfully.<BR>\n          FAILURE: Service not found.<BR>"]
+    pub fn GATTServApp_DeregisterService(handle: u16, p2pAttrs: *mut *mut gattAttribute_t) -> bStatus_t;
+    #[doc = " @brief   Initialize the client characteristic configuration table.\n\n @note    Each client has its own instantiation of the ClientCharacteristic Configuration.\n          Reads/Writes of the Client Characteristic Configuration only only affect the\n          configuration of that client.\n\n @param   connHandle - connection handle (0xFFFF for all connections).\n @param   charCfgTbl - client characteristic configuration table.\n\n @return  none"]
+    pub fn GATTServApp_InitCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t);
+    #[doc = " @brief   Send out a Service Changed Indication.\n\n @param   connHandle - connection to use\n @param   taskId - task to be notified of confirmation\n\n @return  SUCCESS: Indication was sent successfully.<BR>\n          FAILURE: Service Changed attribute not found.<BR>\n          INVALIDPARAMETER: Invalid connection handle or request field.<BR>\n          MSG_BUFFER_NOT_AVAIL: No HCI buffer is available.<BR>\n          bleNotConnected: Connection is down.<BR>\n          blePending: A confirmation is pending with this client.<BR>"]
+    pub fn GATTServApp_SendServiceChangedInd(connHandle: u16, taskId: u8) -> bStatus_t;
+    #[doc = " @brief   Read the client characteristic configuration for a given client.\n\n @note    Each client has its own instantiation of the Client Characteristic Configuration.\n          Reads of the Client Characteristic Configuration only shows the configuration\n          for that client.\n\n @param   connHandle - connection handle.\n @param   charCfgTbl - client characteristic configuration table.\n\n @return  attribute value"]
+    pub fn GATTServApp_ReadCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t) -> u16;
+    #[doc = " @brief   Write the client characteristic configuration for a given client.\n\n @note    Each client has its own instantiation of the Client Characteristic Configuration.\n          Writes of the Client Characteristic Configuration only only affect the\n          configuration of that client.\n\n @param   connHandle - connection handle.\n @param   charCfgTbl - client characteristic configuration table.\n @param   value - attribute new value.\n\n @return  Success or Failure"]
+    pub fn GATTServApp_WriteCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t, value: u16) -> u8;
+    #[doc = " @brief   Process the client characteristic configuration\n          write request for a given client.\n\n @param   connHandle - connection message was received on.\n @param   pAttr - pointer to attribute.\n @param   pValue - pointer to data to be written.\n @param   len - length of data.\n @param   offset - offset of the first octet to be written.\n @param   validCfg - valid configuration.\n\n @return  Success or Failure"]
+    pub fn GATTServApp_ProcessCCCWriteReq(
+        connHandle: u16,
+        pAttr: *mut gattAttribute_t,
+        pValue: *mut u8,
+        len: u16,
+        offset: u16,
+        validCfg: u16,
+    ) -> bStatus_t;
 }

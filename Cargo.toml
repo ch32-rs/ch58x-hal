@@ -44,6 +44,7 @@ embassy-time = { version = "0.1.5", features = [
 ], optional = true }
 embassy-sync = { version = "0.3.0", features = ["nightly"] }
 embedded-hal-async = "1.0.0-rc.1"
+embassy-futures = "0.1.1"
 
 [dev-dependencies]
 display-interface = "0.4.1"

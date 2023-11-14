@@ -5,11 +5,15 @@ use core::num::NonZeroU8;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::pubsub::{PubSubBehavior, PubSubChannel, Subscriber};
 
-use self::ffi::{tmos_msg_deallocate, tmos_msg_receive, SYS_EVENT_MSG};
+use self::ffi::{tmos_event_hdr_t, tmos_msg_deallocate, tmos_msg_receive, SYS_EVENT_MSG};
 use crate::ble::ffi::{tmos_start_task, BLE_RegInit};
-use crate::pac;
+use crate::{pac, println};
 
 pub mod ffi;
+pub mod gap;
+pub mod gatt;
+pub mod gatt_uuid;
+pub mod gattservapp;
 
 const HAL_REG_INIT_EVENT: u16 = 0x2000;
 
@@ -20,12 +24,39 @@ const HEAP_SIZE: usize = 1024 * 6;
 
 #[repr(C, align(4))]
 struct BLEHeap([MaybeUninit<u8>; HEAP_SIZE]);
-
 static mut BLE_HEAP: BLEHeap = BLEHeap([MaybeUninit::uninit(); HEAP_SIZE]);
 
-static CHANNEL: PubSubChannel<CriticalSectionRawMutex, u16, 4, 2, 2> = PubSubChannel::new();
+#[derive(Clone, Debug)]
+pub struct TmosEvent(pub *mut tmos_event_hdr_t);
 
-pub type EventSubscriber = Subscriber<'static, CriticalSectionRawMutex, u16, 4, 2, 2>;
+unsafe impl Send for TmosEvent {}
+unsafe impl Sync for TmosEvent {}
+
+impl TmosEvent {
+    /// Incoming GATT message
+    pub const GATT_MSG_EVENT: u8 = 0xB0;
+    /// Incoming GATT ServApp message
+    pub const GATT_SERV_MSG_EVENT: u8 = 0xB1;
+    /// Incoming GAP message
+    pub const GAP_MSG_EVENT: u8 = 0xD0;
+
+    #[inline(always)]
+    pub fn message_id(&self) -> u8 {
+        unsafe { (*self.0).event }
+    }
+}
+impl Drop for TmosEvent {
+    fn drop(&mut self) {
+        // println!("TmosEvent::drop event={} status={}", (*self.0).event, (*self.0).status);
+        unsafe {
+            let _ = tmos_msg_deallocate(self.0 as *mut u8);
+        }
+    }
+}
+
+static CHANNEL: PubSubChannel<CriticalSectionRawMutex, TmosEvent, 4, 2, 2> = PubSubChannel::new();
+
+pub type EventSubscriber = Subscriber<'static, CriticalSectionRawMutex, TmosEvent, 4, 2, 2>;
 
 /// Library format MAC Address, LSB first
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,7 +78,10 @@ unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
     if events & SYS_EVENT_MSG != 0 {
         let msg = tmos_msg_receive(task_id);
         if !msg.is_null() {
-            let _ = tmos_msg_deallocate(msg);
+            let event = TmosEvent(msg as _);
+            CHANNEL.publish_immediate(event);
+
+            // let _ = tmos_msg_deallocate(msg);
         }
         return events ^ SYS_EVENT_MSG;
     } else if events & HAL_REG_INIT_EVENT != 0 {
@@ -58,7 +92,7 @@ unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
     } else {
         crate::println!("!! hal_tmos_task: task_id: {}, events: 0x{:04x}", task_id, events);
 
-        CHANNEL.publish_immediate(events);
+        // CHANNEL.publish_immediate(events);
         // assume all events are handled here, actually the
         return 0;
     }
@@ -66,7 +100,9 @@ unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
 
 /// Wrapper of BLEInit and HAL_Init
 /// Returns a global task id.
-pub fn init(config: Config) -> Result<(u8, Subscriber<'static, CriticalSectionRawMutex, u16, 4, 2, 2>), NonZeroU8> {
+pub fn init(
+    config: Config,
+) -> Result<(u8, Subscriber<'static, CriticalSectionRawMutex, TmosEvent, 4, 2, 2>), NonZeroU8> {
     use ffi::{bleConfig_t, BLE_LibInit, TMOS_ProcessEventRegister, TMOS_TimerInit, LL_TX_POWEER_6_DBM};
 
     const BLE_TX_NUM_EVENT: u8 = 1;
