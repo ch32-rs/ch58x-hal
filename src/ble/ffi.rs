@@ -220,23 +220,28 @@ extern "C" {
 
 }
 
+// RF
 extern "C" {
-
     #[doc = " @brief   RF_PHY Profile Task initialization function.\n\n @param   None.\n\n @return  0 - success."]
     pub fn RF_RoleInit() -> bStatus_t;
-
     #[doc = " @brief   rf config.\n\n @param   pConfig - rf config parameters\n\n @return  0 - success."]
     pub fn RF_Config(pConfig: *mut rfConfig_t) -> bStatus_t;
-
     #[doc = " @brief   rx mode.\n\n @param   txBuf - rx mode tx data\n @param   txLen - rx mode tx length(0-251)\n @param   pktRxType - rx mode rx package type\n                      broadcast type(0xFF):receive all matching types,\n                      others:receive match type or broadcast type\n @param   pktTxType - rx mode tx package type(auto mode)\n                      broadcast type(0xFF):received by all matching types;\n                      others:only received by matching type\n\n @return  0 - success. 1-access address error 2-busy"]
     pub fn RF_Rx(txBuf: *mut u8, txLen: u8, pktRxType: u8, pktTxType: u8) -> bStatus_t;
-
     #[doc = " @brief   tx mode.\n\n @param   txBuf - tx mode tx data\n @param   txLen - tx mode tx length(0-251)\n @param   pktTxType - tx mode tx package type\n                      broadcast type(0xFF):received by all matching types;\n                      others:only received by matching type\n @param   pktRxType - tx mode rx package type(auto mode)\n                      broadcast type(0xFF):receive all matching types,\n                      others:receive match type or broadcast type\n\n @return  0 - success. 1-access address error 2-busy"]
     pub fn RF_Tx(txBuf: *mut u8, txLen: u8, pktTxType: u8, pktRxType: u8) -> bStatus_t;
-
     #[doc = " @brief   shut down,stop tx/rx mode.\n\n @param   None.\n\n @return  0 - success."]
     pub fn RF_Shut() -> bStatus_t;
-
+    #[doc = " @brief   rf mode set radio channel/frequency.\n\n @param   channel.\n\n @return  0 - success."]
+    pub fn RF_SetChannel(channel: u32);
+    #[doc = " @brief   shut down rf frequency hopping\n\n @param   None.\n\n @return  None."]
+    pub fn RF_FrequencyHoppingShut();
+    #[doc = " @brief\n\n @param   resendCount - Maximum count of sending HOP_TX pdu,0 = unlimited.\n\n @return  0 - success."]
+    pub fn RF_FrequencyHoppingTx(resendCount: u8) -> u8;
+    #[doc = " @brief\n\n @param   timeoutMS - Maximum time to wait for receiving HOP_TX pdu(Time = n * 1mSec),0 = unlimited.\n\n @return  0 - success.1-fail.2-LLEMode error(shall AUTO)"]
+    pub fn RF_FrequencyHoppingRx(timeoutMS: u32) -> u8;
+    #[doc = " @brief   Erase FH bonded device\n\n @param   None.\n\n @return  None."]
+    pub fn RF_BondingErase();
 }
 
 #[repr(C)]
