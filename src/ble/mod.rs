@@ -67,9 +67,16 @@ pub struct Config {
     pub mac_addr: MacAddress,
 }
 
+impl Config {
+    pub fn use_factory_mac_address(&mut self) -> &mut Self {
+        self.mac_addr = MacAddress::from_raw(crate::isp::get_mac_address());
+        self
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
-        let mac_addr = MacAddress::from_raw(crate::isp::get_mac_address());
+        let mac_addr = MacAddress::from_raw([0x11, 0x22, 0x33, 0x44, 0x55, 0x66]);
         Config { mac_addr }
     }
 }
