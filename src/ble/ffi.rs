@@ -508,11 +508,11 @@ pub const GAP_PHY_VAL_LE_2M: u16 = 2;
 pub const GAP_PHY_VAL_LE_CODED: u16 = 3;
 
 // GAP_ADVERTISEMENT_TYPE_DEFINES GAP Scan PHY VAL TYPE(GAP_PHY_BIT_TYPE)
-pub const GAP_PHY_BIT_LE_1M: u32 = 1;
-pub const GAP_PHY_BIT_LE_2M: u32 = 2;
-pub const GAP_PHY_BIT_LE_CODED: u32 = 4;
-pub const GAP_PHY_BIT_ALL: u32 = 7;
-pub const GAP_PHY_BIT_LE_CODED_S2: u32 = 8;
+pub const GAP_PHY_BIT_LE_1M: u16 = 1;
+pub const GAP_PHY_BIT_LE_2M: u16 = 2;
+pub const GAP_PHY_BIT_LE_CODED: u16 = 4;
+pub const GAP_PHY_BIT_ALL: u16 = 7;
+pub const GAP_PHY_BIT_LE_CODED_S2: u16 = 8;
 
 // PHY_OPTIONS preferred coding when transmitting on the LE Coded PHY
 pub const GAP_PHY_OPTIONS_NOPRE: u32 = 0;

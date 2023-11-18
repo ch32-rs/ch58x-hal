@@ -13,7 +13,7 @@ readme = "README.md"
 license = "MIT/Apache-2.0"
 
 [features]
-default = ["ble"]
+default = []
 embassy = ["dep:embassy-time"]
 ble = []
 
@@ -73,6 +73,27 @@ required-features = ["embassy"]
 [[example]]
 name = "embassy-ble-broadcaster"
 required-features = ["embassy", "ble"]
+
+[[example]]
+name = "embassy-ble-scanner"
+required-features = ["embassy", "ble"]
+
+[[example]]
+name = "ble-peripheral-simple"
+required-features = ["embassy", "ble"]
+
+[[example]]
+name = "ble-peripheral"
+required-features = ["embassy", "ble"]
+
+# [[example]]
+# name = "embassy-ble-sensor"
+# required-features = ["embassy", "ble"]
+#
+# [[example]]
+# name = "embassy-ble-sync-adv"
+# required-features = ["embassy", "ble"]
+
 
 [profile.release]
 # panic = "unwind"

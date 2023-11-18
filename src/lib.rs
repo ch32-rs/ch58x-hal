@@ -12,6 +12,7 @@ pub mod dma;
 pub mod gpio;
 pub mod i2c;
 // pub mod lcd;
+#[cfg(feature = "ble")]
 pub mod ble;
 pub mod rtc;
 pub mod signature;

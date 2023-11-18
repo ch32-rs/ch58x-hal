@@ -4,6 +4,7 @@
 
 use ch32v_rt::highcode;
 use ch58x_hal as hal;
+use ch58x_hal::ble::gap::*;
 use embassy_executor::Spawner;
 use embassy_time::{Delay, Duration, Instant, Timer};
 use hal::ble::ffi::*;

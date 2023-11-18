@@ -8,6 +8,7 @@ use embassy_executor::Spawner;
 use embassy_sync::channel::Channel;
 use embassy_time::{Delay, Duration, Instant, Timer};
 use hal::ble::ffi::*;
+use hal::ble::gap::*;
 use hal::ble::{get_raw_temperature, MacAddress};
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
 use hal::interrupt::Interrupt;

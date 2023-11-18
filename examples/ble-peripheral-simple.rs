@@ -280,7 +280,8 @@ async fn read_rssi(conn_handle: u16) {
         unsafe {
             let r = GAPRole_ReadRssiCmd(conn_handle);
             if r.is_err() {
-                println!("!! GAPRole_ReadRssiCmd error: {:?}", r);
+                // normally it's already disconnected, quit
+                // println!("!! GAPRole_ReadRssiCmd error: {:?}", r);
                 return;
             }
         }
@@ -346,15 +347,15 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
     unsafe extern "C" fn on_rssi_read(conn_handle: u16, rssi: i8) {
         println!("RSSI -{} dB Conn {:x}", -rssi, conn_handle);
     }
-    unsafe extern "C" fn on_param_update(connHandle: u16, connInterval: u16, connSlaveLatency: u16, connTimeout: u16) {
+    unsafe extern "C" fn on_param_update(conn_handle: u16, interval: u16, slave_latency: u16, timeout: u16) {
         println!(
             "on_param_update Conn handle: {} inverval: {} timeout: {}",
-            connHandle, connInterval, connTimeout
+            conn_handle, interval, timeout
         );
     }
 
     unsafe {
-        static bond_mgr_cb: gapBondCBs_t = gapBondCBs_t {
+        static BOND_MGR_CB: gapBondCBs_t = gapBondCBs_t {
             passcodeCB: None,
             pairStateCB: None,
             oobCB: None,
@@ -362,13 +363,13 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
 
         // peripheralStateNotificationCB
 
-        static app_cb: gapRolesCBs_t = gapRolesCBs_t {
+        static APP_CB: gapRolesCBs_t = gapRolesCBs_t {
             pfnStateChange: Some(on_state_change),
             pfnRssiRead: Some(on_rssi_read),
             pfnParamUpdate: Some(on_param_update),
         };
         // Start the Device
-        GAPRole_PeripheralStartDevice(task_id, &bond_mgr_cb, &app_cb);
+        GAPRole_PeripheralStartDevice(task_id, &BOND_MGR_CB, &APP_CB);
     }
 
     loop {
@@ -470,13 +471,15 @@ async fn main(spawner: Spawner) -> ! {
     println!("System Clocks: {}", hal::sysctl::clocks().hclk);
     println!("ChipID: 0x{:02x}", hal::signature::get_chip_id());
     println!("RTC datetime: {}", rtc.now());
+    println!("MemFree: {}K", hal::stack_free() / 1024);
 
     spawner.spawn(blink(p.PA8.degrade())).unwrap();
 
     // BLE part
     println!("BLE Lib Version: {}", ble::lib_version());
 
-    let (task_id, sub) = hal::ble::init(Default::default()).unwrap();
+    let mut ble_config = ble::Config::default();
+    let (task_id, sub) = hal::ble::init(ble_config).unwrap();
     println!("BLE task id: {}", task_id);
 
     unsafe {
@@ -498,12 +501,11 @@ async fn main(spawner: Spawner) -> ! {
 #[highcode]
 #[embassy_executor::task]
 async fn tmos_mainloop() {
+    let mut ticker = Ticker::every(Duration::from_micros(300));
     loop {
-        Timer::after(Duration::from_micros(300)).await;
+        ticker.next().await;
         unsafe {
-            hal::interrupt::SysTick::pend();
             TMOS_SystemProcess();
-            hal::interrupt::SysTick::unpend();
         }
     }
 }

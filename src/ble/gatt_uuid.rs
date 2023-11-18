@@ -47,53 +47,38 @@ pub const LE_GATT_SEC_LEVELS_UUID: u16 = 0x2BF5; // LE GATT Security Levels
 
 // UUID defined
 extern "C" {
+    // [u8; 2]
 
     // GATT Services
+    /// 1800
     pub static gapServiceUUID: [u8; 0usize];
-
+    /// 1801
     pub static gattServiceUUID: [u8; 0usize];
 
     // GATT Attribute Types
     pub static primaryServiceUUID: [u8; 0usize];
-
     pub static secondaryServiceUUID: [u8; 0usize];
-
     pub static includeUUID: [u8; 0usize];
-
     pub static characterUUID: [u8; 0usize];
 
     // GATT Characteristic Descriptors
     pub static charExtPropsUUID: [u8; 0usize];
-
     pub static charUserDescUUID: [u8; 0usize];
-
     pub static clientCharCfgUUID: [u8; 0usize];
-
     pub static servCharCfgUUID: [u8; 0usize];
-
     pub static charFormatUUID: [u8; 0usize];
-
     pub static charAggFormatUUID: [u8; 0usize];
-
     pub static validRangeUUID: [u8; 0usize];
-
     pub static extReportRefUUID: [u8; 0usize];
-
     pub static reportRefUUID: [u8; 0usize];
 
     // GATT Characteristic Types
     pub static deviceNameUUID: [u8; 0usize];
-
     pub static appearanceUUID: [u8; 0usize];
-
     pub static periPrivacyFlagUUID: [u8; 0usize];
-
     pub static reconnectAddrUUID: [u8; 0usize];
-
     pub static periConnParamUUID: [u8; 0usize];
-
     pub static serviceChangedUUID: [u8; 0usize];
-
     pub static centAddrResUUID: [u8; 0usize];
 }
 

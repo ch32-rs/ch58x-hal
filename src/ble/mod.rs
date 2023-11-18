@@ -76,7 +76,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let mac_addr = MacAddress::from_raw([0x11, 0x22, 0x33, 0x44, 0x55, 0x66]);
+        let mac_addr = MacAddress::from_msb([0x11, 0x22, 0x33, 0x44, 0x55, 0x66]);
         Config { mac_addr }
     }
 }
@@ -87,7 +87,7 @@ unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
         if !msg.is_null() {
             let event = TmosEvent(msg as _);
             CHANNEL.publish_immediate(event);
-
+            // Dealloc in Drop
             // let _ = tmos_msg_deallocate(msg);
         }
         return events ^ SYS_EVENT_MSG;
