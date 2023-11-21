@@ -578,7 +578,18 @@ extern "C" {
     #[doc = " @brief   used to cancel the HCI_LE_Periodic_Advertising_Create_Sync command while\n          it is pending.\n\n @param   None.\n\n @return  bStatus_t: HCI Error Code.<BR>\n"]
     pub fn GAPRole_CancelSync() -> bStatus_t;
 
+}
+
+// FUNCTIONS - Initialization and Configuration
+extern "C" {
     #[doc = " @brief   Set a GAP Parameter value.  Use this function to change  the default GAP parameter values.\n\n @param   paramID - parameter ID: @ref GAP_PARAMETER_ID_DEFINES\n @param   paramValue - new param value\n\n @return  SUCCESS or INVALIDPARAMETER (invalid paramID)"]
     pub fn GAP_SetParamValue(paramID: u16, paramValue: u16) -> bStatus_t;
-
+    #[doc = " @brief   Get a GAP Parameter value.\n\n @note    This function is the same as GAP_PasskeyUpdate(), except that\n          the passkey is passed in as a non-string format.\n\n @param   paramID - parameter ID: @ref GAP_PARAMETER_ID_DEFINES\n\n @return  GAP Parameter value or 0xFFFF if invalid"]
+    pub fn GAP_GetParamValue(paramID: u16) -> u16;
+    #[doc = " @brief   Setup the device's address type.  If ADDRTYPE_PRIVATE_RESOLVE is selected,\n          the address will change periodically.\n\n @param   addrType - @ref GAP_ADDR_TYPE_DEFINES\n @param   pStaticAddr - Only used with ADDRTYPE_STATIC or ADDRTYPE_PRIVATE_NONRESOLVE type\n                   NULL to auto generate otherwise the application can specify the address value\n\n @return  SUCCESS: address type updated,<BR>\n          bleNotReady: Can't be called until GAP_DeviceInit() is called\n                   and the init process is completed\n          bleIncorrectMode: can't change with an active connection,or INVALIDPARAMETER\n          If return value isn't SUCCESS, the address type remains the same as before this call."]
+    pub fn GAP_ConfigDeviceAddr(addrType: u8, pStaticAddr: *mut u8) -> bStatus_t;
+    #[doc = " @brief   Resolves a private address against an IRK.\n\n @param(in)   pIRK - pointer to the IRK\n @param(in)   pAddr - pointer to the Resolvable Private address\n\n @param(out)  pIRK\n @param(out)  pAddr\n\n @return  SUCCESS: match,<BR>\n          FAILURE: don't match,<BR>\n          INVALIDPARAMETER: parameters invalid<BR>"]
+    pub fn GAP_ResolvePrivateAddr(pIRK: *mut u8, pAddr: *mut u8) -> bStatus_t;
+    #[doc = " @brief   Setup or change advertising and scan response data.\n\n @note    if the return status from this function is SUCCESS,the task isn't complete\n          until the GAP_ADV_DATA_UPDATE_DONE_EVENT is sent to the calling application task.\n\n @param   taskID - task ID of the app requesting the change\n @param   adType - TRUE - advertisement data, FALSE  - scan response data\n @param   dataLen - Octet length of advertData\n @param   pAdvertData - advertising or scan response data\n\n @return  SUCCESS: data accepted\n          bleIncorrectMode: invalid profile role"]
+    pub fn GAP_UpdateAdvertisingData(taskID: u8, adType: u8, dataLen: u16, pAdvertData: *mut u8) -> bStatus_t;
 }

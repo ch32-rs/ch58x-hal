@@ -53,34 +53,34 @@ pub type BOOL = u8;
 // UUID defined
 extern "C" {
     // GATT Services
-    pub static gapServiceUUID: [u8; 0usize];
-    pub static gattServiceUUID: [u8; 0usize];
+    pub static gapServiceUUID: [u8; 2];
+    pub static gattServiceUUID: [u8; 2];
 
     // GATT Attribute Types
-    pub static primaryServiceUUID: [u8; 0usize];
-    pub static secondaryServiceUUID: [u8; 0usize];
-    pub static includeUUID: [u8; 0usize];
-    pub static characterUUID: [u8; 0usize];
+    pub static primaryServiceUUID: [u8; 2];
+    pub static secondaryServiceUUID: [u8; 2];
+    pub static includeUUID: [u8; 2];
+    pub static characterUUID: [u8; 2];
 
     // GATT Characteristic Descriptors
-    pub static charExtPropsUUID: [u8; 0usize];
-    pub static charUserDescUUID: [u8; 0usize];
-    pub static clientCharCfgUUID: [u8; 0usize];
-    pub static servCharCfgUUID: [u8; 0usize];
-    pub static charFormatUUID: [u8; 0usize];
-    pub static charAggFormatUUID: [u8; 0usize];
-    pub static validRangeUUID: [u8; 0usize];
-    pub static extReportRefUUID: [u8; 0usize];
-    pub static reportRefUUID: [u8; 0usize];
+    pub static charExtPropsUUID: [u8; 2];
+    pub static charUserDescUUID: [u8; 2];
+    pub static clientCharCfgUUID: [u8; 2];
+    pub static servCharCfgUUID: [u8; 2];
+    pub static charFormatUUID: [u8; 2];
+    pub static charAggFormatUUID: [u8; 2];
+    pub static validRangeUUID: [u8; 2];
+    pub static extReportRefUUID: [u8; 2];
+    pub static reportRefUUID: [u8; 2];
 
     // GATT Characteristic Types
-    pub static deviceNameUUID: [u8; 0usize];
-    pub static appearanceUUID: [u8; 0usize];
-    pub static periPrivacyFlagUUID: [u8; 0usize];
-    pub static reconnectAddrUUID: [u8; 0usize];
-    pub static periConnParamUUID: [u8; 0usize];
-    pub static serviceChangedUUID: [u8; 0usize];
-    pub static centAddrResUUID: [u8; 0usize];
+    pub static deviceNameUUID: [u8; 2];
+    pub static appearanceUUID: [u8; 2];
+    pub static periPrivacyFlagUUID: [u8; 2];
+    pub static reconnectAddrUUID: [u8; 2];
+    pub static periConnParamUUID: [u8; 2];
+    pub static serviceChangedUUID: [u8; 2];
+    pub static centAddrResUUID: [u8; 2];
 }
 
 /*** Opcode fields: bitmasks ***/

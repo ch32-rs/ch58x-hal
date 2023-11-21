@@ -2,6 +2,61 @@
 
 use super::ffi::tmos_event_hdr_t;
 
+//  ATT Error Codes
+/// The attribute handle given was not valid on this server
+pub const ATT_ERR_INVALID_HANDLE: u8 = 0x01;
+
+/// The attribute cannot be read
+pub const ATT_ERR_READ_NOT_PERMITTED: u8 = 0x02;
+
+/// The attribute cannot be written
+pub const ATT_ERR_WRITE_NOT_PERMITTED: u8 = 0x03;
+
+/// The attribute PDU was invalid
+pub const ATT_ERR_INVALID_PDU: u8 = 0x04;
+
+/// The attribute requires authentication before it can be read or written
+pub const ATT_ERR_INSUFFICIENT_AUTHEN: u8 = 0x05;
+
+/// Attribute server does not support the request received from the client
+pub const ATT_ERR_UNSUPPORTED_REQ: u8 = 0x06;
+
+/// Offset specified was past the end of the attribute
+pub const ATT_ERR_INVALID_OFFSET: u8 = 0x07;
+
+/// The attribute requires authorization before it can be read or written
+pub const ATT_ERR_INSUFFICIENT_AUTHOR: u8 = 0x08;
+
+/// Too many prepare writes have been queued
+pub const ATT_ERR_PREPARE_QUEUE_FULL: u8 = 0x09;
+
+/// No attribute found within the given attribute handle range
+pub const ATT_ERR_ATTR_NOT_FOUND: u8 = 0x0a;
+
+/// The attribute cannot be read using the Read Blob Request
+pub const ATT_ERR_ATTR_NOT_LONG: u8 = 0x0b;
+
+/// The Encryption Key Size used for encrypting this link is insufficient
+pub const ATT_ERR_INSUFFICIENT_KEY_SIZE: u8 = 0x0c;
+
+/// The attribute value length is invalid for the operation
+pub const ATT_ERR_INVALID_VALUE_SIZE: u8 = 0x0d;
+
+/// The attribute request that was requested has encountered an error that was very unlikely, and therefore could not be completed as requested
+pub const ATT_ERR_UNLIKELY: u8 = 0x0e;
+
+/// The attribute requires encryption before it can be read or written
+pub const ATT_ERR_INSUFFICIENT_ENCRYPT: u8 = 0x0f;
+
+/// The attribute type is not a supported grouping attribute as defined by a higher layer specification
+pub const ATT_ERR_UNSUPPORTED_GRP_TYPE: u8 = 0x10;
+
+/// Insufficient Resources to complete the request
+pub const ATT_ERR_INSUFFICIENT_RESOURCES: u8 = 0x11;
+
+/// The attribute value is invalid for the operation
+pub const ATT_ERR_INVALID_VALUE: u8 = 0x80;
+
 // tmos event
 #[doc = " GATT tmos GATT_MSG_EVENT message format. This message is used to forward an\n incoming attribute protocol/profile message up to upper layer application."]
 #[repr(C)]

@@ -90,8 +90,6 @@ fn configure_pa(pa_config: PaConfig) {
 
         core::mem::forget(tx_pin);
         core::mem::forget(rx_pin);
-
-        println!("pa => {:x?}", PA_CONFIG);
     }
 }
 

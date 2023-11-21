@@ -115,7 +115,7 @@ pub struct GATTServApp;
 impl GATTServApp {
     #[inline]
     pub fn register_service(
-        attrs: *const gattAttribute_t,
+        attrs: *mut gattAttribute_t,
         num_attrs: u16,
         enc_key_size: u8,
         service_cbs: &'static gattServiceCBs_t,
@@ -172,7 +172,7 @@ mod ffi {
     extern "C" {
         #[doc = " @brief   Register a service's attribute list and callback functions with\n          the GATT Server Application.\n\n @param   pAttrs - Array of attribute records to be registered\n @param   numAttrs - Number of attributes in array\n @param   encKeySize - Minimum encryption key size required by service (7-16 bytes)\n @param   pServiceCBs - Service callback function pointers\n\n @return  SUCCESS: Service registered successfully.<BR>\n          INVALIDPARAMETER: Invalid service fields.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>\n          bleInvalidRange: Encryption key size's out of range.<BR>"]
         pub fn GATTServApp_RegisterService(
-            pAttrs: *const gattAttribute_t,
+            pAttrs: *mut gattAttribute_t,
             numAttrs: u16,
             encKeySize: u8,
             pServiceCBs: *const gattServiceCBs_t,
