@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use core::ffi::c_void;
 use core::mem::size_of_val;
 use core::{ptr, slice};
 
@@ -10,17 +9,15 @@ use ch32v_rt::highcode;
 use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_futures::select::{select, Either};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
-use embassy_time::{Delay, Duration, Instant, Ticker, Timer};
+use embassy_time::{Duration, Ticker, Timer};
 use hal::ble::ffi::*;
 use hal::ble::gap::*;
 use hal::ble::gatt::*;
 use hal::ble::gattservapp::{gattServiceCBs_t, GATTServApp};
 use hal::ble::{gatt_uuid, TmosEvent};
-use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
-use hal::interrupt::Interrupt;
-use hal::prelude::*;
+use hal::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
 use hal::{ble, peripherals, println};
@@ -67,7 +64,7 @@ static mut SCAN_RSP_DATA: &[u8] = &[
     0, // 0dBm
 ];
 
-const SIMPLEPROFILE_SERV_UUID: u16 = 0xFFE0;
+// const SIMPLEPROFILE_SERV_UUID: u16 = 0xFFE0;
 
 // GAP - Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertisting)
@@ -184,22 +181,18 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
 unsafe fn devinfo_init() {
     // Setup the GAP Peripheral Role Profile
     {
-        // interval unit 1.25ms
-        const MIN_INTERVAL: u16 = 6; // 6*1.25 = 7.5ms
-        const MAX_INTERVAL: u16 = 100; // 100*1.25 = 125ms
-
         // Set the GAP Role Parameters
-        GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
-        GAPRole_SetParameter(
+        let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
+        let _ = GAPRole_SetParameter(
             GAPROLE_SCAN_RSP_DATA,
             SCAN_RSP_DATA.len() as _,
             SCAN_RSP_DATA.as_ptr() as _,
         );
-        GAPRole_SetParameter(GAPROLE_ADVERT_DATA, ADVERT_DATA.len() as _, ADVERT_DATA.as_ptr() as _);
+        let _ = GAPRole_SetParameter(GAPROLE_ADVERT_DATA, ADVERT_DATA.len() as _, ADVERT_DATA.as_ptr() as _);
     }
 
     // Set the GAP Characteristics
-    GGS_SetParameter(
+    let _ = GGS_SetParameter(
         GGS_DEVICE_NAME_ATT,
         ATT_DEVICE_NAME.len() as _,
         ATT_DEVICE_NAME.as_ptr() as _,
@@ -212,32 +205,32 @@ unsafe fn devinfo_init() {
         let mitm = false;
         let bonding = true;
         let io_cap = GAPBOND_IO_CAP_DISPLAY_ONLY; // display only device
-        GAPBondMgr_SetParameter(
+        let _ = GAPBondMgr_SetParameter(
             GAPBOND_PERI_DEFAULT_PASSCODE,
             size_of_val(&passkey) as _,
             &passkey as *const _ as _,
         );
-        GAPBondMgr_SetParameter(GAPBOND_PERI_PAIRING_MODE, 1, &pair_mode as *const _ as _);
-        GAPBondMgr_SetParameter(GAPBOND_PERI_MITM_PROTECTION, 1, &mitm as *const _ as _);
-        GAPBondMgr_SetParameter(GAPBOND_PERI_IO_CAPABILITIES, 1, &io_cap as *const _ as _);
-        GAPBondMgr_SetParameter(GAPBOND_PERI_BONDING_ENABLED, 1, &bonding as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_PAIRING_MODE, 1, &pair_mode as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_MITM_PROTECTION, 1, &mitm as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_IO_CAPABILITIES, 1, &io_cap as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_BONDING_ENABLED, 1, &bonding as *const _ as _);
     }
 
     // Initialize GATT attributes
     {
-        GGS_AddService(GATT_ALL_SERVICES).unwrap(); // GAP
-        GATTServApp::add_service(GATT_ALL_SERVICES).unwrap(); // GATT attributes
+        let _ = GGS_AddService(GATT_ALL_SERVICES).unwrap(); // GAP
+        let _ = GATTServApp::add_service(GATT_ALL_SERVICES).unwrap(); // GATT attributes
     }
     // DevInfo_AddService
     unsafe {
         unsafe extern "C" fn dev_info_on_read_attr(
-            conn_handle: u16,
+            _conn_handle: u16,
             attr: *mut GattAttribute,
             value: *mut u8,
             plen: *mut u16,
-            offset: u16,
+            _offset: u16,
             max_len: u16,
-            method: u8,
+            _method: u8,
         ) -> u8 {
             let raw_uuid = slice::from_raw_parts((*attr).type_.uuid, 2);
             let uuid = u16::from_le_bytes([raw_uuid[0], raw_uuid[1]]);
@@ -297,14 +290,12 @@ const DEFAULT_DESIRED_MAX_CONN_INTERVAL: u16 = 160;
 const DEFAULT_DESIRED_SLAVE_LATENCY: u16 = 1;
 /// Default supervision timeout value (units of 10ms)
 const DEFAULT_DESIRED_CONN_TIMEOUT: u16 = 1000;
-/// Default delay of start connect parameter update
-const DEFAULT_CONN_PARAM_UPDATE_DELAY: u16 = 1600;
 
 async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSubscriber) -> ! {
     // Profile State Change Callbacks
-    unsafe extern "C" fn on_gap_state_change(new_state: gapRole_States_t, pEvent: *mut gapRoleEvent_t) {
+    unsafe extern "C" fn on_gap_state_change(new_state: gapRole_States_t, event: *mut gapRoleEvent_t) {
         println!("in on_gap_state_change: {}", new_state);
-        let event = &*pEvent;
+        let event = &*event;
 
         // state machine, requires last state
         static mut LAST_STATE: gapRole_States_t = GAPROLE_INIT;
@@ -329,21 +320,21 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
             // if disconnected
             _ if LAST_STATE == GAPROLE_CONNECTED && new_state != GAPROLE_CONNECTED => {
                 // link loss -- use fast advertising
-                GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, DEFAULT_FAST_ADV_INTERVAL);
-                GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, DEFAULT_FAST_ADV_INTERVAL);
-                GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_FAST_ADV_DURATION);
+                let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, DEFAULT_FAST_ADV_INTERVAL);
+                let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, DEFAULT_FAST_ADV_INTERVAL);
+                let _ = GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_FAST_ADV_DURATION);
 
                 // Enable advertising
-                GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
+                let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
             }
             // if advertising stopped
             GAPROLE_WAITING if LAST_STATE == GAPROLE_ADVERTISING => {
                 // if fast advertising switch to slow
                 if GAP_GetParamValue(TGAP_DISC_ADV_INT_MIN) == DEFAULT_FAST_ADV_INTERVAL {
-                    GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, DEFAULT_SLOW_ADV_INTERVAL);
-                    GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, DEFAULT_SLOW_ADV_INTERVAL);
-                    GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_SLOW_ADV_DURATION);
-                    GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
+                    let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, DEFAULT_SLOW_ADV_INTERVAL);
+                    let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, DEFAULT_SLOW_ADV_INTERVAL);
+                    let _ = GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_SLOW_ADV_DURATION);
+                    let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
                 }
             }
             // if started
@@ -361,11 +352,10 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                 system_id[4] = 0;
                 system_id[3] = 0;
 
-                // todo devInfoSystemId set
                 ptr::copy(system_id.as_ptr(), SYSTEM_ID.as_mut_ptr(), 8);
             }
             _ => {
-                println!("!!! on_state_change unknown state: {}", new_state);
+                println!("!!! on_state_change unhandled state: {}", new_state);
             }
         }
 
@@ -387,7 +377,7 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
         };
         // Start the Device
         let r = GAPRole_PeripheralStartDevice(task_id, &BOND_CB, &APP_CB);
-        println!("=> {:?}", r);
+        println!("Start device {:?}", r);
     }
 
     loop {
@@ -407,7 +397,8 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                         DEFAULT_DESIRED_SLAVE_LATENCY,
                         DEFAULT_DESIRED_CONN_TIMEOUT,
                         task_id,
-                    );
+                    )
+                    .unwrap();
                 },
             },
         }
@@ -479,8 +470,6 @@ async fn main(spawner: Spawner) -> ! {
         hal::set_default_serial(uart);
     }
 
-    let boot_btn = Input::new(p.PB22, Pull::Up);
-
     let rtc = Rtc::new(p.RTC);
 
     println!();
@@ -505,6 +494,7 @@ async fn main(spawner: Spawner) -> ! {
     println!("BLE Lib Version: {}", ble::lib_version());
 
     let mut ble_config = ble::Config::default();
+    ble_config.pa_config = None;
     let (task_id, sub) = hal::ble::init(ble_config).unwrap();
     println!("BLE hal task id: {}", task_id);
 
