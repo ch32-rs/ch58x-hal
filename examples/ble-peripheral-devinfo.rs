@@ -99,6 +99,7 @@ static ATT_DEVICE_NAME: &[u8] = b"ch58x-hal peripheral";
 // System ID characteristic
 const DEVINFO_SYSTEM_ID_LEN: usize = 8;
 
+static mut SYSTEM_ID: [u8; 8] = [0u8; 8];
 // The list must start with a Service attribute followed by
 // all attributes associated with this Service attribute.
 // Must use static mut fixed sized array, as it will be changed by Service to assign handles.
@@ -135,7 +136,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        value: ptr::null(),
+        value: unsafe { SYSTEM_ID.as_ptr() },
     },
     // Serial Number String Declaration
     GattAttribute {
@@ -244,9 +245,8 @@ unsafe fn devinfo_init() {
 
             match uuid {
                 gatt_uuid::SYSTEM_ID_UUID => {
-                    let out = b"cafe";
-                    *plen = out.len() as _;
-                    core::ptr::copy(out.as_ptr(), value, out.len());
+                    *plen = DEVINFO_SYSTEM_ID_LEN as _;
+                    ptr::copy(SYSTEM_ID.as_ptr(), value, DEVINFO_SYSTEM_ID_LEN);
                 }
                 gatt_uuid::SERIAL_NUMBER_UUID => {
                     let out = b"No. 9527";
@@ -362,6 +362,7 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                 system_id[3] = 0;
 
                 // todo devInfoSystemId set
+                ptr::copy(system_id.as_ptr(), SYSTEM_ID.as_mut_ptr(), 8);
             }
             _ => {
                 println!("!!! on_state_change unknown state: {}", new_state);
