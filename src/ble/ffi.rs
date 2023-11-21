@@ -243,6 +243,17 @@ pub struct rfConfig_t {
     pub TxMaxlen: u8,
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct blePaControlConfig_t {
+    pub txEnableGPIO: u32,
+    pub txDisableGPIO: u32,
+    pub tx_pin: u32,
+    pub rxEnableGPIO: u32,
+    pub rxDisableGPIO: u32,
+    pub rx_pin: u32,
+}
+
 #[link(name = "CH58xBLE")]
 extern "C" {
     /// "CH58x_BLE_LIB_V1.9"
@@ -257,6 +268,15 @@ extern "C" {
     #[doc = " @brief   generate a valid access address\n\n @param   None.\n\n @return  access address\n the Access Address meets the following requirements:\n It shall have no more than six consecutive zeros or ones.\n It shall not be t he advertising channel packets�� Access Address.\n It shall not be a sequence that differ s from the advertising channel packets' Access Address by only one bit.\n It shall not have all four octets equal.\n It shall have no more  than 24 transitions.\n It shall have a minimum of two transitions in the most significant six bits."]
     pub fn BLE_AccessAddressGenerate() -> u32;
 
+    // lifetime: 'static
+    #[doc = " @brief   pa control init\n\n @note    Can't be called until  role Init\n\n @param   paControl - pa control parameters(global variable)\n\n @return  Command Status."]
+    pub fn BLE_PAControlInit(paControl: &'static blePaControlConfig_t);
+
+    #[doc = " @brief   read rssi\n\n @param   None.\n\n @return  the value of rssi."]
+    pub fn BLE_ReadRssi() -> i8;
+
+    #[doc = " @brief   read cfo\n\n @param   None.\n\n @return  the value of cfo."]
+    pub fn BLE_ReadCfo() -> i16;
 }
 
 // RF

@@ -5,8 +5,10 @@ use core::num::NonZeroU8;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::pubsub::{PubSubBehavior, PubSubChannel, Subscriber};
 
-use self::ffi::{tmos_event_hdr_t, tmos_msg_deallocate, tmos_msg_receive, SYS_EVENT_MSG};
-use crate::ble::ffi::{tmos_start_task, BLE_RegInit};
+use self::ffi::{tmos_event_hdr_t, tmos_msg_deallocate, tmos_msg_receive, BLE_PAControlInit, SYS_EVENT_MSG};
+use crate::ble::ffi::{blePaControlConfig_t, tmos_start_task, BLE_RegInit};
+use crate::gpio::sealed::Pin;
+use crate::gpio::{AnyPin, Level, Output, OutputDrive};
 use crate::{pac, println};
 
 pub mod ffi;
@@ -15,16 +17,24 @@ pub mod gatt;
 pub mod gatt_uuid;
 pub mod gattservapp;
 
-const HAL_REG_INIT_EVENT: u16 = 0x2000;
-
-// 120s in 625us unit(ticks)
-const HAL_TMOS_TASK_INTERVAL: u32 = (120000) * 1000 / 625;
-
 const HEAP_SIZE: usize = 1024 * 6;
 
 #[repr(C, align(4))]
 struct BLEHeap([MaybeUninit<u8>; HEAP_SIZE]);
 static mut BLE_HEAP: BLEHeap = BLEHeap([MaybeUninit::uninit(); HEAP_SIZE]);
+
+static CHANNEL: PubSubChannel<CriticalSectionRawMutex, TmosEvent, 4, 2, 2> = PubSubChannel::new();
+
+pub type EventSubscriber = Subscriber<'static, CriticalSectionRawMutex, TmosEvent, 4, 2, 2>;
+
+static mut PA_CONFIG: blePaControlConfig_t = blePaControlConfig_t {
+    txEnableGPIO: 0,
+    txDisableGPIO: 0,
+    tx_pin: 0,
+    rxEnableGPIO: 0,
+    rxDisableGPIO: 0,
+    rx_pin: 0,
+};
 
 #[derive(Clone, Debug)]
 pub struct TmosEvent(pub *mut tmos_event_hdr_t);
@@ -54,17 +64,40 @@ impl Drop for TmosEvent {
     }
 }
 
-static CHANNEL: PubSubChannel<CriticalSectionRawMutex, TmosEvent, 4, 2, 2> = PubSubChannel::new();
+pub struct PaConfig {
+    pub pa_tx_pin: AnyPin,
+    pub pa_rx_pin: AnyPin,
+    // TODO: handle pin polarity
+    pub pa_tx_active_high: bool,
+    pub pa_rx_active_high: bool,
+}
 
-pub type EventSubscriber = Subscriber<'static, CriticalSectionRawMutex, TmosEvent, 4, 2, 2>;
+fn configure_pa(pa_config: PaConfig) {
+    let tx_pin = pa_config.pa_tx_pin;
+    let rx_pin = pa_config.pa_rx_pin;
 
-/// Library format MAC Address, LSB first
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MacAddress([u8; 6]);
+    unsafe {
+        PA_CONFIG.tx_pin = tx_pin._pin() as u32;
+        PA_CONFIG.txEnableGPIO = tx_pin.block().out.as_ptr() as u32;
+        PA_CONFIG.txDisableGPIO = tx_pin.block().clr.as_ptr() as u32;
 
-#[derive(Debug)]
+        PA_CONFIG.rx_pin = rx_pin._pin() as u32;
+        PA_CONFIG.rxEnableGPIO = rx_pin.block().out.as_ptr() as u32;
+        PA_CONFIG.rxDisableGPIO = rx_pin.block().clr.as_ptr() as u32;
+
+        let tx_pin = Output::new(tx_pin, Level::High, OutputDrive::_5mA);
+        let rx_pin = Output::new(rx_pin, Level::Low, OutputDrive::_5mA);
+
+        core::mem::forget(tx_pin);
+        core::mem::forget(rx_pin);
+
+        println!("pa => {:x?}", PA_CONFIG);
+    }
+}
+
 pub struct Config {
     pub mac_addr: MacAddress,
+    pub pa_config: Option<PaConfig>,
 }
 
 impl Config {
@@ -72,14 +105,34 @@ impl Config {
         self.mac_addr = MacAddress::from_raw(crate::isp::get_mac_address());
         self
     }
+
+    pub fn enbale_pa(&mut self, tx_pin: AnyPin, rx_pin: AnyPin) -> &mut Self {
+        self.pa_config = Some(PaConfig {
+            pa_tx_pin: tx_pin,
+            pa_rx_pin: rx_pin,
+            pa_tx_active_high: true,
+            pa_rx_active_high: true,
+        });
+
+        self
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
         let mac_addr = MacAddress::from_msb([0x11, 0x22, 0x33, 0x44, 0x55, 0x66]);
-        Config { mac_addr }
+        Config {
+            mac_addr,
+            pa_config: None,
+        }
     }
 }
+
+const HAL_REG_INIT_EVENT: u16 = 0x2000;
+const HAL_PA_INIT_EVENT: u16 = 0x1000;
+
+// 120s in 625us unit(ticks)
+const HAL_TMOS_TASK_INTERVAL: u32 = (120000) * 1000 / 625;
 
 unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
     if events & SYS_EVENT_MSG != 0 {
@@ -96,11 +149,15 @@ unsafe extern "C" fn hal_tmos_task(task_id: u8, events: u16) -> u16 {
 
         tmos_start_task(task_id, HAL_REG_INIT_EVENT, HAL_TMOS_TASK_INTERVAL);
         return events ^ HAL_REG_INIT_EVENT;
+    } else if events & HAL_PA_INIT_EVENT != 0 {
+        BLE_PAControlInit(&PA_CONFIG);
+
+        return events ^ HAL_PA_INIT_EVENT;
     } else {
         crate::println!("!! hal_tmos_task: task_id: {}, events: 0x{:04x}", task_id, events);
 
         // CHANNEL.publish_immediate(events);
-        // assume all events are handled here, actually the
+        // assume all events are handled here
         return 0;
     }
 }
@@ -151,7 +208,15 @@ pub fn init(
 
         // regeister HAL tmos task
         let hal_task_id = TMOS_ProcessEventRegister(Some(hal_tmos_task));
+
         tmos_start_task(hal_task_id, HAL_REG_INIT_EVENT, HAL_TMOS_TASK_INTERVAL);
+
+        if let Some(pa_config) = config.pa_config {
+            // save to global PA_CONFIG
+            configure_pa(pa_config);
+            // trigger PA init immediately
+            tmos_start_task(hal_task_id, HAL_PA_INIT_EVENT, 0);
+        }
 
         Ok((hal_task_id, CHANNEL.subscriber().unwrap()))
     }
@@ -195,6 +260,10 @@ pub fn lib_version() -> &'static str {
         version.to_str().unwrap()
     }
 }
+
+/// Library format MAC Address, LSB first
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MacAddress([u8; 6]);
 
 impl MacAddress {
     #[inline(always)]
