@@ -106,56 +106,56 @@ const DEVINFO_SYSTEM_ID_LEN: usize = 8;
 
 // The list must start with a Service attribute followed by
 // all attributes associated with this Service attribute.
-static DEVICE_INFO_TABLE: &[gattAttribute_t] = &[
+static DEVICE_INFO_TABLE: &[GattAttribute] = &[
     // Device Information Service
-    gattAttribute_t {
+    GattAttribute {
         type_: gattAttrType_t {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { primaryServiceUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        pValue: &DEV_INFO_SERVICE as *const _ as _,
+        value: &DEV_INFO_SERVICE as *const _ as _,
     },
     // System ID Declaration
-    gattAttribute_t {
+    GattAttribute {
         type_: gattAttrType_t {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { characterUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        pValue: &GATT_PROP_READ as *const _ as _,
+        value: &GATT_PROP_READ as *const _ as _,
     },
     // System ID Value
-    gattAttribute_t {
+    GattAttribute {
         type_: gattAttrType_t {
             len: ATT_BT_UUID_SIZE,
             uuid: &hal::ble::gatt_uuid::SYSTEM_ID_UUID as *const _ as _,
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        pValue: [0, 0, 0, 0, 0, 0, 0, 0].as_ptr() as *const _ as _, // 8 bytes
+        value: [0, 0, 0, 0, 0, 0, 0, 0].as_ptr() as *const _ as _, // 8 bytes
     },
     // Serial Number String Declaration
-    gattAttribute_t {
+    GattAttribute {
         type_: gattAttrType_t {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { characterUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        pValue: &GATT_PROP_READ as *const _ as _,
+        value: &GATT_PROP_READ as *const _ as _,
     },
     // Serial Number Value
-    gattAttribute_t {
+    GattAttribute {
         type_: gattAttrType_t {
             len: ATT_BT_UUID_SIZE,
             uuid: &hal::ble::gatt_uuid::SERIAL_NUMBER_UUID as *const _ as _,
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        pValue: b"Serial Number xxxx\0".as_ptr() as *const _ as _,
+        value: b"Serial Number xxxx\0".as_ptr() as *const _ as _,
     },
 ];
 
@@ -226,7 +226,7 @@ fn peripheral_init() {
     unsafe {
         unsafe extern "C" fn on_read_attr(
             connHandle: u16,
-            pAttr: *mut gattAttribute_t,
+            pAttr: *mut GattAttribute,
             pValue: *mut u8,
             pLen: *mut u16,
             offset: u16,

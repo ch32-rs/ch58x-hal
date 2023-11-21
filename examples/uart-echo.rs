@@ -3,7 +3,6 @@
 
 use ch32v_rt::highcode;
 use ch58x_hal as hal;
-
 use hal::gpio::{Level, Output, OutputDrive};
 use hal::peripherals;
 use hal::rtc::Rtc;

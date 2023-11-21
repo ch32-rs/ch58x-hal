@@ -3,7 +3,43 @@
 //!  The 16-bit UUIDs are assigned by the Bluetooth SIG and published
 //! in the Bluetooth Assigned Numbers page. Do not change these values.
 //! Changing them will cause Bluetooth interoperability issues.
+//!
+//! Ref: https://www.bluetooth.com/specifications/assigned-numbers/
 
+// UUID defined
+extern "C" {
+    // GATT Services
+    /// 1800
+    pub static gapServiceUUID: [u8; 2usize];
+    /// 1801
+    pub static gattServiceUUID: [u8; 2usize];
+
+    // GATT Attribute Types
+    pub static primaryServiceUUID: [u8; 2usize];
+    pub static secondaryServiceUUID: [u8; 2usize];
+    pub static includeUUID: [u8; 2usize];
+    pub static characterUUID: [u8; 2usize];
+
+    // GATT Characteristic Descriptors
+    pub static charExtPropsUUID: [u8; 2usize];
+    pub static charUserDescUUID: [u8; 2usize];
+    pub static clientCharCfgUUID: [u8; 2usize];
+    pub static servCharCfgUUID: [u8; 2usize];
+    pub static charFormatUUID: [u8; 2usize];
+    pub static charAggFormatUUID: [u8; 2usize];
+    pub static validRangeUUID: [u8; 2usize];
+    pub static extReportRefUUID: [u8; 2usize];
+    pub static reportRefUUID: [u8; 2usize];
+
+    // GATT Characteristic Types
+    pub static deviceNameUUID: [u8; 2usize];
+    pub static appearanceUUID: [u8; 2usize];
+    pub static periPrivacyFlagUUID: [u8; 2usize];
+    pub static reconnectAddrUUID: [u8; 2usize];
+    pub static periConnParamUUID: [u8; 2usize];
+    pub static serviceChangedUUID: [u8; 2usize];
+    pub static centAddrResUUID: [u8; 2usize];
+}
 /**
  * GATT Services
  */
@@ -44,43 +80,6 @@ pub const CENTRAL_ADDRESS_RESOLUTION_UUID: u16 = 0x2AA6; // Central Address Reso
 pub const RL_PRIVATE_ADDR_ONLY_UUID: u16 = 0x2AC9; // Resolvable Private Address Only
 pub const ENC_DATA_KEY_MATERIAL_UUID: u16 = 0x2B88; // Encrypted Data Key Material
 pub const LE_GATT_SEC_LEVELS_UUID: u16 = 0x2BF5; // LE GATT Security Levels
-
-// UUID defined
-extern "C" {
-    // [u8; 2]
-
-    // GATT Services
-    /// 1800
-    pub static gapServiceUUID: [u8; 0usize];
-    /// 1801
-    pub static gattServiceUUID: [u8; 0usize];
-
-    // GATT Attribute Types
-    pub static primaryServiceUUID: [u8; 0usize];
-    pub static secondaryServiceUUID: [u8; 0usize];
-    pub static includeUUID: [u8; 0usize];
-    pub static characterUUID: [u8; 0usize];
-
-    // GATT Characteristic Descriptors
-    pub static charExtPropsUUID: [u8; 0usize];
-    pub static charUserDescUUID: [u8; 0usize];
-    pub static clientCharCfgUUID: [u8; 0usize];
-    pub static servCharCfgUUID: [u8; 0usize];
-    pub static charFormatUUID: [u8; 0usize];
-    pub static charAggFormatUUID: [u8; 0usize];
-    pub static validRangeUUID: [u8; 0usize];
-    pub static extReportRefUUID: [u8; 0usize];
-    pub static reportRefUUID: [u8; 0usize];
-
-    // GATT Characteristic Types
-    pub static deviceNameUUID: [u8; 0usize];
-    pub static appearanceUUID: [u8; 0usize];
-    pub static periPrivacyFlagUUID: [u8; 0usize];
-    pub static reconnectAddrUUID: [u8; 0usize];
-    pub static periConnParamUUID: [u8; 0usize];
-    pub static serviceChangedUUID: [u8; 0usize];
-    pub static centAddrResUUID: [u8; 0usize];
-}
 
 /**
  * GATT Service UUIDs

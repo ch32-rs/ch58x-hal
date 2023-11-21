@@ -50,39 +50,6 @@ pub type tmosEvents = u16;
 pub type tmosTimer = u32;
 pub type BOOL = u8;
 
-// UUID defined
-extern "C" {
-    // GATT Services
-    pub static gapServiceUUID: [u8; 2];
-    pub static gattServiceUUID: [u8; 2];
-
-    // GATT Attribute Types
-    pub static primaryServiceUUID: [u8; 2];
-    pub static secondaryServiceUUID: [u8; 2];
-    pub static includeUUID: [u8; 2];
-    pub static characterUUID: [u8; 2];
-
-    // GATT Characteristic Descriptors
-    pub static charExtPropsUUID: [u8; 2];
-    pub static charUserDescUUID: [u8; 2];
-    pub static clientCharCfgUUID: [u8; 2];
-    pub static servCharCfgUUID: [u8; 2];
-    pub static charFormatUUID: [u8; 2];
-    pub static charAggFormatUUID: [u8; 2];
-    pub static validRangeUUID: [u8; 2];
-    pub static extReportRefUUID: [u8; 2];
-    pub static reportRefUUID: [u8; 2];
-
-    // GATT Characteristic Types
-    pub static deviceNameUUID: [u8; 2];
-    pub static appearanceUUID: [u8; 2];
-    pub static periPrivacyFlagUUID: [u8; 2];
-    pub static reconnectAddrUUID: [u8; 2];
-    pub static periConnParamUUID: [u8; 2];
-    pub static serviceChangedUUID: [u8; 2];
-    pub static centAddrResUUID: [u8; 2];
-}
-
 /*** Opcode fields: bitmasks ***/
 /// Size of 16-bit Bluetooth UUID
 pub const ATT_BT_UUID_SIZE: u8 = 2;
@@ -803,7 +770,7 @@ pub const GATT_MAX_ENCRYPT_KEY_SIZE: u8 = 16;
 pub type pfnGATTReadAttrCB_t = Option<
     unsafe extern "C" fn(
         connHandle: u16,
-        pAttr: *mut gattAttribute_t,
+        pAttr: *mut GattAttribute,
         pValue: *mut u8,
         pLen: *mut u16,
         offset: u16,
@@ -815,7 +782,7 @@ pub type pfnGATTReadAttrCB_t = Option<
 pub type pfnGATTWriteAttrCB_t = Option<
     unsafe extern "C" fn(
         connHandle: u16,
-        pAttr: *mut gattAttribute_t,
+        pAttr: *mut GattAttribute,
         pValue: *mut u8,
         len: u16,
         offset: u16,
@@ -824,7 +791,7 @@ pub type pfnGATTWriteAttrCB_t = Option<
 >;
 #[doc = " @brief   Callback function prototype to authorize a Read or Write operation\n          on a given attribute.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   opcode - request opcode (ATT_READ_REQ or ATT_WRITE_REQ)\n\n @return  SUCCESS: Operation authorized.<BR>\n          ATT_ERR_INSUFFICIENT_AUTHOR: Authorization required.<BR>"]
 pub type pfnGATTAuthorizeAttrCB_t =
-    Option<unsafe extern "C" fn(connHandle: u16, pAttr: *mut gattAttribute_t, opcode: u8) -> bStatus_t>;
+    Option<unsafe extern "C" fn(connHandle: u16, pAttr: *mut GattAttribute, opcode: u8) -> bStatus_t>;
 
 #[doc = " GATT Attribute Type format."]
 #[repr(C)]
@@ -839,10 +806,11 @@ pub struct gattAttrType_t {
 unsafe impl Sync for gattAttrType_t {}
 unsafe impl Send for gattAttrType_t {}
 
+// Renamed from gattAttribute_t
 #[doc = " GATT Attribute format."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct gattAttribute_t {
+pub struct GattAttribute {
     #[doc = "!< Attribute type (2 or 16 octet UUIDs)"]
     pub type_: gattAttrType_t,
     #[doc = "!< Attribute permissions"]
@@ -850,61 +818,8 @@ pub struct gattAttribute_t {
     #[doc = "!< Attribute handle - assigned internally by attribute server"]
     pub handle: u16,
     #[doc = "!< Attribute value - encoding of the octet array is defined in\n!< the applicable profile. The maximum length of an attribute\n!< value shall be 512 octets."]
-    pub pValue: *const u8,
+    pub value: *const u8,
 }
 
-unsafe impl Sync for gattAttribute_t {}
-unsafe impl Send for gattAttribute_t {}
-
-#[doc = " GATT Structure for service callback functions - must be setup by the application\n and used when GATTServApp_RegisterService() is called."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gattServiceCBs_t {
-    #[doc = "!< Read callback function pointer. pfnGATTReadAttrCB_t"]
-    pub pfnReadAttrCB: pfnGATTReadAttrCB_t,
-    #[doc = "!< Write callback function pointer"]
-    pub pfnWriteAttrCB: pfnGATTWriteAttrCB_t,
-    #[doc = "!< Authorization callback function pointer"]
-    pub pfnAuthorizeAttrCB: pfnGATTAuthorizeAttrCB_t,
-}
-
-#[doc = " GATT Structure for Client Characteristic Configuration."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct gattCharCfg_t {
-    #[doc = "!< Client connection handle"]
-    pub connHandle: u16,
-    #[doc = "!< Characteristic configuration value for this client"]
-    pub value: u8,
-}
-
-extern "C" {
-    #[doc = " @brief   Register a service's attribute list and callback functions with\n          the GATT Server Application.\n\n @param   pAttrs - Array of attribute records to be registered\n @param   numAttrs - Number of attributes in array\n @param   encKeySize - Minimum encryption key size required by service (7-16 bytes)\n @param   pServiceCBs - Service callback function pointers\n\n @return  SUCCESS: Service registered successfully.<BR>\n          INVALIDPARAMETER: Invalid service fields.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>\n          bleInvalidRange: Encryption key size's out of range.<BR>"]
-    pub fn GATTServApp_RegisterService(
-        pAttrs: *mut gattAttribute_t,
-        numAttrs: u16,
-        encKeySize: u8,
-        pServiceCBs: *const gattServiceCBs_t,
-    ) -> bStatus_t;
-    #[doc = " @brief   Add function for the GATT Service.\n\n @param   services - services to add. This is a bit map and can\n                     contain more than one service.\n\n @return  SUCCESS: Service added successfully.<BR>\n          INVALIDPARAMETER: Invalid service field.<BR>\n          FAILURE: Not enough attribute handles available.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>"]
-    pub fn GATTServApp_AddService(services: u32) -> bStatus_t;
-    #[doc = " @brief   Deregister a service's attribute list and callback functions from\n          the GATT Server Application.\n\n @note    It's the caller's responsibility to free the service attribute\n          list returned from this API.\n\n @param   handle - handle of service to be deregistered\n @param   p2pAttrs - pointer to array of attribute records (to be returned)\n\n @return  SUCCESS: Service deregistered successfully.<BR>\n          FAILURE: Service not found.<BR>"]
-    pub fn GATTServApp_DeregisterService(handle: u16, p2pAttrs: *mut *mut gattAttribute_t) -> bStatus_t;
-    #[doc = " @brief   Initialize the client characteristic configuration table.\n\n @note    Each client has its own instantiation of the ClientCharacteristic Configuration.\n          Reads/Writes of the Client Characteristic Configuration only only affect the\n          configuration of that client.\n\n @param   connHandle - connection handle (0xFFFF for all connections).\n @param   charCfgTbl - client characteristic configuration table.\n\n @return  none"]
-    pub fn GATTServApp_InitCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t);
-    #[doc = " @brief   Send out a Service Changed Indication.\n\n @param   connHandle - connection to use\n @param   taskId - task to be notified of confirmation\n\n @return  SUCCESS: Indication was sent successfully.<BR>\n          FAILURE: Service Changed attribute not found.<BR>\n          INVALIDPARAMETER: Invalid connection handle or request field.<BR>\n          MSG_BUFFER_NOT_AVAIL: No HCI buffer is available.<BR>\n          bleNotConnected: Connection is down.<BR>\n          blePending: A confirmation is pending with this client.<BR>"]
-    pub fn GATTServApp_SendServiceChangedInd(connHandle: u16, taskId: u8) -> bStatus_t;
-    #[doc = " @brief   Read the client characteristic configuration for a given client.\n\n @note    Each client has its own instantiation of the Client Characteristic Configuration.\n          Reads of the Client Characteristic Configuration only shows the configuration\n          for that client.\n\n @param   connHandle - connection handle.\n @param   charCfgTbl - client characteristic configuration table.\n\n @return  attribute value"]
-    pub fn GATTServApp_ReadCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t) -> u16;
-    #[doc = " @brief   Write the client characteristic configuration for a given client.\n\n @note    Each client has its own instantiation of the Client Characteristic Configuration.\n          Writes of the Client Characteristic Configuration only only affect the\n          configuration of that client.\n\n @param   connHandle - connection handle.\n @param   charCfgTbl - client characteristic configuration table.\n @param   value - attribute new value.\n\n @return  Success or Failure"]
-    pub fn GATTServApp_WriteCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t, value: u16) -> u8;
-    #[doc = " @brief   Process the client characteristic configuration\n          write request for a given client.\n\n @param   connHandle - connection message was received on.\n @param   pAttr - pointer to attribute.\n @param   pValue - pointer to data to be written.\n @param   len - length of data.\n @param   offset - offset of the first octet to be written.\n @param   validCfg - valid configuration.\n\n @return  Success or Failure"]
-    pub fn GATTServApp_ProcessCCCWriteReq(
-        connHandle: u16,
-        pAttr: *mut gattAttribute_t,
-        pValue: *mut u8,
-        len: u16,
-        offset: u16,
-        validCfg: u16,
-    ) -> bStatus_t;
-}
+unsafe impl Sync for GattAttribute {}
+unsafe impl Send for GattAttribute {}

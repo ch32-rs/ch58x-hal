@@ -135,10 +135,7 @@ fn peripheral_init() {
     // Initialize GATT attributes
     unsafe {
         GGS_AddService(GATT_ALL_SERVICES); // GAP
-        GATTServApp_AddService(GATT_ALL_SERVICES); // GATT attributes
-
-        //DevInfo_AddService(); // Device Information Service
-        //SimpleProfile_AddService(GATT_ALL_SERVICES); // Simple GATT Profile
+        GATTServApp::add_service(GATT_ALL_SERVICES); // GATT attributes
     }
 
     // Setup the SimpleProfile Characteristic Values
