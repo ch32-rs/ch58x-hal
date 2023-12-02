@@ -224,7 +224,6 @@ unsafe fn devinfo_init() {
             pfnWriteAttrCB: None,
             pfnAuthorizeAttrCB: None,
         };
-
         // DevInfo_AddService(); // Device Information Service
         // might fail, must check
         GATTServApp::register_service(
@@ -289,7 +288,7 @@ const BLINKY_DATA_UUID: u16 = 0xFFE1;
 const BLINKY_CONF_UUID: u16 = 0xFFE2;
 const BLINKY_CMD_UUID: u16 = 0xFFE3;
 
-static mut BLINKY_CLIENT_CHARCFG: MaybeUninit<[gattCharCfg_t; 4]> = MaybeUninit::uninit();
+static mut BLINKY_CLIENT_CHARCFG: [gattCharCfg_t; 4] = unsafe { core::mem::zeroed() };
 
 static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
     // Blinky Service
@@ -305,6 +304,7 @@ static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
             uuid: &BLINKY_SERV_UUID as *const _ as _,
         } as *const _ as _,
     },
+
     // Blinky Data Declaration and Value
     GattAttribute {
         type_: gattAttrType_t {
@@ -313,7 +313,7 @@ static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        value: &GATT_PROP_READ as *const _ as _,
+        value: &GATT_PROP_NOTIFY as *const _ as _,
     },
     GattAttribute {
         type_: gattAttrType_t {
@@ -334,6 +334,7 @@ static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
         handle: 0,
         value: unsafe { BLINKY_CLIENT_CHARCFG.as_ptr() as _ },
     },
+
     // Command
     GattAttribute {
         type_: gattAttrType_t {
@@ -418,7 +419,7 @@ unsafe fn blinky_init() {
     };
 
     // Initialize Client Characteristic Configuration attributes
-    GATTServApp::init_char_cfg(INVALID_CONNHANDLE, BLINKY_CLIENT_CHARCFG.assume_init_mut().as_mut_ptr());
+    GATTServApp::init_char_cfg(INVALID_CONNHANDLE, BLINKY_CLIENT_CHARCFG.as_mut_ptr());
 
     GATTServApp::register_service(
         &mut BLINKY_ATTR_TABLE[..],
@@ -561,7 +562,7 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                     .unwrap();
                 },
                 AppEvent::Disconnected(conn_handle) => unsafe {
-                    GATTServApp::init_char_cfg(conn_handle, BLINKY_CLIENT_CHARCFG.assume_init_mut().as_mut_ptr());
+                    GATTServApp::init_char_cfg(conn_handle, BLINKY_CLIENT_CHARCFG.as_mut_ptr());
                 },
             },
         }
@@ -665,6 +666,8 @@ async fn main(spawner: Spawner) -> ! {
 
     unsafe {
         common_init();
+
+        devinfo_init();
 
         blinky_init();
     }
