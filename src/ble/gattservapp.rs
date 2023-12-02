@@ -10,17 +10,8 @@
     non_camel_case_types
 )]
 
-use super::ffi::{bStatus_t, GattAttribute};
-
-// GATT Characteristic Properties Bit Fields
-pub const GATT_PROP_BCAST: u32 = 1;
-pub const GATT_PROP_READ: u32 = 2;
-pub const GATT_PROP_WRITE_NO_RSP: u32 = 4;
-pub const GATT_PROP_WRITE: u32 = 8;
-pub const GATT_PROP_NOTIFY: u32 = 16;
-pub const GATT_PROP_INDICATE: u32 = 32;
-pub const GATT_PROP_AUTHEN: u32 = 64;
-pub const GATT_PROP_EXTENDED: u32 = 128;
+use super::ffi::bStatus_t;
+use super::gatt::GattAttribute;
 
 // GATT Client Characteristic Configuration Bit Fields
 pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
@@ -30,31 +21,24 @@ pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
 pub const GATT_ALL_SERVICES: u32 = 4294967295;
 
 // GATT Encryption Key Size Limits
-pub const GATT_MIN_ENCRYPT_KEY_SIZE: u32 = 7;
-pub const GATT_MAX_ENCRYPT_KEY_SIZE: u32 = 16;
+pub const GATT_MIN_ENCRYPT_KEY_SIZE: u8 = 7;
+pub const GATT_MAX_ENCRYPT_KEY_SIZE: u8 = 16;
 
-// GATT Attribute Access Permissions Bit Fields
-pub const GATT_PERMIT_READ: u8 = 1;
-pub const GATT_PERMIT_WRITE: u8 = 2;
-pub const GATT_PERMIT_AUTHEN_READ: u8 = 4;
-pub const GATT_PERMIT_AUTHEN_WRITE: u8 = 8;
-pub const GATT_PERMIT_AUTHOR_READ: u8 = 16;
-pub const GATT_PERMIT_AUTHOR_WRITE: u8 = 32;
-pub const GATT_PERMIT_ENCRYPT_READ: u8 = 64;
-pub const GATT_PERMIT_ENCRYPT_WRITE: u8 = 128;
+pub const INVALID_CONNHANDLE: u16 = 0xFFFF;
 
 #[doc = " @brief   Callback function prototype to read an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          read operations:\n          - Read Request: ATT_READ_REQ\n          - Read Blob Request: ATT_READ_BLOB_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to respond to\n          ATT_READ_REQ and ATT_READ_BLOB_REQ message with ATT_READ_RSP and ATT_READ_BLOB_RSP\n          message respectively.\n\n @note    Payload 'pValue' used with ATT_READ_RSP and ATT_READ_BLOB_RSP must be allocated using GATT_bm_alloc().\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be read (to be returned)\n @param   pLen - length of data (to be returned)\n @param   offset - offset of the first octet to be read\n @param   maxLen - maximum length of data to be read\n @param   method - type of read message\n\n @return  SUCCESS: Read was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
-pub type pfnGATTReadAttrCB_t = Option<
-    unsafe extern "C" fn(
-        conn_handle: u16,
-        pAttr: *mut GattAttribute,
-        pValue: *mut u8,
-        pLen: *mut u16,
-        offset: u16,
-        max_len: u16,
-        method: u8,
-    ) -> u8,
->;
+pub type pfnGATTReadAttrCB_t =
+    Option<
+        unsafe extern "C" fn(
+            conn_handle: u16,
+            pAttr: *mut GattAttribute,
+            pValue: *mut u8,
+            pLen: *mut u16,
+            offset: u16,
+            max_len: u16,
+            method: u8,
+        ) -> u8,
+    >;
 #[doc = " @brief   Callback function prototype to write an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          write operations:\n          - Write Request: ATT_WRITE_REQ\n          - Write Command: ATT_WRITE_CMD\n          - Write Long: ATT_EXECUTE_WRITE_REQ\n          - Reliable Writes: Multiple ATT_PREPARE_WRITE_REQ followed by one final ATT_EXECUTE_WRITE_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to 1) respond to\n          ATT_WRITE_REQ and ATT_EXECUTE_WRITE_REQ message with ATT_WRITE_RSP and ATT_EXECUTE_WRITE_RSP\n          message respectively, and 2) free each request payload 'pValue' using BM_free().\n\n @note    Write Command (ATT_WRITE_CMD) does NOT require a response message.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be written\n @param   pLen - length of data\n @param   offset - offset of the first octet to be written\n @param   method - type of write message\n\n @return  SUCCESS: Write was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
 pub type pfnGATTWriteAttrCB_t = Option<
     unsafe extern "C" fn(

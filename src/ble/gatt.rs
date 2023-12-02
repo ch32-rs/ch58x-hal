@@ -1,6 +1,6 @@
 #![allow(non_snake_case, non_camel_case_types)]
 
-use super::ffi::tmos_event_hdr_t;
+use super::ffi::{bStatus_t, tmos_event_hdr_t};
 
 //  ATT Error Codes
 /// The attribute handle given was not valid on this server
@@ -456,3 +456,101 @@ pub struct attAttrType_t {
     #[doc = "!< 16 or 128 bit UUID"]
     pub uuid: [u8; 16usize],
 }
+
+// GATT Attribute Access Permissions Bit Fields
+pub const GATT_PERMIT_READ: u8 = 1;
+pub const GATT_PERMIT_WRITE: u8 = 2;
+pub const GATT_PERMIT_AUTHEN_READ: u8 = 4;
+pub const GATT_PERMIT_AUTHEN_WRITE: u8 = 8;
+pub const GATT_PERMIT_AUTHOR_READ: u8 = 16;
+pub const GATT_PERMIT_AUTHOR_WRITE: u8 = 32;
+pub const GATT_PERMIT_ENCRYPT_READ: u8 = 64;
+pub const GATT_PERMIT_ENCRYPT_WRITE: u8 = 128;
+
+// GATT local read or write operation
+pub const GATT_LOCAL_READ: u32 = 255;
+pub const GATT_LOCAL_WRITE: u32 = 254;
+
+// Attribute handle definitions
+pub const GATT_INVALID_HANDLE: u32 = 0;
+pub const GATT_MIN_HANDLE: u32 = 1;
+pub const GATT_MAX_HANDLE: u32 = 65535;
+
+pub const GATT_MAX_MTU: u32 = 65535;
+
+pub const GATT_MAX_NUM_CONN: u32 = 4;
+
+pub const GATT_CFG_NO_OPERATION: u32 = 0;
+
+// GATT Characteristic Properties Bit Fields
+pub const GATT_PROP_BCAST: u8 = 1;
+pub const GATT_PROP_READ: u8 = 2;
+pub const GATT_PROP_WRITE_NO_RSP: u8 = 4;
+pub const GATT_PROP_WRITE: u8 = 8;
+pub const GATT_PROP_NOTIFY: u8 = 16;
+pub const GATT_PROP_INDICATE: u8 = 32;
+pub const GATT_PROP_AUTHEN: u8 = 64;
+pub const GATT_PROP_EXTENDED: u8 = 128;
+
+// GATT Client Characteristic Configuration Bit Fields
+pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
+pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
+
+#[doc = " @brief   Callback function prototype to read an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          read operations:\n          - Read Request: ATT_READ_REQ\n          - Read Blob Request: ATT_READ_BLOB_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to respond to\n          ATT_READ_REQ and ATT_READ_BLOB_REQ message with ATT_READ_RSP and ATT_READ_BLOB_RSP\n          message respectively.\n\n @note    Payload 'pValue' used with ATT_READ_RSP and ATT_READ_BLOB_RSP must be allocated using GATT_bm_alloc().\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be read (to be returned)\n @param   pLen - length of data (to be returned)\n @param   offset - offset of the first octet to be read\n @param   maxLen - maximum length of data to be read\n @param   method - type of read message\n\n @return  SUCCESS: Read was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
+pub type pfnGATTReadAttrCB_t =
+    Option<
+        unsafe extern "C" fn(
+            connHandle: u16,
+            pAttr: *mut GattAttribute,
+            pValue: *mut u8,
+            pLen: *mut u16,
+            offset: u16,
+            maxLen: u16,
+            method: u8,
+        ) -> u8,
+    >;
+#[doc = " @brief   Callback function prototype to write an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          write operations:\n          - Write Request: ATT_WRITE_REQ\n          - Write Command: ATT_WRITE_CMD\n          - Write Long: ATT_EXECUTE_WRITE_REQ\n          - Reliable Writes: Multiple ATT_PREPARE_WRITE_REQ followed by one final ATT_EXECUTE_WRITE_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to 1) respond to\n          ATT_WRITE_REQ and ATT_EXECUTE_WRITE_REQ message with ATT_WRITE_RSP and ATT_EXECUTE_WRITE_RSP\n          message respectively, and 2) free each request payload 'pValue' using BM_free().\n\n @note    Write Command (ATT_WRITE_CMD) does NOT require a response message.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be written\n @param   pLen - length of data\n @param   offset - offset of the first octet to be written\n @param   method - type of write message\n\n @return  SUCCESS: Write was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
+pub type pfnGATTWriteAttrCB_t = Option<
+    unsafe extern "C" fn(
+        connHandle: u16,
+        pAttr: *mut GattAttribute,
+        pValue: *mut u8,
+        len: u16,
+        offset: u16,
+        method: u8,
+    ) -> u8,
+>;
+#[doc = " @brief   Callback function prototype to authorize a Read or Write operation\n          on a given attribute.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   opcode - request opcode (ATT_READ_REQ or ATT_WRITE_REQ)\n\n @return  SUCCESS: Operation authorized.<BR>\n          ATT_ERR_INSUFFICIENT_AUTHOR: Authorization required.<BR>"]
+pub type pfnGATTAuthorizeAttrCB_t =
+    Option<unsafe extern "C" fn(connHandle: u16, pAttr: *mut GattAttribute, opcode: u8) -> bStatus_t>;
+
+#[doc = " GATT Attribute Type format."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct gattAttrType_t {
+    #[doc = "!< Length of UUID (2 or 16)"]
+    pub len: u8,
+    #[doc = "!< Pointer to UUID"]
+    pub uuid: *const u8,
+}
+
+unsafe impl Sync for gattAttrType_t {}
+unsafe impl Send for gattAttrType_t {}
+
+// Renamed from gattAttribute_t
+#[doc = " GATT Attribute format."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct GattAttribute {
+    #[doc = "!< Attribute type (2 or 16 octet UUIDs)"]
+    pub type_: gattAttrType_t,
+    #[doc = "!< Attribute permissions"]
+    pub permissions: u8,
+    #[doc = "!< Attribute handle - assigned internally by attribute server"]
+    pub handle: u16,
+    #[doc = "!< Attribute value - encoding of the octet array is defined in\n!< the applicable profile. The maximum length of an attribute\n!< value shall be 512 octets."]
+    pub value: *const u8,
+}
+
+unsafe impl Sync for GattAttribute {}
+unsafe impl Send for GattAttribute {}

@@ -249,7 +249,7 @@ fn peripheral_init() {
         };
 
         //DevInfo_AddService(); // Device Information Service
-        GATTServApp_RegisterService(
+        GATTServApp::register_service(
             DEVICE_INFO_TABLE.as_ptr() as *const _ as _,
             DEVICE_INFO_TABLE.len() as _,
             GATT_MAX_ENCRYPT_KEY_SIZE,

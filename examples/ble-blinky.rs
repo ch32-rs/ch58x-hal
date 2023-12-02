@@ -1,11 +1,11 @@
-//! Device Info Peripheral
+//! HeartRate Peripheral, HRS
 
 #![no_std]
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use core::mem::size_of_val;
-use core::sync::atomic::AtomicBool;
+use core::mem::{size_of_val, MaybeUninit};
+use core::sync::atomic::{AtomicBool, Ordering};
 use core::{ptr, slice};
 
 use ch32v_rt::highcode;
@@ -18,7 +18,7 @@ use embassy_time::{Duration, Ticker, Timer};
 use hal::ble::ffi::*;
 use hal::ble::gap::*;
 use hal::ble::gatt::*;
-use hal::ble::gattservapp::{gattServiceCBs_t, GATTServApp};
+use hal::ble::gattservapp::*;
 use hal::ble::{gatt_uuid, TmosEvent};
 use hal::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use hal::rtc::Rtc;
@@ -83,12 +83,11 @@ static mut ADVERT_DATA: &[u8] = &[
     hi_u16(0x07D7),
     0x01, // remains manufacturer specific data
 
-    // service UUID, to notify central devices what services are included
-    // in this peripheral
-    // 0x03,                  // length of this data
-    // GAP_ADTYPE_16BIT_MORE, // some of the UUID's, but not all
-    // lo_u16(SIMPLEPROFILE_SERV_UUID),
-    // hi_u16(SIMPLEPROFILE_SERV_UUID),
+    // advertised service
+    0x03,                  // length of this data
+    GAP_ADTYPE_16BIT_MORE, // some of the UUID's, but not all
+    lo_u16(BLINKY_SERV_UUID),
+    hi_u16(BLINKY_SERV_UUID),
 ];
 
 // GAP GATT Attributes
@@ -182,48 +181,6 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
 
 #[inline]
 unsafe fn devinfo_init() {
-    // Setup the GAP Peripheral Role Profile
-    {
-        // Set the GAP Role Parameters
-        let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
-        let _ = GAPRole_SetParameter(
-            GAPROLE_SCAN_RSP_DATA,
-            SCAN_RSP_DATA.len() as _,
-            SCAN_RSP_DATA.as_ptr() as _,
-        );
-        let _ = GAPRole_SetParameter(GAPROLE_ADVERT_DATA, ADVERT_DATA.len() as _, ADVERT_DATA.as_ptr() as _);
-    }
-
-    // Set the GAP Characteristics
-    let _ = GGS_SetParameter(
-        GGS_DEVICE_NAME_ATT,
-        ATT_DEVICE_NAME.len() as _,
-        ATT_DEVICE_NAME.as_ptr() as _,
-    );
-
-    // Setup the GAP Bond Manager
-    {
-        let passkey: u32 = 0; // passkey "000000"
-        let pair_mode = GAPBOND_PAIRING_MODE_WAIT_FOR_REQ;
-        let mitm = false;
-        let bonding = true;
-        let io_cap = GAPBOND_IO_CAP_DISPLAY_ONLY; // display only device
-        let _ = GAPBondMgr_SetParameter(
-            GAPBOND_PERI_DEFAULT_PASSCODE,
-            size_of_val(&passkey) as _,
-            &passkey as *const _ as _,
-        );
-        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_PAIRING_MODE, 1, &pair_mode as *const _ as _);
-        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_MITM_PROTECTION, 1, &mitm as *const _ as _);
-        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_IO_CAPABILITIES, 1, &io_cap as *const _ as _);
-        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_BONDING_ENABLED, 1, &bonding as *const _ as _);
-    }
-
-    // Initialize GATT attributes
-    {
-        let _ = GGS_AddService(GATT_ALL_SERVICES).unwrap(); // GAP
-        let _ = GATTServApp::add_service(GATT_ALL_SERVICES).unwrap(); // GATT attributes
-    }
     // DevInfo_AddService
     unsafe {
         unsafe extern "C" fn dev_info_on_read_attr(
@@ -279,8 +236,203 @@ unsafe fn devinfo_init() {
     }
 }
 
+/// GAP Role init
+unsafe fn common_init() {
+    // Setup the GAP Peripheral Role Profile
+    {
+        // Set the GAP Role Parameters
+        let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
+        let _ = GAPRole_SetParameter(
+            GAPROLE_SCAN_RSP_DATA,
+            SCAN_RSP_DATA.len() as _,
+            SCAN_RSP_DATA.as_ptr() as _,
+        );
+        let _ = GAPRole_SetParameter(GAPROLE_ADVERT_DATA, ADVERT_DATA.len() as _, ADVERT_DATA.as_ptr() as _);
+    }
+
+    // Set the GAP Characteristics
+    let _ = GGS_SetParameter(
+        GGS_DEVICE_NAME_ATT,
+        ATT_DEVICE_NAME.len() as _,
+        ATT_DEVICE_NAME.as_ptr() as _,
+    );
+
+    // Setup the GAP Bond Manager
+    {
+        let passkey: u32 = 0; // passkey "000000"
+        let pair_mode = GAPBOND_PAIRING_MODE_WAIT_FOR_REQ;
+        let mitm = false;
+        let io_cap = GAPBOND_IO_CAP_DISPLAY_ONLY;
+        let bonding = true;
+        let _ = GAPBondMgr_SetParameter(
+            GAPBOND_PERI_DEFAULT_PASSCODE,
+            size_of_val(&passkey) as _,
+            &passkey as *const _ as _,
+        );
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_PAIRING_MODE, 1, &pair_mode as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_MITM_PROTECTION, 1, &mitm as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_IO_CAPABILITIES, 1, &io_cap as *const _ as _);
+        let _ = GAPBondMgr_SetParameter(GAPBOND_PERI_BONDING_ENABLED, 1, &bonding as *const _ as _);
+    }
+
+    // Initialize GATT attributes
+    {
+        let _ = GGS_AddService(GATT_ALL_SERVICES).unwrap(); // GAP
+        let _ = GATTServApp::add_service(GATT_ALL_SERVICES).unwrap(); // GATT attributes
+    }
+
+    // Add other service
+}
+
+const BLINKY_SERV_UUID: u16 = 0xFFE0;
+const BLINKY_DATA_UUID: u16 = 0xFFE1;
+const BLINKY_CONF_UUID: u16 = 0xFFE2;
+const BLINKY_CMD_UUID: u16 = 0xFFE3;
+
+static mut BLINKY_CLIENT_CHARCFG: MaybeUninit<[gattCharCfg_t; 4]> = MaybeUninit::uninit();
+
+static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
+    // Blinky Service
+    GattAttribute {
+        type_: gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
+        },
+        permissions: GATT_PERMIT_READ,
+        handle: 0,
+        value: &gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: &BLINKY_SERV_UUID as *const _ as _,
+        } as *const _ as _,
+    },
+    // Blinky Data Declaration and Value
+    GattAttribute {
+        type_: gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        },
+        permissions: GATT_PERMIT_READ,
+        handle: 0,
+        value: &GATT_PROP_READ as *const _ as _,
+    },
+    GattAttribute {
+        type_: gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: &BLINKY_DATA_UUID as *const _ as _,
+        },
+        permissions: GATT_PERMIT_READ,
+        handle: 0,
+        value: ptr::null(), // this will be filled in read callback
+    },
+    // Blinky client config
+    GattAttribute {
+        type_: gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: unsafe { gatt_uuid::clientCharCfgUUID.as_ptr() },
+        },
+        permissions: GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+        handle: 0,
+        value: unsafe { BLINKY_CLIENT_CHARCFG.as_ptr() as _ },
+    },
+    // Command
+    GattAttribute {
+        type_: gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        },
+        permissions: GATT_PERMIT_READ,
+        handle: 0,
+        value: &GATT_PROP_WRITE as *const _ as _,
+    },
+    GattAttribute {
+        type_: gattAttrType_t {
+            len: ATT_BT_UUID_SIZE,
+            uuid: &BLINKY_CMD_UUID as *const _ as _,
+        },
+        permissions: GATT_PERMIT_WRITE,
+        handle: 0,
+        value: ptr::null(),
+    },
+];
+
+unsafe fn blinky_init() {
+    unsafe extern "C" fn blinky_on_read_attr(
+        _conn_handle: u16,
+        attr: *mut GattAttribute,
+        value: *mut u8,
+        plen: *mut u16,
+        offset: u16,
+        max_len: u16,
+        _method: u8,
+    ) -> u8 {
+        // Make sure it's not a blob operation (no attributes in the profile are long)
+        if (offset > 0) {
+            return ATT_ERR_ATTR_NOT_LONG;
+        }
+
+        let uuid = *((*attr).type_.uuid as *const u16);
+        println!("! on_read_attr UUID: 0x{:04x}", uuid);
+
+        match uuid {
+            BLINKY_DATA_UUID => {
+                let on = BLINKY_ON.load(Ordering::Relaxed);
+                let val: u8 = if on { 0x01 } else { 0x00 };
+                *plen = size_of_val(&val) as _;
+                core::ptr::copy(&val as *const _ as _, value, *plen as _);
+            }
+            _ => {
+                return ATT_ERR_ATTR_NOT_FOUND;
+            }
+        }
+
+        return 0;
+    }
+    unsafe extern "C" fn blinky_on_write_attr(
+        _conn_handle: u16,
+        attr: *mut GattAttribute,
+        value: *mut u8,
+        len: u16,
+        _offset: u16,
+        method: u8,
+    ) -> u8 {
+        let uuid = *((*attr).type_.uuid as *const u16);
+        println!("! on_write_attr UUID: 0x{:04x}", uuid);
+
+        if uuid == BLINKY_CMD_UUID {
+            let cmd = *value;
+            println!("! on_write_attr cmd: 0x{:02x}", cmd);
+            if cmd == 0x01 {
+                BLINKY_ON.store(true, Ordering::Relaxed);
+            } else if cmd == 0x00 {
+                BLINKY_ON.store(false, Ordering::Relaxed);
+            }
+        }
+
+        return 0;
+    }
+
+    static BLINKY_SERVICE_CB: gattServiceCBs_t = gattServiceCBs_t {
+        pfnReadAttrCB: Some(blinky_on_read_attr),
+        pfnWriteAttrCB: Some(blinky_on_write_attr),
+        pfnAuthorizeAttrCB: None,
+    };
+
+    // Initialize Client Characteristic Configuration attributes
+    GATTServApp::init_char_cfg(INVALID_CONNHANDLE, BLINKY_CLIENT_CHARCFG.assume_init_mut().as_mut_ptr());
+
+    GATTServApp::register_service(
+        &mut BLINKY_ATTR_TABLE[..],
+        GATT_MAX_ENCRYPT_KEY_SIZE,
+        &BLINKY_SERVICE_CB,
+    )
+    .unwrap();
+}
+
+// App logic
+
 pub enum AppEvent {
     Connected(u16),
+    Disconnected(u16),
 }
 
 static APP_CHANNEL: Channel<CriticalSectionRawMutex, AppEvent, 3> = Channel::new();
@@ -310,14 +462,16 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
         const DEFAULT_SLOW_ADV_INTERVAL: u16 = 1600;
         const DEFAULT_SLOW_ADV_DURATION: u16 = 0; // continuous
 
+        static mut CONN_HANDLE: u16 = INVALID_CONNHANDLE;
+
         match new_state {
             GAPROLE_CONNECTED => {
                 // Peripheral_LinkEstablished
                 if event.gap.opcode == GAP_LINK_ESTABLISHED_EVENT {
                     println!("connected.. !!");
-                    let conn_handle = event.linkCmpl.connectionHandle;
+                    CONN_HANDLE = event.linkCmpl.connectionHandle;
 
-                    let _ = APP_CHANNEL.try_send(AppEvent::Connected(conn_handle));
+                    let _ = APP_CHANNEL.try_send(AppEvent::Connected(CONN_HANDLE));
                 }
             }
             // if disconnected
@@ -326,6 +480,8 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                 let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, DEFAULT_FAST_ADV_INTERVAL);
                 let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, DEFAULT_FAST_ADV_INTERVAL);
                 let _ = GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_FAST_ADV_DURATION);
+
+                let _ = APP_CHANNEL.try_send(AppEvent::Disconnected(CONN_HANDLE));
 
                 // Enable advertising
                 let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
@@ -357,6 +513,7 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
 
                 ptr::copy(system_id.as_ptr(), SYSTEM_ID.as_mut_ptr(), 8);
             }
+            GAPROLE_ADVERTISING => {} // now advertising
             _ => {
                 println!("!!! on_state_change unhandled state: {}", new_state);
             }
@@ -402,6 +559,9 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                         task_id,
                     )
                     .unwrap();
+                },
+                AppEvent::Disconnected(conn_handle) => unsafe {
+                    GATTServApp::init_char_cfg(conn_handle, BLINKY_CLIENT_CHARCFG.assume_init_mut().as_mut_ptr());
                 },
             },
         }
@@ -501,12 +661,12 @@ async fn main(spawner: Spawner) -> ! {
     let (task_id, sub) = hal::ble::init(ble_config).unwrap();
     println!("BLE hal task id: {}", task_id);
 
-    unsafe {
-        let _ = GAPRole_PeripheralInit().unwrap();
-    }
+    let _ = GAPRole::peripheral_init().unwrap();
 
     unsafe {
-        devinfo_init();
+        common_init();
+
+        blinky_init();
     }
 
     // Main_Circulation
@@ -528,14 +688,16 @@ async fn tmos_mainloop() {
     }
 }
 
+static BLINKY_ON: AtomicBool = AtomicBool::new(true);
+
 #[embassy_executor::task]
 async fn blink(pin: AnyPin) {
     let mut led = Output::new(pin, Level::Low, OutputDrive::_5mA);
 
     loop {
-        led.set_high();
-        Timer::after(Duration::from_millis(150)).await;
-        led.set_low();
+        if BLINKY_ON.load(Ordering::Relaxed) {
+            led.toggle();
+        }
         Timer::after(Duration::from_millis(150)).await;
     }
 }

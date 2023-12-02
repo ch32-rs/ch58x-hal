@@ -506,6 +506,29 @@ pub struct gapRolesBroadcasterCBs_t {
     pub pfnScanRecv: gapRolesScanReqRecv_t,
 }
 
+
+/// GAP Role
+pub struct GAPRole;
+
+impl GAPRole {
+    pub fn broadcaster_init() -> bStatus_t {
+        unsafe { GAPRole_BroadcasterInit() }
+    }
+
+    pub fn observer_init() -> bStatus_t {
+        unsafe { GAPRole_ObserverInit() }
+    }
+
+    pub fn peripheral_init() -> bStatus_t {
+        unsafe { GAPRole_PeripheralInit() }
+    }
+
+    pub fn central_init() -> bStatus_t {
+        unsafe { GAPRole_CentralInit() }
+    }
+}
+
+
 // GAP
 extern "C" {
 
