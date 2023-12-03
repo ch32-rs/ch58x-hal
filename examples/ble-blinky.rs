@@ -37,12 +37,12 @@ static mut SCAN_RSP_DATA: &[u8] = &[
     // complete name
     0x12, // length of this data
     GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-    b'S',
-    b'i',
-    b'm',
-    b'p',
+    b'B',
     b'l',
-    b'e',
+    b'i',
+    b'n',
+    b'k',
+    b'y',
     b' ',
     b'P',
     b'e',
@@ -105,21 +105,21 @@ static mut SYSTEM_ID: [u8; 8] = [0u8; 8];
 static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     // Device Information Service
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
         // The first must be a Service attribute
-        value: &gattAttrType_t {
+        value: &GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::DEVINFO_SERV_UUID as *const _ as _,
         } as *const _ as _,
     },
     // System ID Declaration
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -129,7 +129,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // System ID Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::SYSTEM_ID_UUID as *const _ as _,
         },
@@ -139,7 +139,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Serial Number String Declaration
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -149,7 +149,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Serial Number Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::SERIAL_NUMBER_UUID as *const _ as _,
         },
@@ -159,7 +159,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Temperature
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -169,7 +169,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Serial Number Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::TEMP_UUID as *const _ as _,
         },
@@ -293,30 +293,29 @@ static mut BLINKY_CLIENT_CHARCFG: [gattCharCfg_t; 4] = unsafe { core::mem::zeroe
 static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
     // Blinky Service
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        value: &gattAttrType_t {
+        value: &GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &BLINKY_SERV_UUID as *const _ as _,
         } as *const _ as _,
     },
-
     // Blinky Data Declaration and Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
-        value: &GATT_PROP_NOTIFY as *const _ as _,
+        value: &(GATT_PROP_NOTIFY | GATT_PROP_READ) as *const _ as _,
     },
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &BLINKY_DATA_UUID as *const _ as _,
         },
@@ -326,7 +325,7 @@ static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
     },
     // Blinky client config
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::clientCharCfgUUID.as_ptr() },
         },
@@ -334,10 +333,9 @@ static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
         handle: 0,
         value: unsafe { BLINKY_CLIENT_CHARCFG.as_ptr() as _ },
     },
-
     // Command
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -346,7 +344,7 @@ static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
         value: &GATT_PROP_WRITE as *const _ as _,
     },
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &BLINKY_CMD_UUID as *const _ as _,
         },
@@ -389,11 +387,11 @@ unsafe fn blinky_init() {
         return 0;
     }
     unsafe extern "C" fn blinky_on_write_attr(
-        _conn_handle: u16,
+        conn_handle: u16,
         attr: *mut GattAttribute,
         value: *mut u8,
         len: u16,
-        _offset: u16,
+        offset: u16,
         method: u8,
     ) -> u8 {
         let uuid = *((*attr).type_.uuid as *const u16);
@@ -407,6 +405,32 @@ unsafe fn blinky_init() {
             } else if cmd == 0x00 {
                 BLINKY_ON.store(false, Ordering::Relaxed);
             }
+        } else if uuid == BLINKY_CONF_UUID {
+            // sub to notrification
+            //  let status = GATTServApp::process_ccc_write_req(conn_handle, attr, value, len, offset, GATT_CLIENT_CFG_NOTIFY);
+            // if status.is_ok() {
+            //    println!("! on_write_attr sub");
+            //    let val = slice::from_raw_parts(value, len as usize);
+            //    println!("! on_write_attr sub value {:?}", val);
+            // }
+            //APP_CHANNEL.try_send(AppEvent::BlinkySubscribed(conn_handle));
+            //println!("! on_write_attr sub");
+        } else if uuid == gatt_uuid::GATT_CLIENT_CHAR_CFG_UUID {
+            // client char cfg
+            let status =
+                GATTServApp::process_ccc_write_req(conn_handle, attr, value, len, offset, GATT_CLIENT_CFG_NOTIFY);
+            if status.is_ok() {
+                println!("! on_write_attr sub");
+                let val = slice::from_raw_parts(value, len as usize);
+                println!("! on_write_attr sub value {:?}", val);
+                if val == &[0x01, 0x00] {
+                    APP_CHANNEL.try_send(AppEvent::BlinkySubscribed(conn_handle));
+                } else {
+                    APP_CHANNEL.try_send(AppEvent::BlinkyUnsubscribed(conn_handle));
+                }
+            }
+        } else {
+            return ATT_ERR_ATTR_NOT_FOUND;
         }
 
         return 0;
@@ -434,6 +458,8 @@ unsafe fn blinky_init() {
 pub enum AppEvent {
     Connected(u16),
     Disconnected(u16),
+    BlinkySubscribed(u16),
+    BlinkyUnsubscribed(u16),
 }
 
 static APP_CHANNEL: Channel<CriticalSectionRawMutex, AppEvent, 3> = Channel::new();
@@ -564,7 +590,57 @@ async fn peripheral(spawner: Spawner, task_id: u8, mut subscriber: ble::EventSub
                 AppEvent::Disconnected(conn_handle) => unsafe {
                     GATTServApp::init_char_cfg(conn_handle, BLINKY_CLIENT_CHARCFG.as_mut_ptr());
                 },
+                AppEvent::BlinkySubscribed(conn_handle) => unsafe {
+                    spawner.spawn(blinky_notification(conn_handle)).unwrap();
+                },
+                _ => {
+                    // other event. just broadcast
+                }
             },
+        }
+    }
+}
+
+#[embassy_executor::task]
+async fn blinky_notification(conn_handle: u16) {
+    let mut ticker = Ticker::every(Duration::from_millis(1000));
+
+    static mut NOTIFY_MSG: gattMsg_t = gattMsg_t {
+        handleValueNoti: attHandleValueNoti_t {
+            handle: 0,
+            len: 2,
+            pValue: ptr::null_mut(),
+        },
+    };
+    loop {
+        match select(ticker.next(), APP_CHANNEL.receive()).await {
+            Either::First(_) => unsafe {
+                let val = GATTServApp::read_char_cfg(conn_handle, BLINKY_CLIENT_CHARCFG.as_ptr());
+                if val == 0x01 {
+                    // notification is no
+                    let on = BLINKY_ON.load(Ordering::Relaxed);
+                    let val: u8 = if on { 0x01 } else { 0x00 };
+                    // let mut msg = gattMsg_t::alloc_handle_value_notification(conn_handle, 2);
+
+                    unsafe {
+                        NOTIFY_MSG.handleValueNoti.pValue =
+                            GATT_bm_alloc(0, ATT_HANDLE_VALUE_NOTI, 2, ptr::null_mut(), 0) as _;
+                        NOTIFY_MSG.handleValueNoti.handle = BLINKY_ATTR_TABLE[2].handle;
+                        NOTIFY_MSG.handleValueNoti.len = 2;
+
+                        core::ptr::copy(&val as *const _ as _, NOTIFY_MSG.handleValueNoti.pValue, 2);
+                        println!("!! handle {}", BLINKY_ATTR_TABLE[2].handle);
+
+                        let rc = GATT_Notification(conn_handle, &NOTIFY_MSG.handleValueNoti, 0);
+                        println!("!! notify rc {:?}", rc);
+                    }
+                }
+            },
+            Either::Second(AppEvent::Disconnected(_)) | Either::Second(AppEvent::BlinkyUnsubscribed(_)) => {
+                println!("disconnect, stop notification");
+                return;
+            }
+            _ => (),
         }
     }
 }
@@ -659,6 +735,7 @@ async fn main(spawner: Spawner) -> ! {
 
     let mut ble_config = ble::Config::default();
     ble_config.pa_config = None;
+    ble_config.mac_addr = [0xca, 0xfe, 0xba, 0xbe, 0x01, 0x01].into();
     let (task_id, sub) = hal::ble::init(ble_config).unwrap();
     println!("BLE hal task id: {}", task_id);
 

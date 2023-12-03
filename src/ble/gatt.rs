@@ -1,6 +1,38 @@
 #![allow(non_snake_case, non_camel_case_types)]
 
+use core::ffi::c_void;
+use core::ptr;
+
 use super::ffi::{bStatus_t, tmos_event_hdr_t};
+
+pub const ATT_ERROR_RSP: u8 = 1;
+pub const ATT_EXCHANGE_MTU_REQ: u8 = 2;
+pub const ATT_EXCHANGE_MTU_RSP: u8 = 3;
+pub const ATT_FIND_INFO_REQ: u8 = 4;
+pub const ATT_FIND_INFO_RSP: u8 = 5;
+pub const ATT_FIND_BY_TYPE_VALUE_REQ: u8 = 6;
+pub const ATT_FIND_BY_TYPE_VALUE_RSP: u8 = 7;
+pub const ATT_READ_BY_TYPE_REQ: u8 = 8;
+pub const ATT_READ_BY_TYPE_RSP: u8 = 9;
+pub const ATT_READ_REQ: u8 = 10;
+pub const ATT_READ_RSP: u8 = 11;
+pub const ATT_READ_BLOB_REQ: u8 = 12;
+pub const ATT_READ_BLOB_RSP: u8 = 13;
+pub const ATT_READ_MULTI_REQ: u8 = 14;
+pub const ATT_READ_MULTI_RSP: u8 = 15;
+pub const ATT_READ_BY_GRP_TYPE_REQ: u8 = 16;
+pub const ATT_READ_BY_GRP_TYPE_RSP: u8 = 17;
+pub const ATT_WRITE_REQ: u8 = 18;
+pub const ATT_WRITE_RSP: u8 = 19;
+pub const ATT_PREPARE_WRITE_REQ: u8 = 22;
+pub const ATT_PREPARE_WRITE_RSP: u8 = 23;
+pub const ATT_EXECUTE_WRITE_REQ: u8 = 24;
+pub const ATT_EXECUTE_WRITE_RSP: u8 = 25;
+pub const ATT_HANDLE_VALUE_NOTI: u8 = 27;
+pub const ATT_HANDLE_VALUE_IND: u8 = 29;
+pub const ATT_HANDLE_VALUE_CFM: u8 = 30;
+pub const ATT_WRITE_CMD: u8 = 82;
+pub const ATT_SIGNED_WRITE_CMD: u8 = 210;
 
 //  ATT Error Codes
 /// The attribute handle given was not valid on this server
@@ -492,50 +524,55 @@ pub const GATT_PROP_INDICATE: u8 = 32;
 pub const GATT_PROP_AUTHEN: u8 = 64;
 pub const GATT_PROP_EXTENDED: u8 = 128;
 
-// GATT Client Characteristic Configuration Bit Fields
-pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
-pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
-
-#[doc = " @brief   Callback function prototype to read an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          read operations:\n          - Read Request: ATT_READ_REQ\n          - Read Blob Request: ATT_READ_BLOB_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to respond to\n          ATT_READ_REQ and ATT_READ_BLOB_REQ message with ATT_READ_RSP and ATT_READ_BLOB_RSP\n          message respectively.\n\n @note    Payload 'pValue' used with ATT_READ_RSP and ATT_READ_BLOB_RSP must be allocated using GATT_bm_alloc().\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be read (to be returned)\n @param   pLen - length of data (to be returned)\n @param   offset - offset of the first octet to be read\n @param   maxLen - maximum length of data to be read\n @param   method - type of read message\n\n @return  SUCCESS: Read was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
-pub type pfnGATTReadAttrCB_t =
-    Option<
-        unsafe extern "C" fn(
-            connHandle: u16,
-            pAttr: *mut GattAttribute,
-            pValue: *mut u8,
-            pLen: *mut u16,
-            offset: u16,
-            maxLen: u16,
-            method: u8,
-        ) -> u8,
-    >;
-#[doc = " @brief   Callback function prototype to write an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          write operations:\n          - Write Request: ATT_WRITE_REQ\n          - Write Command: ATT_WRITE_CMD\n          - Write Long: ATT_EXECUTE_WRITE_REQ\n          - Reliable Writes: Multiple ATT_PREPARE_WRITE_REQ followed by one final ATT_EXECUTE_WRITE_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to 1) respond to\n          ATT_WRITE_REQ and ATT_EXECUTE_WRITE_REQ message with ATT_WRITE_RSP and ATT_EXECUTE_WRITE_RSP\n          message respectively, and 2) free each request payload 'pValue' using BM_free().\n\n @note    Write Command (ATT_WRITE_CMD) does NOT require a response message.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be written\n @param   pLen - length of data\n @param   offset - offset of the first octet to be written\n @param   method - type of write message\n\n @return  SUCCESS: Write was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
-pub type pfnGATTWriteAttrCB_t = Option<
-    unsafe extern "C" fn(
-        connHandle: u16,
-        pAttr: *mut GattAttribute,
-        pValue: *mut u8,
-        len: u16,
-        offset: u16,
-        method: u8,
-    ) -> u8,
->;
-#[doc = " @brief   Callback function prototype to authorize a Read or Write operation\n          on a given attribute.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   opcode - request opcode (ATT_READ_REQ or ATT_WRITE_REQ)\n\n @return  SUCCESS: Operation authorized.<BR>\n          ATT_ERR_INSUFFICIENT_AUTHOR: Authorization required.<BR>"]
-pub type pfnGATTAuthorizeAttrCB_t =
-    Option<unsafe extern "C" fn(connHandle: u16, pAttr: *mut GattAttribute, opcode: u8) -> bStatus_t>;
-
+// rename from gattAttrType_t
 #[doc = " GATT Attribute Type format."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct gattAttrType_t {
+pub struct GattAttrType {
     #[doc = "!< Length of UUID (2 or 16)"]
     pub len: u8,
     #[doc = "!< Pointer to UUID"]
     pub uuid: *const u8,
 }
 
-unsafe impl Sync for gattAttrType_t {}
-unsafe impl Send for gattAttrType_t {}
+impl GattAttrType {
+    pub const fn new_u16(uuid: u16) -> Self {
+        Self {
+            len: 2,
+            uuid: &uuid as *const u16 as *const u8,
+        }
+    }
+
+    pub const fn new_u128(uuid: &'static [u8]) -> Self {
+        Self {
+            len: 16,
+            uuid: uuid.as_ptr(),
+        }
+    }
+
+    pub fn as_u16(&self) -> u16 {
+        unsafe { *(self.uuid as *const u16) }
+    }
+
+    pub fn as_u128(&self) -> [u8; 16] {
+        unsafe { *(self.uuid as *const [u8; 16]) }
+    }
+}
+
+unsafe impl Sync for GattAttrType {}
+unsafe impl Send for GattAttrType {}
+
+impl PartialEq for GattAttrType {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            self.len == other.len && (self.uuid == other.uuid) && {
+                let len = self.len as usize;
+                core::slice::from_raw_parts(self.uuid, len) == core::slice::from_raw_parts(other.uuid, len)
+            }
+        }
+    }
+}
+impl Eq for GattAttrType {}
 
 // Renamed from gattAttribute_t
 #[doc = " GATT Attribute format."]
@@ -543,7 +580,7 @@ unsafe impl Send for gattAttrType_t {}
 #[derive(Debug, Copy, Clone)]
 pub struct GattAttribute {
     #[doc = "!< Attribute type (2 or 16 octet UUIDs)"]
-    pub type_: gattAttrType_t,
+    pub type_: GattAttrType,
     #[doc = "!< Attribute permissions"]
     pub permissions: u8,
     #[doc = "!< Attribute handle - assigned internally by attribute server"]
@@ -554,3 +591,22 @@ pub struct GattAttribute {
 
 unsafe impl Sync for GattAttribute {}
 unsafe impl Send for GattAttribute {}
+
+extern "C" {
+    #[doc = " @brief   This sub-procedure is used when a server is configured to\n          indicate a characteristic value to a client and expects an\n          attribute protocol layer acknowledgement that the indication\n          was successfully received.\n\n          The ATT Handle Value Indication is used in this sub-procedure.\n\n          If the return status from this function is SUCCESS, the calling\n          application task will receive an tmos GATT_MSG_EVENT message.\n          The type of the message will be ATT_HANDLE_VALUE_CFM.\n\n @note    This sub-procedure is complete when ATT_HANDLE_VALUE_CFM\n          (with SUCCESS or bleTimeoutstatus) is received by the calling application task.\n\n @param   connHandle - connection to use\n @param   pInd - pointer to indication to be sent\n @param   authenticated - whether an authenticated link is required\n @param   taskId - task to be notified of response\n\n @return  SUCCESS: Indication was sent successfully.<BR>\n          INVALIDPARAMETER: Invalid connection handle or request field.<BR>\n          MSG_BUFFER_NOT_AVAIL: No HCI buffer is available.<BR>\n          bleNotConnected: Connection is down.<BR>\n          blePending: A confirmation is pending with this client.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>\n          bleTimeout: Previous transaction timed out.<BR>"]
+    pub fn GATT_Indication(
+        connHandle: u16,
+        pInd: *const attHandleValueInd_t,
+        authenticated: u8,
+        taskId: u8,
+    ) -> bStatus_t;
+    #[doc = " @brief   This sub-procedure is used when a server is configured to\n          notify a characteristic value to a client without expecting\n          any attribute protocol layer acknowledgement that the\n          notification was successfully received.\n\n          The ATT Handle Value Notification is used in this sub-procedure.\n\n @note    A notification may be sent at any time and does not invoke a confirmation.\n          No confirmation will be sent to the calling application task for\n          this sub-procedure.\n\n @param   connHandle - connection to use\n @param   pNoti - pointer to notification to be sent\n @param   authenticated - whether an authenticated link is required\n\n @return  SUCCESS: Notification was sent successfully.<BR>\n          INVALIDPARAMETER: Invalid connection handle or request field.<BR>\n          MSG_BUFFER_NOT_AVAIL: No HCI buffer is available.<BR>\n          bleNotConnected: Connection is down.<BR>\n          bleMemAllocError: Memory allocation error occurred.<BR>\n          bleTimeout: Previous transaction timed out.<BR>"]
+    pub fn GATT_Notification(connHandle: u16, pNoti: *const attHandleValueNoti_t, authenticated: u8) -> bStatus_t;
+}
+
+extern "C" {
+    #[doc = " @brief   GATT implementation of the allocator functionality.\n\n @note    This function should only be called by GATT and the upper layer protocol/application.\n\n @param   connHandle - connection that message is to be sent on.\n @param   opcode - opcode of message that buffer to be allocated for.\n @param   size - number of bytes to allocate from the heap.\n @param   pSizeAlloc - number of bytes allocated for the caller from the heap.\n @param   flag - .\n\n @return  pointer to the heap allocation; NULL if error or failure."]
+    pub fn GATT_bm_alloc(connHandle: u16, opcode: u8, size: u16, pSizeAlloc: *mut u16, flag: u8) -> *mut c_void;
+    #[doc = " @brief   GATT implementation of the de-allocator functionality.\n\n @param   pMsg - pointer to GATT message containing the memory to free.\n @param   opcode - opcode of the message\n\n @return  none"]
+    pub fn GATT_bm_free(pMsg: *mut gattMsg_t, opcode: u8);
+}

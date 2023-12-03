@@ -14,8 +14,8 @@ use super::ffi::bStatus_t;
 use super::gatt::GattAttribute;
 
 // GATT Client Characteristic Configuration Bit Fields
-pub const GATT_CLIENT_CFG_NOTIFY: u32 = 1;
-pub const GATT_CLIENT_CFG_INDICATE: u32 = 2;
+pub const GATT_CLIENT_CFG_NOTIFY: u16 = 1;
+pub const GATT_CLIENT_CFG_INDICATE: u16 = 2;
 
 // All profile services bit fields
 pub const GATT_ALL_SERVICES: u32 = 4294967295;
@@ -27,18 +27,17 @@ pub const GATT_MAX_ENCRYPT_KEY_SIZE: u8 = 16;
 pub const INVALID_CONNHANDLE: u16 = 0xFFFF;
 
 #[doc = " @brief   Callback function prototype to read an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          read operations:\n          - Read Request: ATT_READ_REQ\n          - Read Blob Request: ATT_READ_BLOB_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to respond to\n          ATT_READ_REQ and ATT_READ_BLOB_REQ message with ATT_READ_RSP and ATT_READ_BLOB_RSP\n          message respectively.\n\n @note    Payload 'pValue' used with ATT_READ_RSP and ATT_READ_BLOB_RSP must be allocated using GATT_bm_alloc().\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be read (to be returned)\n @param   pLen - length of data (to be returned)\n @param   offset - offset of the first octet to be read\n @param   maxLen - maximum length of data to be read\n @param   method - type of read message\n\n @return  SUCCESS: Read was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
-pub type pfnGATTReadAttrCB_t =
-    Option<
-        unsafe extern "C" fn(
-            conn_handle: u16,
-            pAttr: *mut GattAttribute,
-            pValue: *mut u8,
-            pLen: *mut u16,
-            offset: u16,
-            max_len: u16,
-            method: u8,
-        ) -> u8,
-    >;
+pub type pfnGATTReadAttrCB_t = Option<
+    unsafe extern "C" fn(
+        conn_handle: u16,
+        pAttr: *mut GattAttribute,
+        pValue: *mut u8,
+        pLen: *mut u16,
+        offset: u16,
+        max_len: u16,
+        method: u8,
+    ) -> u8,
+>;
 #[doc = " @brief   Callback function prototype to write an attribute value.\n\n @note    blePending can be returned ONLY for the following\n          write operations:\n          - Write Request: ATT_WRITE_REQ\n          - Write Command: ATT_WRITE_CMD\n          - Write Long: ATT_EXECUTE_WRITE_REQ\n          - Reliable Writes: Multiple ATT_PREPARE_WRITE_REQ followed by one final ATT_EXECUTE_WRITE_REQ\n\n @note    If blePending is returned then it's the responsibility of the application to 1) respond to\n          ATT_WRITE_REQ and ATT_EXECUTE_WRITE_REQ message with ATT_WRITE_RSP and ATT_EXECUTE_WRITE_RSP\n          message respectively, and 2) free each request payload 'pValue' using BM_free().\n\n @note    Write Command (ATT_WRITE_CMD) does NOT require a response message.\n\n @param   connHandle - connection request was received on\n @param   pAttr - pointer to attribute\n @param   pValue - pointer to data to be written\n @param   pLen - length of data\n @param   offset - offset of the first octet to be written\n @param   method - type of write message\n\n @return  SUCCESS: Write was successfully.<BR>\n          blePending: A response is pending for this client.<BR>\n          Error, otherwise: ref ATT_ERR_CODE_DEFINES.<BR>"]
 pub type pfnGATTWriteAttrCB_t = Option<
     unsafe extern "C" fn(
@@ -109,7 +108,7 @@ impl GATTServApp {
     }
 
     #[inline]
-    pub fn read_char_cfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t) -> u16 {
+    pub fn read_char_cfg(connHandle: u16, charCfgTbl: *const gattCharCfg_t) -> u16 {
         unsafe { ffi::GATTServApp_ReadCharCfg(connHandle, charCfgTbl) }
     }
 
@@ -151,7 +150,7 @@ mod ffi {
         #[doc = " @brief   Send out a Service Changed Indication.\n\n @param   connHandle - connection to use\n @param   taskId - task to be notified of confirmation\n\n @return  SUCCESS: Indication was sent successfully.<BR>\n          FAILURE: Service Changed attribute not found.<BR>\n          INVALIDPARAMETER: Invalid connection handle or request field.<BR>\n          MSG_BUFFER_NOT_AVAIL: No HCI buffer is available.<BR>\n          bleNotConnected: Connection is down.<BR>\n          blePending: A confirmation is pending with this client.<BR>"]
         pub fn GATTServApp_SendServiceChangedInd(connHandle: u16, taskId: u8) -> bStatus_t;
         #[doc = " @brief   Read the client characteristic configuration for a given client.\n\n @note    Each client has its own instantiation of the Client Characteristic Configuration.\n          Reads of the Client Characteristic Configuration only shows the configuration\n          for that client.\n\n @param   connHandle - connection handle.\n @param   charCfgTbl - client characteristic configuration table.\n\n @return  attribute value"]
-        pub fn GATTServApp_ReadCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t) -> u16;
+        pub fn GATTServApp_ReadCharCfg(connHandle: u16, charCfgTbl: *const gattCharCfg_t) -> u16;
         #[doc = " @brief   Write the client characteristic configuration for a given client.\n\n @note    Each client has its own instantiation of the Client Characteristic Configuration.\n          Writes of the Client Characteristic Configuration only only affect the\n          configuration of that client.\n\n @param   connHandle - connection handle.\n @param   charCfgTbl - client characteristic configuration table.\n @param   value - attribute new value.\n\n @return  Success or Failure"]
         pub fn GATTServApp_WriteCharCfg(connHandle: u16, charCfgTbl: *mut gattCharCfg_t, value: u16) -> u8;
         #[doc = " @brief   Process the client characteristic configuration\n          write request for a given client.\n\n @param   connHandle - connection message was received on.\n @param   pAttr - pointer to attribute.\n @param   pValue - pointer to data to be written.\n @param   len - length of data.\n @param   offset - offset of the first octet to be written.\n @param   validCfg - valid configuration.\n\n @return  Success or Failure"]

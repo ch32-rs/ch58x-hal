@@ -106,21 +106,21 @@ static mut SYSTEM_ID: [u8; 8] = [0u8; 8];
 static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     // Device Information Service
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
         },
         permissions: GATT_PERMIT_READ,
         handle: 0,
         // The first must be a Service attribute
-        value: &gattAttrType_t {
+        value: &GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::DEVINFO_SERV_UUID as *const _ as _,
         } as *const _ as _,
     },
     // System ID Declaration
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -130,7 +130,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // System ID Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::SYSTEM_ID_UUID as *const _ as _,
         },
@@ -140,7 +140,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Serial Number String Declaration
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -150,7 +150,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Serial Number Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::SERIAL_NUMBER_UUID as *const _ as _,
         },
@@ -160,7 +160,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Temperature
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
         },
@@ -170,7 +170,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
     },
     // Serial Number Value
     GattAttribute {
-        type_: gattAttrType_t {
+        type_: GattAttrType {
             len: ATT_BT_UUID_SIZE,
             uuid: &gatt_uuid::TEMP_UUID as *const _ as _,
         },
