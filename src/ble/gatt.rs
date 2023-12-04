@@ -4,6 +4,7 @@ use core::ffi::c_void;
 use core::ptr;
 
 use super::ffi::{bStatus_t, tmos_event_hdr_t};
+use super::gatt_uuid;
 
 pub const ATT_ERROR_RSP: u8 = 1;
 pub const ATT_EXCHANGE_MTU_REQ: u8 = 2;
@@ -512,7 +513,7 @@ pub const GATT_MAX_MTU: u32 = 65535;
 
 pub const GATT_MAX_NUM_CONN: u32 = 4;
 
-pub const GATT_CFG_NO_OPERATION: u32 = 0;
+pub const GATT_CFG_NO_OPERATION: u16 = 0;
 
 // GATT Characteristic Properties Bit Fields
 pub const GATT_PROP_BCAST: u8 = 1;
@@ -527,7 +528,7 @@ pub const GATT_PROP_EXTENDED: u8 = 128;
 // rename from gattAttrType_t
 #[doc = " GATT Attribute Type format."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct GattAttrType {
     #[doc = "!< Length of UUID (2 or 16)"]
     pub len: u8,
@@ -535,27 +536,65 @@ pub struct GattAttrType {
     pub uuid: *const u8,
 }
 
+// type alias
+pub type UUID = GattAttrType;
+
 impl GattAttrType {
-    pub const fn new_u16(uuid: u16) -> Self {
+    // GATT Declarations
+    pub const PRIMARY_SERVICE: Self = Self {
+        len: 2,
+        uuid: &gatt_uuid::GATT_PRIMARY_SERVICE_UUID as *const u16 as *const u8,
+    };
+    pub const SECONDARY_SERVICE: Self = Self {
+        len: 2,
+        uuid: &gatt_uuid::GATT_SECONDARY_SERVICE_UUID as *const u16 as *const u8,
+    };
+    pub const INCLUDE: Self = Self {
+        len: 2,
+        uuid: &gatt_uuid::GATT_INCLUDE_UUID as *const u16 as *const u8,
+    };
+    pub const CHARACTERISTIC: Self = Self {
+        len: 2,
+        uuid: &gatt_uuid::GATT_CHARACTER_UUID as *const u16 as *const u8,
+    };
+
+    // GATT Descriptors
+    pub const CLIENT_CHAR_CFG: Self = Self {
+        len: 2,
+        uuid: &gatt_uuid::GATT_CLIENT_CHAR_CFG_UUID as *const u16 as *const u8,
+    };
+
+    pub const fn new_u16(uuid: &'static u16) -> Self {
         Self {
             len: 2,
-            uuid: &uuid as *const u16 as *const u8,
+            uuid: uuid as *const u16 as *const u8,
+        }
+    }
+    pub const fn new_u128(uuid: &'static u128) -> Self {
+        Self {
+            len: 16,
+            uuid: uuid as *const u128 as *const u8,
         }
     }
 
-    pub const fn new_u128(uuid: &'static [u8]) -> Self {
+    pub const fn from(uuid: &'static [u8; 2]) -> Self {
         Self {
-            len: 16,
+            len: 2,
             uuid: uuid.as_ptr(),
         }
     }
+}
 
-    pub fn as_u16(&self) -> u16 {
-        unsafe { *(self.uuid as *const u16) }
-    }
-
-    pub fn as_u128(&self) -> [u8; 16] {
-        unsafe { *(self.uuid as *const [u8; 16]) }
+impl core::fmt::Debug for GattAttrType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let len = self.len as usize;
+        let uuid = unsafe { core::slice::from_raw_parts(self.uuid, len) };
+        if len == 2 {
+            write!(f, "0x{:04x}", u16::from_le_bytes([uuid[0], uuid[1]]))
+        } else {
+            let v = unsafe { *(self.uuid as *const u128) };
+            write!(f, "0x{:032X}", v)
+        }
     }
 }
 
@@ -565,14 +604,53 @@ unsafe impl Send for GattAttrType {}
 impl PartialEq for GattAttrType {
     fn eq(&self, other: &Self) -> bool {
         unsafe {
-            self.len == other.len && (self.uuid == other.uuid) && {
-                let len = self.len as usize;
-                core::slice::from_raw_parts(self.uuid, len) == core::slice::from_raw_parts(other.uuid, len)
-            }
+            self.len == other.len
+                && ((self.uuid == other.uuid) || {
+                    let len = self.len as usize;
+                    core::slice::from_raw_parts(self.uuid, len) == core::slice::from_raw_parts(other.uuid, len)
+                })
         }
     }
 }
 impl Eq for GattAttrType {}
+
+impl PartialEq<u16> for GattAttrType {
+    fn eq(&self, other: &u16) -> bool {
+        // LE compare
+        self.len == 2 && unsafe { *(self.uuid as *const u16) == *other }
+    }
+}
+
+impl PartialEq<u128> for GattAttrType {
+    fn eq(&self, other: &u128) -> bool {
+        // LE compare
+        self.len == 16 && unsafe { *(self.uuid as *const u128) == *other }
+    }
+}
+
+impl<'a> PartialEq<GattAttrType> for &'a GattAttrType {
+    fn eq(&self, other: &GattAttrType) -> bool {
+        unsafe {
+            self.len == other.len
+                && ((self.uuid == other.uuid) || {
+                    let len = self.len as usize;
+                    core::slice::from_raw_parts(self.uuid, len) == core::slice::from_raw_parts(other.uuid, len)
+                })
+        }
+    }
+}
+impl<'a> PartialEq<u16> for &'a GattAttrType {
+    fn eq(&self, other: &u16) -> bool {
+        // LE compare
+        self.len == 2 && unsafe { *(self.uuid as *const u16) == *other }
+    }
+}
+impl<'a> PartialEq<u128> for &'a GattAttrType {
+    fn eq(&self, other: &u128) -> bool {
+        // LE compare
+        self.len == 16 && unsafe { *(self.uuid as *const u128) == *other }
+    }
+}
 
 // Renamed from gattAttribute_t
 #[doc = " GATT Attribute format."]

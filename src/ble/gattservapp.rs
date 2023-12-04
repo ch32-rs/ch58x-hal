@@ -65,9 +65,10 @@ pub struct gattServiceCBs_t {
     pub pfnAuthorizeAttrCB: pfnGATTAuthorizeAttrCB_t,
 }
 
+// save to add Default when init
 #[doc = " GATT Structure for Client Characteristic Configuration."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct gattCharCfg_t {
     #[doc = "!< Client connection handle"]
     pub connHandle: u16,
