@@ -1,4 +1,6 @@
-//! HeartRate Peripheral, HRS
+//! LED Button Service (LBS)
+//!
+//! See-also: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/libraries/bluetooth_services/services/lbs.html
 
 #![no_std]
 #![no_main]
@@ -20,7 +22,7 @@ use hal::ble::ffi::*;
 use hal::ble::gap::*;
 use hal::ble::gatt::*;
 use hal::ble::gattservapp::*;
-use hal::ble::{gatt_uuid, TmosEvent};
+use hal::ble::{gatt_uuid, EventSubscriber, TmosEvent};
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
@@ -34,7 +36,7 @@ const fn hi_u16(x: u16) -> u8 {
 }
 
 // GAP - SCAN RSP data (max size = 31 bytes)
-static mut SCAN_RSP_DATA: &[u8] = &[
+static SCAN_RSP_DATA: &[u8] = &[
     // complete name
     0x12, // length of this data
     GAP_ADTYPE_LOCAL_NAME_COMPLETE,
@@ -73,7 +75,7 @@ static mut SCAN_RSP_DATA: &[u8] = &[
 // GAP - Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertisting)
 #[rustfmt::skip]
-static mut ADVERT_DATA: &[u8] = &[
+static ADVERT_DATA: &[u8] = &[
     0x02, // length of this data
     GAP_ADTYPE_FLAGS,
     GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
@@ -85,10 +87,10 @@ static mut ADVERT_DATA: &[u8] = &[
     0x01, // remains manufacturer specific data
 
     // advertised service
-    0x03,                  // length of this data
-    GAP_ADTYPE_16BIT_MORE, // some of the UUID's, but not all
-    0xf0,
-    0xff,
+    17,                  // length of this data
+    GAP_ADTYPE_128BIT_COMPLETE,
+    // 00001523-1212-EFDE-1523-785FEABCD123
+    0x23,0xd1,0xbc,0xea,0x5f,0x78,0x23,0x15,0xde,0xef,0x12,0x12,0x23,0x15,0x000,0x000
 ];
 
 // GAP GATT Attributes
@@ -113,7 +115,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] =
             // The first must be a Service attribute
             value: &GattAttrType {
                 len: ATT_BT_UUID_SIZE,
-                uuid: &gatt_uuid::DEVINFO_SERV_UUID as *const _ as _,
+                uuid: &gatt_uuid::DEVINFO_SERV_UUID as *const _ as *const u8,
             } as *const _ as _,
         },
         // System ID Declaration
@@ -121,7 +123,7 @@ static mut DEVICE_INFO_TABLE: [GattAttribute; 7] =
             type_: GattAttrType::CHARACTERISTIC,
             permissions: GATT_PERMIT_READ,
             handle: 0,
-            value: &GATT_PROP_READ as *const _ as _,
+            value: &GATT_PROP_READ as *const u8,
         },
         // System ID Value
         GattAttribute {
@@ -341,7 +343,6 @@ unsafe fn lbs_init() {
         _method: u8,
     ) -> u8 {
         // Make sure it's not a blob operation (no attributes in the profile are long)
-        println!("on read");
         if (offset > 0) {
             return ATT_ERR_ATTR_NOT_LONG;
         }
@@ -369,6 +370,7 @@ unsafe fn lbs_init() {
 
         return 0;
     }
+
     unsafe extern "C" fn lbs_on_write_attr(
         conn_handle: u16,
         attr: *mut GattAttribute,
@@ -382,20 +384,22 @@ unsafe fn lbs_init() {
 
         if uuid == LED_STATE_UUID {
             let cmd = *value;
-            println!("! on_write_attr cmd: 0x{:02x}", cmd);
-            APP_CHANNEL.try_send(AppEvent::SetLedState(cmd != 0));
+            APP_CHANNEL.try_send(AppEvent::SetLedState(cmd != 0)).unwrap();
         } else if uuid == gatt_uuid::GATT_CLIENT_CHAR_CFG_UUID {
             // client char cfg
 
             let status =
                 GATTServApp::process_ccc_write_req(conn_handle, attr, value, len, offset, GATT_CLIENT_CFG_NOTIFY);
             if status.is_ok() {
-                let val = *(value as *const u16);
-                println!("! on_write_attr sub value {:?}", val);
+                let val = u16::from_le_bytes([*value, *value.offset(1)]);
                 if val == GATT_CFG_NO_OPERATION {
-                    APP_CHANNEL.try_send(AppEvent::ButtonStateUnsubscribed(conn_handle));
+                    APP_CHANNEL
+                        .try_send(AppEvent::ButtonStateUnsubscribed(conn_handle))
+                        .unwrap();
                 } else {
-                    APP_CHANNEL.try_send(AppEvent::ButtonStateSubscribed(conn_handle));
+                    APP_CHANNEL
+                        .try_send(AppEvent::ButtonStateSubscribed(conn_handle))
+                        .unwrap();
                 }
             } else {
                 println!("! on_write_attr sub err {:?}", status);
@@ -416,7 +420,6 @@ unsafe fn lbs_init() {
 
     // Initialize Client Characteristic Configuration attributes
     GATTServApp::init_char_cfg(INVALID_CONNHANDLE, BUTTON_STATE_CLIENT_CHARCFG.as_mut_ptr());
-
     GATTServApp::register_service(&mut BLINKY_ATTR_TABLE[..], GATT_MAX_ENCRYPT_KEY_SIZE, &LBS_CB).unwrap();
 }
 
@@ -442,6 +445,13 @@ const DEFAULT_DESIRED_SLAVE_LATENCY: u16 = 1;
 /// Default supervision timeout value (units of 10ms)
 const DEFAULT_DESIRED_CONN_TIMEOUT: u16 = 1000;
 
+// time units 625us
+const DEFAULT_FAST_ADV_INTERVAL: u16 = 32;
+const DEFAULT_FAST_ADV_DURATION: u16 = 30000;
+
+const DEFAULT_SLOW_ADV_INTERVAL: u16 = 1600;
+const DEFAULT_SLOW_ADV_DURATION: u16 = 0; // continuous
+
 fn peripheral_start(task_id: u8) {
     // Profile State Change Callbacks
     unsafe extern "C" fn on_gap_state_change(new_state: gapRole_States_t, event: *mut gapRoleEvent_t) {
@@ -451,33 +461,26 @@ fn peripheral_start(task_id: u8) {
         // state machine, requires last state
         static mut LAST_STATE: gapRole_States_t = GAPROLE_INIT;
 
-        // time units 625us
-        const DEFAULT_FAST_ADV_INTERVAL: u16 = 32;
-        const DEFAULT_FAST_ADV_DURATION: u16 = 30000;
-
-        const DEFAULT_SLOW_ADV_INTERVAL: u16 = 1600;
-        const DEFAULT_SLOW_ADV_DURATION: u16 = 0; // continuous
-
-        static mut CONN_HANDLE: u16 = INVALID_CONNHANDLE;
+        static mut CURRENT_CONN_HANDLE: u16 = INVALID_CONNHANDLE;
 
         match new_state {
             GAPROLE_CONNECTED => {
                 // Peripheral_LinkEstablished
                 if event.gap.opcode == GAP_LINK_ESTABLISHED_EVENT {
                     println!("connected.. !!");
-                    CONN_HANDLE = event.linkCmpl.connectionHandle;
+                    CURRENT_CONN_HANDLE = event.linkCmpl.connectionHandle;
 
-                    let _ = APP_CHANNEL.try_send(AppEvent::Connected(CONN_HANDLE));
+                    let _ = APP_CHANNEL.try_send(AppEvent::Connected(CURRENT_CONN_HANDLE));
                 }
             }
             // if disconnected
             _ if LAST_STATE == GAPROLE_CONNECTED && new_state != GAPROLE_CONNECTED => {
+                let _ = APP_CHANNEL.try_send(AppEvent::Disconnected(CURRENT_CONN_HANDLE));
+
                 // link loss -- use fast advertising
                 let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, DEFAULT_FAST_ADV_INTERVAL);
                 let _ = GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, DEFAULT_FAST_ADV_INTERVAL);
                 let _ = GAP_SetParamValue(TGAP_GEN_DISC_ADV_MIN, DEFAULT_FAST_ADV_DURATION);
-
-                let _ = APP_CHANNEL.try_send(AppEvent::Disconnected(CONN_HANDLE));
 
                 // Enable advertising
                 let _ = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
@@ -559,8 +562,8 @@ async fn button_task(pin: AnyPin) {
     let mut ticker = Ticker::every(Duration::from_millis(1000));
 
     loop {
-        button.wait_for_falling_edge().await;
-        println!("=> fuk");
+        Timer::after(Duration::from_millis(1000)).await;
+
         let conn_handle = CONN_HANDLE.load(Ordering::Relaxed);
         if conn_handle == INVALID_CONNHANDLE {
             continue;
@@ -568,20 +571,21 @@ async fn button_task(pin: AnyPin) {
         let val = GATTServApp::read_char_cfg(conn_handle, unsafe { BUTTON_STATE_CLIENT_CHARCFG.as_ptr() });
         if val & GATT_CLIENT_CFG_NOTIFY != 0 {
             unsafe {
-                NOTIFY_MSG.handleValueNoti.pValue =
-                    GATT_bm_alloc(conn_handle, ATT_HANDLE_VALUE_NOTI, 2, ptr::null_mut(), 0) as _;
+                let buf = GATT_bm_alloc(conn_handle, ATT_HANDLE_VALUE_NOTI, 2, ptr::null_mut(), 0) as *mut u8;
+                if !buf.is_null() {
+                    let button_value = button.is_low() as u8;
+                    NOTIFY_MSG.handleValueNoti.pValue = buf;
+                    NOTIFY_MSG.handleValueNoti.len = 1;
+                    *NOTIFY_MSG.handleValueNoti.pValue = button_value;
 
-                NOTIFY_MSG.handleValueNoti.handle = BLINKY_ATTR_TABLE[2].handle;
-                NOTIFY_MSG.handleValueNoti.len = 1;
-                *NOTIFY_MSG.handleValueNoti.pValue = 0x01;
+                    NOTIFY_MSG.handleValueNoti.handle = BLINKY_ATTR_TABLE[2].handle;
 
-                println!("!! handle {}", BLINKY_ATTR_TABLE[2].handle);
-
-                let rc = GATT_Notification(conn_handle, &NOTIFY_MSG.handleValueNoti, 0);
-                println!("!! notify rc {:?}", rc);
+                    let _ = GATT_Notification(conn_handle, &NOTIFY_MSG.handleValueNoti, 0).unwrap();
+                } else {
+                    // TODO: handle alloc failed
+                }
             }
         }
-        Timer::after(Duration::from_millis(1000)).await;
     }
 }
 
@@ -637,12 +641,17 @@ async fn main(spawner: Spawner) -> ! {
         lbs_init();
     }
 
-    // Main_Circulation
+    // TMOS Main_Circulation
     spawner.spawn(tmos_mainloop()).unwrap();
 
     peripheral_start(task_id);
 
-    let mut led = Output::new(p.PA8.degrade(), Level::High, OutputDrive::_5mA);
+    mainloop(task_id, sub, p.PA8.degrade()).await
+}
+
+#[highcode]
+async fn mainloop(task_id: u8, mut sub: EventSubscriber, led: AnyPin) -> ! {
+    let mut led = Output::new(led, Level::High, OutputDrive::_5mA);
 
     loop {
         match select(sub.next_message_pure(), APP_CHANNEL.receive()).await {
@@ -651,20 +660,21 @@ async fn main(spawner: Spawner) -> ! {
             }
             Either::Second(event) => {
                 match event {
-                    AppEvent::Connected(conn_handle) => unsafe {
-                        // 1600 * 625 us
+                    AppEvent::Connected(conn_handle) => {
                         Timer::after(Duration::from_secs(1)).await; // FIXME: spawn handler
 
-                        GAPRole_PeripheralConnParamUpdateReq(
-                            conn_handle,
-                            DEFAULT_DESIRED_MIN_CONN_INTERVAL,
-                            DEFAULT_DESIRED_MAX_CONN_INTERVAL,
-                            DEFAULT_DESIRED_SLAVE_LATENCY,
-                            DEFAULT_DESIRED_CONN_TIMEOUT,
-                            task_id,
-                        )
-                        .unwrap();
-                    },
+                        unsafe {
+                            GAPRole_PeripheralConnParamUpdateReq(
+                                conn_handle,
+                                DEFAULT_DESIRED_MIN_CONN_INTERVAL,
+                                DEFAULT_DESIRED_MAX_CONN_INTERVAL,
+                                DEFAULT_DESIRED_SLAVE_LATENCY,
+                                DEFAULT_DESIRED_CONN_TIMEOUT,
+                                task_id,
+                            )
+                            .unwrap();
+                        }
+                    }
                     AppEvent::Disconnected(conn_handle) => unsafe {
                         GATTServApp::init_char_cfg(conn_handle, BUTTON_STATE_CLIENT_CHARCFG.as_mut_ptr());
                         CONN_HANDLE.store(INVALID_CONNHANDLE, Ordering::Relaxed);
@@ -685,12 +695,28 @@ async fn main(spawner: Spawner) -> ! {
                         }
                         LED_STATE.store(on, Ordering::Relaxed);
                     }
-                    _ => {
-                        // other event. just broadcast
-                    }
+                    _ => {}
                 }
             }
         }
+    }
+}
+
+#[embassy_executor::task]
+async fn conn_param_update(conn_handle: u16, task_id: u8) {
+    // 1600 * 625 us
+    Timer::after(Duration::from_secs(1)).await; // FIXME: spawn handler
+
+    unsafe {
+        GAPRole_PeripheralConnParamUpdateReq(
+            conn_handle,
+            DEFAULT_DESIRED_MIN_CONN_INTERVAL,
+            DEFAULT_DESIRED_MAX_CONN_INTERVAL,
+            DEFAULT_DESIRED_SLAVE_LATENCY,
+            DEFAULT_DESIRED_CONN_TIMEOUT,
+            task_id,
+        )
+        .unwrap();
     }
 }
 
