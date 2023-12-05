@@ -16,6 +16,7 @@ pub mod gap;
 pub mod gatt;
 pub mod gatt_uuid;
 pub mod gattservapp;
+pub mod linkdb;
 
 const HEAP_SIZE: usize = 1024 * 6;
 

@@ -1,9 +1,6 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 
-use core::ffi::c_void;
 use core::num::NonZeroU8;
-
-use super::gatt::gattMsg_t;
 
 // pub type bStatus_t = u8;
 // SUCCESS(0x00):指令按预期执行。
@@ -550,14 +547,15 @@ pub const DEVDISC_MODE_LIMITED: u8 = 0x02;
 pub const DEVDISC_MODE_ALL: u8 = 0x03;
 
 pub type pfnEcc_key_t = Option<unsafe extern "C" fn(pub_: *mut u8, priv_: *mut u8) -> ::core::ffi::c_int>;
-pub type pfnEcc_dhkey_t = Option<
-    unsafe extern "C" fn(
-        peer_pub_key_x: *mut u8,
-        peer_pub_key_y: *mut u8,
-        our_priv_key: *mut u8,
-        out_dhkey: *mut u8,
-    ) -> ::core::ffi::c_int,
->;
+pub type pfnEcc_dhkey_t =
+    Option<
+        unsafe extern "C" fn(
+            peer_pub_key_x: *mut u8,
+            peer_pub_key_y: *mut u8,
+            our_priv_key: *mut u8,
+            out_dhkey: *mut u8,
+        ) -> ::core::ffi::c_int,
+    >;
 pub type pfnEcc_alg_f4_t = Option<
     unsafe extern "C" fn(u: *mut u8, v: *mut u8, x: *mut u8, z: u8, out_enc_data: *mut u8) -> ::core::ffi::c_int,
 >;
@@ -721,4 +719,8 @@ extern "C" {
     pub fn GGS_AddService(services: u32) -> bStatus_t;
 }
 
-// GATT
+// Special case connection handles
+/// Invalid connection handle, used for no connection handle
+pub const INVALID_CONNHANDLE: u16 = 0xFFFF;
+/// Loopback connection handle, used to loopback a message
+pub const LOOPBACK_CONNHANDLE: u16 = 0xFFFE;
