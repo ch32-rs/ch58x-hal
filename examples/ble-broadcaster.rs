@@ -6,12 +6,10 @@ use ch32v_rt::highcode;
 use ch58x_hal as hal;
 use ch58x_hal::ble::gap::*;
 use embassy_executor::Spawner;
-use embassy_time::{Delay, Duration, Instant, Timer};
+use embassy_time::{Duration, Timer};
 use hal::ble::ffi::*;
-use hal::ble::get_raw_temperature;
-use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
+use hal::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use hal::interrupt::Interrupt;
-use hal::prelude::*;
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
 use hal::{ble, peripherals, println};
@@ -79,14 +77,6 @@ async fn blink(pin: AnyPin) {
     }
 }
 
-// lfsr random number generator
-// `lfsr <= {lfsr[29:0], lfsr[30] ^~ lfsr[27]};`
-unsafe extern "C" fn srand() -> u32 {
-    static mut LFSR: u32 = 42;
-    LFSR = (LFSR << 1) | (((LFSR >> 27) ^ (LFSR >> 30)) & 1);
-    LFSR
-}
-
 unsafe extern "C" fn broadcaster_callback(new_state: u32) {
     println!("broadcast state: {}", new_state);
     match new_state {
@@ -150,8 +140,6 @@ async fn main(spawner: Spawner) -> ! {
         hal::set_default_serial(uart);
     }
 
-    let boot_btn = Input::new(p.PB22, Pull::Up);
-
     let rtc = Rtc::new(p.RTC);
 
     println!();
@@ -174,9 +162,8 @@ async fn main(spawner: Spawner) -> ! {
     let (task_id, _) = hal::ble::init(Default::default()).unwrap();
     println!("init BLE task id: {}", task_id);
 
-    println!("Gen Addr: {:08x}", unsafe { BLE_AccessAddressGenerate() });
-
     unsafe {
+        println!("Gen Addr: {:08x}", BLE_AccessAddressGenerate());
         let r = GAPRole_BroadcasterInit();
         println!("GAPRole_BroadcasterInit: {:?}", r);
     }
@@ -184,26 +171,28 @@ async fn main(spawner: Spawner) -> ! {
     // Broadcaster_Init();
     unsafe {
         // Setup the GAP Broadcaster Role Profile
-        GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
-        GAPRole_SetParameter(GAPROLE_ADV_EVENT_TYPE, 1, &0x03 as *const _ as _);
+        GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _).unwrap();
+        GAPRole_SetParameter(GAPROLE_ADV_EVENT_TYPE, 1, &0x03 as *const _ as _).unwrap();
         GAPRole_SetParameter(
             GAPROLE_SCAN_RSP_DATA,
             SCAN_RSP_DATA.len() as _,
             SCAN_RSP_DATA.as_mut_ptr() as _,
-        );
+        )
+        .unwrap();
         GAPRole_SetParameter(
             GAPROLE_ADVERT_DATA,
             ADVERT_DATA.len() as _,
             ADVERT_DATA.as_mut_ptr() as _,
-        );
+        )
+        .unwrap();
     }
 
     // setting advertising interval
     unsafe {
         let adv_interval = 160; // in 0.625ms, 100ms
 
-        GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, adv_interval);
-        GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, adv_interval);
+        GAP_SetParamValue(TGAP_DISC_ADV_INT_MIN, adv_interval).unwrap();
+        GAP_SetParamValue(TGAP_DISC_ADV_INT_MAX, adv_interval).unwrap();
     }
 
     spawner.spawn(broadcaster()).unwrap();

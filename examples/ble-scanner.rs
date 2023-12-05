@@ -2,15 +2,14 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use ch32v_rt::highcode;
 use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_sync::channel::Channel;
-use embassy_time::{Delay, Duration, Instant, Timer};
+use embassy_time::{Duration, Timer};
 use hal::ble::ffi::*;
 use hal::ble::gap::*;
-use hal::ble::{get_raw_temperature, MacAddress};
-use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
+use hal::ble::MacAddress;
+use hal::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use hal::interrupt::Interrupt;
 use hal::rtc::Rtc;
 use hal::uart::UartTx;
@@ -45,11 +44,12 @@ unsafe extern "C" fn observer_event_callback(event: &gapRoleEvent_t) {
                 DEFAULT_DISCOVERY_MODE,
                 DEFAULT_DISCOVERY_ACTIVE_SCAN,
                 DEFAULT_DISCOVERY_WHITE_LIST,
-            );
+            )
+            .unwrap();
         }
         GAP_DEVICE_DISCOVERY_EVENT => {
             println!("Complete");
-            EVENTS.try_send(true);
+            EVENTS.try_send(true).unwrap();
         }
         GAP_DEVICE_INFO_EVENT => {
             let event = event.deviceInfo;
@@ -69,19 +69,20 @@ async fn observer() {
         eventCB: Some(observer_event_callback),
     };
     unsafe {
-        GAPRole_ObserverStartDevice(&CALLBACK);
+        GAPRole_ObserverStartDevice(&CALLBACK).unwrap();
     }
 
     loop {
         EVENTS.receiver().receive().await;
         println!("Restarting discovery...");
         unsafe {
-            GAPRole_CancelSync();
+            GAPRole_CancelSync().unwrap();
             GAPRole_ObserverStartDiscovery(
                 DEFAULT_DISCOVERY_MODE,
                 DEFAULT_DISCOVERY_ACTIVE_SCAN,
                 DEFAULT_DISCOVERY_WHITE_LIST,
-            );
+            )
+            .unwrap();
         }
     }
 }
@@ -101,8 +102,6 @@ async fn main(spawner: Spawner) -> ! {
         hal::set_default_serial(uart);
     }
 
-    let boot_btn = Input::new(p.PB22, Pull::Up);
-
     let rtc = Rtc::new(p.RTC);
 
     println!();
@@ -120,22 +119,19 @@ async fn main(spawner: Spawner) -> ! {
     println!("ChipID: 0x{:02x}", hal::signature::get_chip_id());
     println!("RTC datetime: {}", rtc.now());
 
-    let (task_id, _) = ble::init(ble::Config {
-        mac_addr: [0x22, 0x33, 0x44, 0x55, 0x66, 0x77].into(),
-    })
-    .unwrap();
+    let (task_id, _) = ble::init(ble::Config::default()).unwrap();
     println!("BLE init task id: {:?}", task_id);
     println!("MemFree: {}K", hal::stack_free() / 1024);
 
     unsafe {
-        GAPRole_ObserverInit();
+        GAPRole_ObserverInit().unwrap();
     }
 
     // Observer_Init
     unsafe {
         // 4800 * 0.625ms = 3s
-        GAP_SetParamValue(TGAP_DISC_SCAN, 4800);
-        GAP_SetParamValue(TGAP_DISC_SCAN_PHY, GAP_PHY_BIT_LE_1M);
+        GAP_SetParamValue(TGAP_DISC_SCAN, 4800).unwrap();
+        GAP_SetParamValue(TGAP_DISC_SCAN_PHY, GAP_PHY_BIT_LE_1M).unwrap();
     }
 
     spawner.spawn(observer()).unwrap();
