@@ -6,8 +6,7 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use core::cell::{Ref, RefCell};
-use core::mem::{size_of_val, MaybeUninit};
+use core::mem::size_of_val;
 use core::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use core::{ptr, slice};
 
@@ -343,7 +342,7 @@ unsafe fn lbs_init() {
         _method: u8,
     ) -> u8 {
         // Make sure it's not a blob operation (no attributes in the profile are long)
-        if (offset > 0) {
+        if offset > 0 {
             return ATT_ERR_ATTR_NOT_LONG;
         }
 
@@ -377,7 +376,7 @@ unsafe fn lbs_init() {
         value: *mut u8,
         len: u16,
         offset: u16,
-        method: u8,
+        _method: u8,
     ) -> u8 {
         let uuid = &((*attr).type_);
         println!("! LBS write ATTR: {:?}", uuid);
@@ -549,7 +548,7 @@ static CONN_HANDLE: AtomicU16 = AtomicU16::new(INVALID_CONNHANDLE);
 #[embassy_executor::task]
 async fn button_task(pin: AnyPin) {
     // active low
-    let mut button = Input::new(pin, Pull::Up);
+    let button = Input::new(pin, Pull::Up);
 
     static mut NOTIFY_MSG: gattMsg_t = gattMsg_t {
         handleValueNoti: attHandleValueNoti_t {
@@ -562,7 +561,7 @@ async fn button_task(pin: AnyPin) {
     let mut ticker = Ticker::every(Duration::from_millis(1000));
 
     loop {
-        Timer::after(Duration::from_millis(1000)).await;
+        ticker.next().await;
 
         let conn_handle = CONN_HANDLE.load(Ordering::Relaxed);
         if conn_handle == INVALID_CONNHANDLE {
@@ -591,8 +590,6 @@ async fn button_task(pin: AnyPin) {
 
 #[embassy_executor::main(entry = "ch32v_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
-    use hal::ble::ffi::*;
-
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();
     let p = hal::init(config);
@@ -630,7 +627,7 @@ async fn main(spawner: Spawner) -> ! {
     let mut ble_config = ble::Config::default();
     ble_config.pa_config = None;
     ble_config.use_factory_mac_address(); // load mac from factory flash
-    let (task_id, mut sub) = hal::ble::init(ble_config).unwrap();
+    let (task_id, sub) = hal::ble::init(ble_config).unwrap();
     println!("BLE hal task id: {}", task_id);
 
     let _ = GAPRole::peripheral_init().unwrap();
@@ -683,7 +680,7 @@ async fn mainloop(task_id: u8, mut sub: EventSubscriber, led: AnyPin) -> ! {
                         println!("button state subscribed");
                         CONN_HANDLE.store(conn_handle, Ordering::Relaxed);
                     }
-                    AppEvent::ButtonStateUnsubscribed(conn_handle) => {
+                    AppEvent::ButtonStateUnsubscribed(_conn_handle) => {
                         println!("button state unsubscribed");
                         CONN_HANDLE.store(INVALID_CONNHANDLE, Ordering::Relaxed);
                     }
@@ -695,7 +692,6 @@ async fn mainloop(task_id: u8, mut sub: EventSubscriber, led: AnyPin) -> ! {
                         }
                         LED_STATE.store(on, Ordering::Relaxed);
                     }
-                    _ => {}
                 }
             }
         }

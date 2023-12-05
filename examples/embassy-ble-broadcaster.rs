@@ -17,53 +17,55 @@ use hal::uart::UartTx;
 use hal::{ble, peripherals, println};
 
 // GAP - SCAN RSP data (max size = 31 bytes)
-static mut SCAN_RSP_DATA: [u8; 16] = [
-    // complete name
-    0x0c, // length of this data
-    GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-    0x42, // 'B'
-    0x72, // 'r'
-    0x6f, // 'o'
-    0x61, // 'a'
-    0x64, // 'd'
-    0x63, // 'c'
-    0x61, // 'a'
-    0x73, // 's'
-    0x74, // 't'
-    0x65, // 'e'
-    0x72, // 'r'
-    // Tx power level
-    0x02, // length of this data
-    GAP_ADTYPE_POWER_LEVEL,
-    0, // 0dBm
-];
+static mut SCAN_RSP_DATA: [u8; 16] =
+    [
+        // complete name
+        0x0c, // length of this data
+        GAP_ADTYPE_LOCAL_NAME_COMPLETE,
+        0x42, // 'B'
+        0x72, // 'r'
+        0x6f, // 'o'
+        0x61, // 'a'
+        0x64, // 'd'
+        0x63, // 'c'
+        0x61, // 'a'
+        0x73, // 's'
+        0x74, // 't'
+        0x65, // 'e'
+        0x72, // 'r'
+        // Tx power level
+        0x02, // length of this data
+        GAP_ADTYPE_POWER_LEVEL,
+        0, // 0dBm
+    ];
 // GAP - Advertisement data (max size = 31 bytes, though this is
 // best kept short to conserve power while advertisting)
-static mut ADVERT_DATA: [u8; 22] = [
-    0x02, // length of this data
-    GAP_ADTYPE_FLAGS,
-    GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
-    // https://www.bluetooth.com/specifications/assigned-numbers/
-    0x04,                             // length of this data including the data type byte
-    GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
-    0xD7,
-    0x07, // 0x07D7, Nanjing Qinheng Microelectronics Co., Ltd.
-    0x01,
-    0x0a, // len
-    GAP_ADTYPE_LOCAL_NAME_SHORT,
-    b'c',
-    b'h',
-    b'5',
-    b'8',
-    b'x',
-    b'-',
-    b'h',
-    b'a',
-    b'l',
-    0x02, // len
-    GAP_ADTYPE_POWER_LEVEL,
-    0, // 0dBm
-];
+static mut ADVERT_DATA: [u8; 22] =
+    [
+        0x02, // length of this data
+        GAP_ADTYPE_FLAGS,
+        GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
+        // https://www.bluetooth.com/specifications/assigned-numbers/
+        0x04,                             // length of this data including the data type byte
+        GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
+        0xD7,
+        0x07, // 0x07D7, Nanjing Qinheng Microelectronics Co., Ltd.
+        0x01,
+        0x0a, // len
+        GAP_ADTYPE_LOCAL_NAME_SHORT,
+        b'c',
+        b'h',
+        b'5',
+        b'8',
+        b'x',
+        b'-',
+        b'h',
+        b'a',
+        b'l',
+        0x02, // len
+        GAP_ADTYPE_POWER_LEVEL,
+        0, // 0dBm
+    ];
 
 #[embassy_executor::task]
 async fn blink(pin: AnyPin) {

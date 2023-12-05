@@ -102,82 +102,83 @@ static mut SYSTEM_ID: [u8; 8] = [0u8; 8];
 // The list must start with a Service attribute followed by
 // all attributes associated with this Service attribute.
 // Must use static mut fixed sized array, as it will be changed by Service to assign handles.
-static mut DEVICE_INFO_TABLE: [GattAttribute; 7] = [
-    // Device Information Service
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
+static mut DEVICE_INFO_TABLE: [GattAttribute; 7] =
+    [
+        // Device Information Service
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            // The first must be a Service attribute
+            value: &GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: &gatt_uuid::DEVINFO_SERV_UUID as *const _ as _,
+            } as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        // The first must be a Service attribute
-        value: &GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &gatt_uuid::DEVINFO_SERV_UUID as *const _ as _,
-        } as *const _ as _,
-    },
-    // System ID Declaration
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        // System ID Declaration
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: &GATT_PROP_READ as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: &GATT_PROP_READ as *const _ as _,
-    },
-    // System ID Value
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &gatt_uuid::SYSTEM_ID_UUID as *const _ as _,
+        // System ID Value
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: &gatt_uuid::SYSTEM_ID_UUID as *const _ as _,
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: unsafe { SYSTEM_ID.as_ptr() },
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: unsafe { SYSTEM_ID.as_ptr() },
-    },
-    // Serial Number String Declaration
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        // Serial Number String Declaration
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: &GATT_PROP_READ as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: &GATT_PROP_READ as *const _ as _,
-    },
-    // Serial Number Value
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &gatt_uuid::SERIAL_NUMBER_UUID as *const _ as _,
+        // Serial Number Value
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: &gatt_uuid::SERIAL_NUMBER_UUID as *const _ as _,
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: ptr::null(),
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: ptr::null(),
-    },
-    // Temperature
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        // Temperature
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: &GATT_PROP_READ as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: &GATT_PROP_READ as *const _ as _,
-    },
-    // Serial Number Value
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &gatt_uuid::TEMP_UUID as *const _ as _,
+        // Serial Number Value
+        GattAttribute {
+            type_: GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: &gatt_uuid::TEMP_UUID as *const _ as _,
+            },
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: ptr::null(),
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: ptr::null(),
-    },
-];
+    ];
 
 #[inline]
 unsafe fn devinfo_init() {

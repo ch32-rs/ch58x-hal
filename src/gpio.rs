@@ -303,11 +303,12 @@ pub(crate) unsafe fn init() {
 fn irq_handler<const N: usize>(port: u8, wakers: &[AtomicWaker; N]) {
     let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
 
-    let int_if = if port == 0 {
-        gpioctl.pa_int_if.read().bits()
-    } else {
-        gpioctl.pb_int_if.read().bits()
-    };
+    let int_if =
+        if port == 0 {
+            gpioctl.pa_int_if.read().bits()
+        } else {
+            gpioctl.pb_int_if.read().bits()
+        };
     for pin in 0..16 {
         if int_if & (1 << pin) == 0 {
             continue;
