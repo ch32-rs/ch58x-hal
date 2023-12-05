@@ -6,9 +6,7 @@ use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::i2c::{self, I2c};
 use hal::peripherals;
 use hal::prelude::*;
-// use hal::interrupt::Interrupt;
 use hal::rtc::Rtc;
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use {ch58x_hal as hal, panic_halt as _};
 
@@ -316,13 +314,9 @@ impl<'d> MPU6050<'d> {
 
 #[ch32v_rt::entry]
 fn main() -> ! {
-    // LED PA8
-
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz();
     let p = hal::init(config);
-
-    let mut delay = SysTick::new(p.SYSTICK);
 
     // GPIO
     let mut led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
@@ -363,6 +357,6 @@ fn main() -> ! {
         let gyro = mpu6050.read_gyro().unwrap();
         println!("gyro: {:?}", gyro);
 
-        delay.delay_ms(500);
+        hal::delay_ms(500);
     }
 }

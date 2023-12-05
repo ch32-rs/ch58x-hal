@@ -6,7 +6,6 @@ use embedded_hal_1::delay::DelayUs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 // use hal::interrupt::Interrupt;
 use hal::rtc::{DateTime, Rtc};
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{peripherals, with_safe_access};
 use {ch58x_hal as hal, panic_halt as _};
@@ -34,8 +33,6 @@ fn main() -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz();
     let p = hal::init(config);
-
-    let mut delay = SysTick::new(p.SYSTICK);
 
     // GPIO
     let mut led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
@@ -72,7 +69,7 @@ fn main() -> ! {
         led.toggle();
         println!("tick");
 
-        delay.delay_ms(1000);
+        hal::delay_ms(1000);
 
         /*
         while download_button.is_low() {}

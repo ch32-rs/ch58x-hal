@@ -12,21 +12,15 @@ use hal::interrupt::Interrupt;
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
 use hal::sysctl::Config;
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
 #[ch32v_rt::entry]
 fn main() -> ! {
-    // hal::sysctl::Config::pll_60mhz().freeze();
-    //hal::sysctl::Config::pll_60mhz().enable_lse().freeze();
-    //hal::sysctl::Config::with_lsi_32k().freeze();
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();
     let p = hal::init(config);
-
-    let mut delay = SysTick::new(p.SYSTICK);
 
     // LED PA8
     let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
@@ -69,7 +63,7 @@ fn main() -> ! {
         // writeln!(uart, "2s {:?}", rtc.counter_2s()).unwrap();
 
         //  writeln!(uart, "tick! {}", SysTick::now()).unwrap();
-        delay.delay_ms(1000);
+        hal::delay_ms(1000);
 
         let now = rtc.now();
         writeln!(

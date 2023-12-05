@@ -11,7 +11,6 @@ use hal::interrupt::Interrupt;
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
 use hal::sysctl::Config;
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
@@ -29,8 +28,6 @@ fn main() -> ! {
 
     //let p = Peripherals::take();
     let p = hal::init(config);
-
-    let mut delay = SysTick::new(p.SYSTICK);
 
     let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
 

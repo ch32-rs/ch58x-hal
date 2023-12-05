@@ -13,7 +13,6 @@ use hal::interrupt::Interrupt;
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
 use hal::sysctl::Config;
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
@@ -25,8 +24,6 @@ fn main() -> ! {
 
     let p = hal::init(config);
 
-    let mut delay = SysTick::new(p.SYSTICK);
-
     // LED PA8
     let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
 
@@ -36,7 +33,7 @@ fn main() -> ! {
     let mut reset_button = Input::new(p.PB23, Pull::Up);
     let mut rtc = Rtc {};
 
-    serial.blocking_flush();
+    serial.blocking_flush().unwrap();
     //      rtc.set_datatime(DateTime {
     //        year: 2023,
     //        month: 10,
@@ -48,7 +45,7 @@ fn main() -> ! {
 
     writeln!(serial, "\n\n\nHello World!").unwrap();
     writeln!(serial, "Clocks: {}", hal::sysctl::clocks().hclk).unwrap();
-    writeln!(serial, "ChipID: {:02x}", hal::signature::get_chip_id());
+    writeln!(serial, "ChipID: {:02x}", hal::signature::get_chip_id()).unwrap();
     let now = rtc.now();
     writeln!(serial, "Boot time: {} weekday={}", now, now.isoweekday()).unwrap();
 
@@ -59,7 +56,7 @@ fn main() -> ! {
     // writeln!(serial, "mias: 0x{:08x?}", mias.bits());
 
     // ADC part
-    let mut adc_config = hal::adc::Config::for_temperature();
+    let adc_config = hal::adc::Config::for_temperature();
     let mut adc = Adc::new(p.ADC, adc_config);
 
     let mut temp_sensor = adc.enable_temperature();
@@ -87,6 +84,6 @@ fn main() -> ! {
         )
         .unwrap();
 
-        delay.delay_ms(1000);
+        hal::delay_ms(1000);
     }
 }

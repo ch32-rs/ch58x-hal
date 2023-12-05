@@ -9,7 +9,6 @@ use embedded_hal_1::delay::DelayUs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::peripherals;
 use hal::rtc::{DateTime, Rtc};
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 
 static mut SERIAL: Option<UartTx<peripherals::UART1>> = None;
@@ -47,8 +46,6 @@ fn main() -> ! {
     config.clock.use_pll_60mhz().enable_lse();
     let p = hal::init(config);
 
-    let mut delay = SysTick::new(p.SYSTICK);
-
     // GPIO
     let mut led = Output::new(p.PB4, Level::Low, OutputDrive::_5mA);
     let boot_btn = Input::new(p.PB22, Pull::Up);
@@ -70,7 +67,7 @@ fn main() -> ! {
         led.toggle();
         println!("tick");
 
-        delay.delay_ms(1000);
+        hal::delay_ms(1000);
 
         println!("button: {} {}", boot_btn.is_low(), rst_btn.is_low());
 

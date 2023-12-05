@@ -13,7 +13,6 @@ use hal::interrupt::Interrupt;
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
 use hal::sysctl::Config;
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
@@ -24,8 +23,6 @@ fn main() -> ! {
     config.clock.use_pll_60mhz().enable_lse();
 
     let p = hal::init(config);
-
-    let mut delay = SysTick::new(p.SYSTICK);
 
     // LED PA8
     let mut blue_led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
@@ -80,6 +77,6 @@ fn main() -> ! {
         )
         .unwrap();
 
-        delay.delay_ms(1000);
+        hal::delay_ms(1000);
     }
 }

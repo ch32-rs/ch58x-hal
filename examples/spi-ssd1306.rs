@@ -19,7 +19,6 @@ use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::prelude::*;
 use hal::rtc::Rtc;
 use hal::spi::{BitOrder, Spi};
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{delay_ms, pac, peripherals, with_safe_access};
 use ssd1306::prelude::*;
@@ -61,8 +60,6 @@ fn main() -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz();
     let p = hal::init(config);
-
-    let mut delay = SysTick::new(p.SYSTICK);
 
     // GPIO
     let mut led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
@@ -119,7 +116,7 @@ fn main() -> ! {
             .unwrap();
         display.flush().unwrap();
 
-        delay.delay_ms(5);
+        hal::delay_ms(5);
     }
     for i in 0..32 {
         // display.clear(BinaryColor::Off).unwrap();
@@ -133,7 +130,7 @@ fn main() -> ! {
             .unwrap();
         display.flush().unwrap();
 
-        delay.delay_ms(5);
+        hal::delay_ms(5);
     }
 
     display.clear(BinaryColor::Off).unwrap();
@@ -153,7 +150,7 @@ fn main() -> ! {
         .unwrap();
 
     display.flush().unwrap();
-    delay.delay_ms(1000);
+    hal::delay_ms(1000);
 
     display.clear(BinaryColor::Off).unwrap();
     display.flush().unwrap();

@@ -10,7 +10,8 @@ use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_time::{Delay, Duration, Instant, Timer};
 use hal::ble::ffi::*;
-use hal::ble::get_raw_temperature;
+use hal::ble::gap::*;
+use hal::ble::gattservapp::*;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pin, Pull};
 use hal::interrupt::Interrupt;
 use hal::prelude::*;
@@ -134,8 +135,8 @@ fn peripheral_init() {
 
     // Initialize GATT attributes
     unsafe {
-        GGS_AddService(GATT_ALL_SERVICES); // GAP
-        GATTServApp::add_service(GATT_ALL_SERVICES); // GATT attributes
+        GGS_AddService(GATT_ALL_SERVICES).unwrap(); // GAP
+        GATTServApp::add_service(GATT_ALL_SERVICES).unwrap(); // GATT attributes
     }
 
     // Setup the SimpleProfile Characteristic Values
@@ -153,9 +154,9 @@ fn peripheral_init() {
 
 #[embassy_executor::task]
 async fn peripheral(task_id: u8, subscriber: ble::EventSubscriber) {
-    unsafe extern "C" fn on_state_change(new_state: gapRole_States_t, pEvent: *mut gapRoleEvent_t) {
+    unsafe extern "C" fn on_state_change(new_state: gapRole_States_t, event: *mut gapRoleEvent_t) {
         println!("in on_state_change: {}", new_state);
-        let event = &*pEvent;
+        let event = &*event;
 
         match new_state {
             GAPROLE_STARTED => {
@@ -171,10 +172,10 @@ async fn peripheral(task_id: u8, subscriber: ble::EventSubscriber) {
                     println!("  disconnected .. reason {:x}", event.linkTerminate.reason);
                     // restart advertising here
                     let mut ret: u32 = 0;
-                    GAPRole_GetParameter(GAPROLE_ADVERT_ENABLED, &mut ret as *mut _ as *mut c_void);
+                    GAPRole_GetParameter(GAPROLE_ADVERT_ENABLED, &mut ret as *mut _ as *mut c_void).unwrap();
                     println!("GAPROLE_ADVERT_ENABLED: {}", ret);
 
-                    GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _);
+                    GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, 1, &true as *const _ as _).unwrap();
                 } else {
                     println!("unknown event: {}", event.gap.opcode);
                 }
@@ -193,15 +194,15 @@ async fn peripheral(task_id: u8, subscriber: ble::EventSubscriber) {
     unsafe extern "C" fn on_rssi_read(conn_handle: u16, rssi: i8) {
         println!("RSSI -{} dB Conn {:x}", -rssi, conn_handle);
     }
-    unsafe extern "C" fn on_param_update(connHandle: u16, connInterval: u16, connSlaveLatency: u16, connTimeout: u16) {
+    unsafe extern "C" fn on_param_update(conn_handle: u16, interval: u16, slave_latency: u16, timeout: u16) {
         println!(
             "on_param_update Conn handle: {} inverval: {} timeout: {}",
-            connHandle, connInterval, connTimeout
+            conn_handle, interval, timeout
         );
     }
 
     unsafe {
-        static bond_mgr_cb: gapBondCBs_t = gapBondCBs_t {
+        static BOND_MGR_CB: gapBondCBs_t = gapBondCBs_t {
             passcodeCB: None,
             pairStateCB: None,
             oobCB: None,
@@ -209,13 +210,13 @@ async fn peripheral(task_id: u8, subscriber: ble::EventSubscriber) {
 
         // peripheralStateNotificationCB
 
-        static app_cb: gapRolesCBs_t = gapRolesCBs_t {
+        static APP_CB: gapRolesCBs_t = gapRolesCBs_t {
             pfnStateChange: Some(on_state_change),
             pfnRssiRead: Some(on_rssi_read),
             pfnParamUpdate: Some(on_param_update),
         };
         // Start the Device
-        GAPRole_PeripheralStartDevice(task_id, &bond_mgr_cb, &app_cb);
+        GAPRole_PeripheralStartDevice(task_id, &BOND_MGR_CB, &APP_CB).unwrap();
     }
 }
 
@@ -278,9 +279,7 @@ async fn mainloop() -> ! {
     loop {
         Timer::after(Duration::from_micros(300)).await;
         unsafe {
-            hal::interrupt::SysTick::pend();
             TMOS_SystemProcess();
-            hal::interrupt::SysTick::unpend();
         }
     }
 }

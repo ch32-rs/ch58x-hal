@@ -10,7 +10,6 @@ use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
 use hal::isp::EEPROM_BLOCK_SIZE;
 use hal::rtc::{DateTime, Rtc};
 use hal::sysctl::Config;
-use hal::systick::SysTick;
 use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
@@ -74,8 +73,6 @@ fn main() -> ! {
     config.clock.use_pll_60mhz();
     let p = hal::init(config);
 
-    let mut delay = SysTick::new(p.SYSTICK);
-
     let mut pa8 = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
 
     let mut download_button = Input::new(p.PB22, Pull::Up);
@@ -97,7 +94,7 @@ fn main() -> ! {
         unsafe {
             pa8.toggle();
 
-            delay.delay_ms(100);
+            hal::delay_ms(100);
 
             while download_button.is_low() {}
 
