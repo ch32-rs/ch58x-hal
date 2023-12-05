@@ -421,6 +421,7 @@ pub const GAP_ADTYPE_16BIT_COMPLETE: u8 = 3;
 pub const GAP_ADTYPE_32BIT_MORE: u8 = 4;
 pub const GAP_ADTYPE_32BIT_COMPLETE: u8 = 5;
 pub const GAP_ADTYPE_128BIT_MORE: u8 = 6;
+/// Service: Complete list of 128-bit UUIDs
 pub const GAP_ADTYPE_128BIT_COMPLETE: u8 = 7;
 /// Shortened local name
 pub const GAP_ADTYPE_LOCAL_NAME_SHORT: u8 = 8;

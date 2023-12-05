@@ -291,69 +291,52 @@ const BLINKY_CMD_UUID: u16 = 0xFFE3;
 
 static mut BLINKY_CLIENT_CHARCFG: [gattCharCfg_t; 4] = unsafe { core::mem::zeroed() };
 
-static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] = [
-    // Blinky Service
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::primaryServiceUUID.as_ptr() },
+static mut BLINKY_ATTR_TABLE: [GattAttribute; 6] =
+    [
+        // Blinky Service
+        GattAttribute {
+            type_: GattAttrType::PRIMARY_SERVICE,
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: &GattAttrType {
+                len: ATT_BT_UUID_SIZE,
+                uuid: &BLINKY_SERV_UUID as *const _ as _,
+            } as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: &GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &BLINKY_SERV_UUID as *const _ as _,
-        } as *const _ as _,
-    },
-    // Blinky Data Declaration and Value
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        // Blinky Data Declaration and Value
+        GattAttribute {
+            type_: GattAttrType::CHARACTERISTIC,
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: &(GATT_PROP_NOTIFY | GATT_PROP_READ) as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: &(GATT_PROP_NOTIFY | GATT_PROP_READ) as *const _ as _,
-    },
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &BLINKY_DATA_UUID as *const _ as _,
+        GattAttribute {
+            type_: GattAttrType::new_u16(&BLINKY_DATA_UUID),
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: ptr::null(), // this will be filled in read callback
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: ptr::null(), // this will be filled in read callback
-    },
-    // Blinky client config
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::clientCharCfgUUID.as_ptr() },
+        // Blinky client config
+        GattAttribute {
+            type_: GattAttrType::CLIENT_CHAR_CFG,
+            permissions: GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+            handle: 0,
+            value: unsafe { BLINKY_CLIENT_CHARCFG.as_ptr() as _ },
         },
-        permissions: GATT_PERMIT_READ | GATT_PERMIT_WRITE,
-        handle: 0,
-        value: unsafe { BLINKY_CLIENT_CHARCFG.as_ptr() as _ },
-    },
-    // Command
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: unsafe { gatt_uuid::characterUUID.as_ptr() },
+        // Command
+        GattAttribute {
+            type_: GattAttrType::CHARACTERISTIC,
+            permissions: GATT_PERMIT_READ,
+            handle: 0,
+            value: &GATT_PROP_WRITE as *const _ as _,
         },
-        permissions: GATT_PERMIT_READ,
-        handle: 0,
-        value: &GATT_PROP_WRITE as *const _ as _,
-    },
-    GattAttribute {
-        type_: GattAttrType {
-            len: ATT_BT_UUID_SIZE,
-            uuid: &BLINKY_CMD_UUID as *const _ as _,
+        GattAttribute {
+            type_: GattAttrType::new_u16(&BLINKY_CMD_UUID),
+            permissions: GATT_PERMIT_WRITE,
+            handle: 0,
+            value: ptr::null(),
         },
-        permissions: GATT_PERMIT_WRITE,
-        handle: 0,
-        value: ptr::null(),
-    },
-];
+    ];
 
 unsafe fn blinky_init() {
     unsafe extern "C" fn blinky_on_read_attr(
