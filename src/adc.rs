@@ -125,7 +125,7 @@ impl_adc_pin!(ADC, PA8, 12);
 impl_adc_pin!(ADC, PA9, 13);
 impl_adc_pin!(ADC, PA4, 0);
 impl_adc_pin!(ADC, PA5, 1);
-impl_adc_pin!(ADC, PA6, 2);
+impl_adc_pin!(ADC, PA6, 10);
 impl_adc_pin!(ADC, PA0, 9);
 impl_adc_pin!(ADC, PA1, 8);
 impl_adc_pin!(ADC, PA2, 7);
