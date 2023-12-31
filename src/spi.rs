@@ -287,6 +287,17 @@ mod eh02 {
             self.blocking_write(words)
         }
     }
+
+    impl<'d, T: Instance> embedded_hal_02::blocking::spi::Transfer<u8> for Spi<'d, T> {
+        type Error = Error;
+
+        fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
+            self.blocking_write(words)?;
+            self.blocking_read(words)?;
+
+            Ok(words)
+        }
+    }
 }
 
 // - instance trait

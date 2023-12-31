@@ -194,7 +194,7 @@ pub fn init(
     cfg.srandCB = Some(srand); // tmos_rand will call this
 
     cfg.rcCB = None; // use LSE, no calibrate
-    cfg.tsCB = Some(get_raw_temperature);
+    cfg.tsCB = Some(temperature_raw);
 
     // No need to set HAL_SLEEP(WakeUpTIme, sleepCB)
 
@@ -226,7 +226,8 @@ pub unsafe extern "C" fn srand() -> u32 {
     systick.cnt.read().bits() as u32
 }
 
-pub unsafe extern "C" fn get_raw_temperature() -> u16 {
+/// Get temperature reading in raw ADC value
+pub unsafe extern "C" fn temperature_raw() -> u16 {
     let mut regs: [u8; 4] = [0; 4];
 
     let rb = &*pac::ADC::PTR;
