@@ -268,35 +268,35 @@ impl<'d> MPU6050<'d> {
         }
 
         // get stable time source
-        self().write_byte(regs::PWR_MGMT_1, 0x01)?; // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001
+        self.write_byte(regs::PWR_MGMT_1, 0x01)?; // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001
 
         // Configure Gyro and Accelerometer
         // Disable FSYNC and set accelerometer and gyro bandwidth to 44 and 42 Hz, respectively;
         // DLPF_CFG = bits 2:0 = 010; this sets the sample rate at 1 kHz for both
         // Maximum delay time is 4.9 ms corresponding to just over 200 Hz sample rate
-        self().write_byte(regs::CONFIG, 0x03)?;
+        self.write_byte(regs::CONFIG, 0x03)?;
 
         // Set sample rate = gyroscope output rate/(1 + SMPLRT_DIV)
-        self().write_byte(regs::SMPLRT_DIV, 0x04)?; // Use a 200 Hz rate; the same rate set in CONFIG above
+        self.write_byte(regs::SMPLRT_DIV, 0x04)?; // Use a 200 Hz rate; the same rate set in CONFIG above
 
         // Set gyroscope full scale range
         // Range selects FS_SEL and AFS_SEL are 0 - 3, so 2-bit values are left-shifted into positions 4:3
         let c = self.read_byte(regs::GYRO_CONFIG)?;
-        self().write_byte(regs::GYRO_CONFIG, c & !0xE0)?; // Clear self-test bits [7:5]
-        self().write_byte(regs::GYRO_CONFIG, c & !0x18)?; // Clear AFS bits [4:3]
-        self().write_byte(regs::GYRO_CONFIG, c | (config.gyro_scale as u8) << 3)?; // Set full scale range for the gyro
+        self.write_byte(regs::GYRO_CONFIG, c & !0xE0)?; // Clear self-test bits [7:5]
+        self.write_byte(regs::GYRO_CONFIG, c & !0x18)?; // Clear AFS bits [4:3]
+        self.write_byte(regs::GYRO_CONFIG, c | (config.gyro_scale as u8) << 3)?; // Set full scale range for the gyro
 
         // Set accelerometer configuration
         let c = self.read_byte(regs::ACCEL_CONFIG)?;
-        self().write_byte(regs::ACCEL_CONFIG, c & !0xE0)?; // Clear self-test bits [7:5]
-        self().write_byte(regs::ACCEL_CONFIG, c & !0x18)?; // Clear AFS bits [4:3]
-        self().write_byte(regs::ACCEL_CONFIG, c | (config.accel_scale as u8) << 3)?; // Set full scale range for the accelerometer
+        self.write_byte(regs::ACCEL_CONFIG, c & !0xE0)?; // Clear self-test bits [7:5]
+        self.write_byte(regs::ACCEL_CONFIG, c & !0x18)?; // Clear AFS bits [4:3]
+        self.write_byte(regs::ACCEL_CONFIG, c | (config.accel_scale as u8) << 3)?; // Set full scale range for the accelerometer
 
         // Configure Interrupts and Bypass Enable
         // Set interrupt pin active high, push-pull, and clear on read of INT_STATUS, enable I2C_BYPASS_EN so additional chips
         // can join the I2C bus and all can be controlled by the Arduino as master
-        self().write_byte(regs::INT_PIN_CFG, 0x22)?;
-        self().write_byte(regs::INT_ENABLE, 0x01)?; // Enable data ready (bit 0) interrupt
+        self.write_byte(regs::INT_PIN_CFG, 0x22)?;
+        self.write_byte(regs::INT_ENABLE, 0x01)?; // Enable data ready (bit 0) interrupt
 
         Ok(())
     }

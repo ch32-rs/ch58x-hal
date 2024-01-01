@@ -29,8 +29,7 @@ macro_rules! println {
     }
 }
 
-#[qingke_rt::interrupt]
-fn RTC() {
+extern "C" fn RTC() {
     let mut rtc = Rtc;
 
     rtc.ack_timing();
@@ -39,8 +38,7 @@ fn RTC() {
     println!("Current time: {} weekday={}", now, now.isoweekday());
     //  writeln!(uart, "mepc: {:08x}", riscv::register::mepc::read()).unwrap();
 }
-#[qingke_rt::interrupt]
-fn HardFault() {
+extern "C" fn HardFault() {
     let pa8 = unsafe { hal::peripherals::PA8::steal() };
     let mut led = Output::new(pa8, Level::Low, OutputDrive::_20mA);
 
@@ -89,8 +87,9 @@ fn main() -> ! {
     let pfic = unsafe { &*pac::PFIC::PTR };
 
     rtc.enable_timing(hal::rtc::TimingMode::_2S);
-    unsafe { pfic.ienr1.write(|w| w.bits(1 << 28)) }; // enable rtc irq
-
+    unsafe {
+        qingke::pfic::enable_interrupt(pac::Interrupt::RTC as u8);
+    }
     loop {
         unsafe {
             pa8.toggle();

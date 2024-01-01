@@ -49,9 +49,9 @@ fn main() -> ! {
     loop {
         blue_led.toggle();
 
-        let data = adc().read(&mut pin);
+        let data = adc.read(&mut pin);
         writeln!(serial, "adc raw data: {}", data).unwrap();
-        let vi = adc().read_as_millivolts(&mut pin);
+        let vi = adc.read_as_millivolts(&mut pin);
         writeln!(serial, "Vbat voltage: {}mV", vi).unwrap();
 
         writeln!(

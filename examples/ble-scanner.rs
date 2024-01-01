@@ -142,9 +142,7 @@ async fn main(spawner: Spawner) -> ! {
     loop {
         Timer::after(Duration::from_micros(300)).await;
         unsafe {
-            hal::interrupt::SysTick::pend();
             TMOS_SystemProcess();
-            hal::interrupt::SysTick::unpend();
         }
 
         // println!("tick");

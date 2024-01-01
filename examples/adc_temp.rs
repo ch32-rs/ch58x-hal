@@ -59,12 +59,12 @@ fn main() -> ! {
 
         let now = rtc.now();
 
-        let raw_temp = adc().read(&mut temp_sensor);
+        let raw_temp = adc.read(&mut temp_sensor);
         writeln!(serial, "ADC raw data: {}", raw_temp).unwrap();
         let temp = adc_to_temperature_celsius(raw_temp);
         writeln!(serial, "sensor temp: {}C", temp).unwrap();
 
-        let vi = adc().read_as_millivolts(&mut temp_sensor);
+        let vi = adc.read_as_millivolts(&mut temp_sensor);
         writeln!(serial, "ADC voltage: {}mV", vi).unwrap();
 
         writeln!(
