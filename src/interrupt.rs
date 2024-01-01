@@ -1,10 +1,7 @@
 use core::sync::atomic::{compiler_fence, Ordering};
-use core::{mem, ptr};
 
 pub use qingke::interrupt::Priority;
-use qingke_rt::CoreInterrupt as CoreInterruptEnum;
 
-use crate::pac;
 use crate::pac::interrupt::Interrupt as InterruptEnum;
 use crate::pac::__EXTERNAL_INTERRUPTS as _;
 

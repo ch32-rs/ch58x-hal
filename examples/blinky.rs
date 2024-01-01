@@ -14,8 +14,6 @@ fn main() -> ! {
 
     let mut delay = CycleDelay;
 
-    let mut rtc = hal::rtc::Rtc;
-
     // LED PA8
     // let mut led = Output::new(p.PA8, Level::Low, OutputDrive::_5mA);
     let mut led = Output::new(p.PB18, Level::Low, OutputDrive::_5mA);
