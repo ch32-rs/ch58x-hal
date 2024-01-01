@@ -79,12 +79,12 @@ fn configure_pa(pa_config: PaConfig) {
 
     unsafe {
         PA_CONFIG.tx_pin = tx_pin._pin() as u32;
-        PA_CONFIG.txEnableGPIO = tx_pin.block().out.as_ptr() as u32;
-        PA_CONFIG.txDisableGPIO = tx_pin.block().clr.as_ptr() as u32;
+        PA_CONFIG.txEnableGPIO = tx_pin.block().out().as_ptr() as u32;
+        PA_CONFIG.txDisableGPIO = tx_pin.block().clr().as_ptr() as u32;
 
         PA_CONFIG.rx_pin = rx_pin._pin() as u32;
-        PA_CONFIG.rxEnableGPIO = rx_pin.block().out.as_ptr() as u32;
-        PA_CONFIG.rxDisableGPIO = rx_pin.block().clr.as_ptr() as u32;
+        PA_CONFIG.rxEnableGPIO = rx_pin.block().out().as_ptr() as u32;
+        PA_CONFIG.rxDisableGPIO = rx_pin.block().clr().as_ptr() as u32;
 
         let tx_pin = Output::new(tx_pin, Level::High, OutputDrive::_5mA);
         let rx_pin = Output::new(rx_pin, Level::Low, OutputDrive::_5mA);
@@ -223,7 +223,7 @@ pub fn init(
 
 pub unsafe extern "C" fn srand() -> u32 {
     let systick = unsafe { &*pac::SYSTICK::PTR };
-    systick.cnt.read().bits() as u32
+    systick.cnt().read().bits() as u32
 }
 
 /// Get temperature reading in raw ADC value
@@ -232,10 +232,10 @@ pub unsafe extern "C" fn temperature_raw() -> u16 {
 
     let rb = &*pac::ADC::PTR;
     let sys = &*pac::SYS::PTR; // TODO: refine rb
-    regs[0] = sys.tkey_cfg.read().bits();
-    regs[1] = rb.tem_sensor.read().bits();
-    regs[2] = rb.channel.read().bits();
-    regs[3] = rb.cfg.read().bits();
+    regs[0] = sys.tkey_cfg().read().bits();
+    regs[1] = rb.tem_sensor().read().bits();
+    regs[2] = rb.channel().read().bits();
+    regs[3] = rb.cfg().read().bits();
 
     let peri = crate::peripherals::ADC::steal();
     let mut adc = crate::adc::Adc::new(peri, crate::adc::Config::for_temperature());
@@ -245,10 +245,10 @@ pub unsafe extern "C" fn temperature_raw() -> u16 {
     core::mem::forget(adc);
 
     // restore regs
-    sys.tkey_cfg.write(|w| w.bits(regs[0]));
-    rb.tem_sensor.write(|w| w.bits(regs[1]));
-    rb.channel.write(|w| w.bits(regs[2]));
-    rb.cfg.write(|w| w.bits(regs[3]));
+    sys.tkey_cfg().write(|w| w.bits(regs[0]));
+    rb.tem_sensor().write(|w| w.bits(regs[1]));
+    rb.channel().write(|w| w.bits(regs[2]));
+    rb.cfg().write(|w| w.bits(regs[3]));
 
     data
 }

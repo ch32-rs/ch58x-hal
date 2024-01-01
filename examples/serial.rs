@@ -17,7 +17,7 @@ use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
-#[ch32v_rt::entry]
+#[qingke_rt::entry]
 fn main() -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();

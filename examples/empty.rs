@@ -24,7 +24,7 @@ macro_rules! println {
     }
 }
 
-#[ch32v_rt::entry]
+#[qingke_rt::entry]
 fn main() -> ! {
     // LED PA8
 

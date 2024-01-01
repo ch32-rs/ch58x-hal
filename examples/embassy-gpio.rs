@@ -48,7 +48,7 @@ async fn reset_if_requested(pin: AnyPin) {
     }
 }
 
-#[embassy_executor::main(entry = "ch32v_rt::entry")]
+#[embassy_executor::main(entry = "qingke_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();

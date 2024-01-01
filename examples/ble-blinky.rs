@@ -8,7 +8,7 @@ use core::mem::{size_of_val, MaybeUninit};
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::{ptr, slice};
 
-use ch32v_rt::highcode;
+use qingke_rt::highcode;
 use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_futures::select::{select, Either};
@@ -680,7 +680,7 @@ async fn handle_tmos_event(event: &TmosEvent) {
     }
 }
 
-#[embassy_executor::main(entry = "ch32v_rt::entry")]
+#[embassy_executor::main(entry = "qingke_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     use hal::ble::ffi::*;
 

@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use ch32v_rt::highcode;
+use qingke_rt::highcode;
 use embedded_hal_1::delay::DelayNs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 // use hal::interrupt::Interrupt;
@@ -25,7 +25,7 @@ macro_rules! println {
     }
 }
 
-#[ch32v_rt::entry]
+#[qingke_rt::entry]
 #[highcode]
 fn main() -> ! {
     // LED PA8

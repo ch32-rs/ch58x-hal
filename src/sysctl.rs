@@ -109,16 +109,16 @@ impl Config {
         match self.clock32ksrc {
             Clock32KSrc::LSE => {
                 with_safe_access(|| {
-                    sys.ck32k_config.modify(|_, w| w.clk_xt32k_pon().set_bit());
+                    sys.ck32k_config().modify(|_, w| w.clk_xt32k_pon().set_bit());
                 });
                 unsafe {
                     riscv::asm::delay(clocks().hclk.to_Hz() / 10 / 4);
                 }
                 //with_safe_access(|| unsafe {
-                //    sys.xt32k_tune.modify(|_, w| w.xt32k_i_tune().bits(0b01));
+                //    sys.xt32k_tune().modify(|_, w| w.xt32k_i_tune().bits(0b01));
                 //});
                 with_safe_access(|| {
-                    sys.ck32k_config.modify(|_, w| w.clk_osc32k_xt().set_bit());
+                    sys.ck32k_config().modify(|_, w| w.clk_osc32k_xt().set_bit());
                 });
                 unsafe {
                     riscv::asm::delay(clocks().hclk.to_Hz() / 1000);
@@ -126,27 +126,27 @@ impl Config {
             }
             Clock32KSrc::LSI => {
                 with_safe_access(|| {
-                    sys.ck32k_config
+                    sys.ck32k_config()
                         .modify(|_, w| w.clk_osc32k_xt().clear_bit().clk_int32k_pon().set_bit());
                 });
             }
         }
 
         with_safe_access(|| unsafe {
-            sys.pll_config.modify(|r, w| w.bits(r.bits() & !(1 << 5)));
+            sys.pll_config().modify(|r, w| w.bits(r.bits() & !(1 << 5)));
         });
         let hclk = match self.mux {
             ClockSrc::HSE(div) => {
                 assert!(div != 1, "1 means close HCLK");
-                if sys.hfck_pwr_ctrl.read().clk_xt32m_pon().bit_is_clear() {
+                if sys.hfck_pwr_ctrl().read().clk_xt32m_pon().bit_is_clear() {
                     // HSE power on
-                    with_safe_access(|| sys.hfck_pwr_ctrl.modify(|_, w| w.clk_xt32m_pon().set_bit()));
+                    with_safe_access(|| sys.hfck_pwr_ctrl().modify(|_, w| w.clk_xt32m_pon().set_bit()));
                     unsafe {
                         riscv::asm::delay(2400);
                     }
                 }
                 with_safe_access(|| unsafe {
-                    sys.clk_sys_cfg
+                    sys.clk_sys_cfg()
                         .write(|w| w.clk_sys_mod().variant(0b00).clk_pll_div().variant(div & 0x1f));
                     riscv::asm::nop();
                     riscv::asm::nop();
@@ -158,21 +158,21 @@ impl Config {
                     riscv::asm::nop();
                 }
                 with_safe_access(|| unsafe {
-                    sys.flash_cfg.write(|w| w.bits(0x51));
+                    sys.flash_cfg().write(|w| w.bits(0x51));
                 });
                 Hertz::from_raw(HSE_FREQUENCY.to_Hz() / (div as u32))
             }
             ClockSrc::PLL(div) => {
                 assert!(div != 1, "1 means close HCLK");
-                if sys.hfck_pwr_ctrl.read().clk_pll_pon().bit_is_clear() {
+                if sys.hfck_pwr_ctrl().read().clk_pll_pon().bit_is_clear() {
                     // HSE power on
-                    with_safe_access(|| sys.hfck_pwr_ctrl.modify(|_, w| w.clk_pll_pon().set_bit()));
+                    with_safe_access(|| sys.hfck_pwr_ctrl().modify(|_, w| w.clk_pll_pon().set_bit()));
                     unsafe {
                         riscv::asm::delay(4000);
                     }
                 }
                 with_safe_access(|| unsafe {
-                    sys.clk_sys_cfg
+                    sys.clk_sys_cfg()
                         .write(|w| w.clk_sys_mod().bits(0b01).clk_pll_div().bits(div & 0x1f));
                     riscv::asm::nop();
                     riscv::asm::nop();
@@ -182,11 +182,11 @@ impl Config {
                 if div == 6 {
                     // 80MHz
                     with_safe_access(|| unsafe {
-                        sys.flash_cfg.modify(|_, w| w.bits(0x02));
+                        sys.flash_cfg().modify(|_, w| w.bits(0x02));
                     });
                 } else {
                     with_safe_access(|| unsafe {
-                        sys.flash_cfg.modify(|_, w| w.bits(0x52));
+                        sys.flash_cfg().modify(|_, w| w.bits(0x52));
                     });
                 }
                 Hertz::from_raw(PLL_FREQUENCY.to_Hz() / (div as u32))
@@ -194,13 +194,13 @@ impl Config {
             _ => {
                 // directly from CK32
                 with_safe_access(|| unsafe {
-                    sys.clk_sys_cfg.modify(|r, w| w.bits(r.bits() | 0xC0));
+                    sys.clk_sys_cfg().modify(|r, w| w.bits(r.bits() | 0xC0));
                 });
                 Hertz::from_raw(32_768)
             }
         };
         with_safe_access(|| unsafe {
-            sys.pll_config.modify(|r, w| w.bits(r.bits() | (1 << 7)));
+            sys.pll_config().modify(|r, w| w.bits(r.bits() | (1 << 7)));
         });
 
         unsafe {

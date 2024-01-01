@@ -87,7 +87,7 @@ async fn observer() {
     }
 }
 
-#[embassy_executor::main(entry = "ch32v_rt::entry")]
+#[embassy_executor::main(entry = "qingke_rt::entry")]
 #[highcode]
 async fn main(spawner: Spawner) -> ! {
     use hal::ble::ffi::*;

@@ -166,7 +166,7 @@ where
         into_ref!(adc);
 
         let rb = T::regs();
-        rb.cfg.modify(|_, w| {
+        rb.cfg().modify(|_, w| {
             w.power_on()
                 .set_bit()
                 .diff_en()
@@ -184,7 +184,7 @@ where
 
     pub fn set_config(&self, config: Config) {
         let rb = T::regs();
-        rb.cfg.modify(|_, w| {
+        rb.cfg().modify(|_, w| {
             w.diff_en()
                 .bit(config.diff_en) // must for temp
                 .clk_div()
@@ -200,7 +200,7 @@ where
     pub fn enable_temperature(&self) -> Temperature {
         let rb = T::regs();
 
-        rb.tem_sensor.modify(|_, w| w.power_on().set_bit());
+        rb.tem_sensor().modify(|_, w| w.power_on().set_bit());
 
         Temperature {}
     }
@@ -214,11 +214,11 @@ where
         let rb = T::regs();
 
         // start adc convert
-        rb.convert.modify(|_, w| w.start().set_bit());
+        rb.convert().modify(|_, w| w.start().set_bit());
         // wait for convert
-        while rb.convert.read().start().bit_is_set() {}
+        while rb.convert().read().start().bit_is_set() {}
 
-        rb.data.read().data().bits()
+        rb.data().read().data().bits()
     }
 
     pub fn read(&mut self, pin: &mut impl AdcPin<T>) -> u16 {
@@ -230,7 +230,7 @@ where
         let channel = pin.channel();
 
         // Select channel
-        rb.channel.modify(|_, w| w.ch_idx().variant(channel));
+        rb.channel().modify(|_, w| w.ch_idx().variant(channel));
 
         self.convert()
     }
@@ -243,7 +243,7 @@ where
 
         let vref = 1050;
         // Ref: DS manual
-        match rb.cfg.read().pga_gain().bits() {
+        match rb.cfg().read().pga_gain().bits() {
             // -12dB, 1/4
             0b00 => (data as i32) * vref / 512 - 3 * vref,
             // -6dB, 1/2
@@ -261,7 +261,7 @@ impl<'d, T: Instance> Drop for Adc<'d, T> {
     fn drop(&mut self) {
         let rb = T::regs();
 
-        rb.cfg.modify(|_, w| w.power_on().clear_bit());
+        rb.cfg().modify(|_, w| w.power_on().clear_bit());
     }
 }
 

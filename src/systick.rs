@@ -15,7 +15,7 @@ impl<'d> SysTick<'d> {
 
         let ticks_per_second = crate::sysctl::clocks().hclk.to_Hz() as u64 / 8;
 
-        systick.ctlr.modify(|_, w| {
+        systick.ctlr().modify(|_, w| {
             w.init()
                 .set_bit()
                 .mode()
@@ -38,7 +38,7 @@ impl<'d> SysTick<'d> {
     pub fn now() -> u64 {
         let systick = unsafe { &*pac::SYSTICK::PTR };
 
-        systick.cnt.read().bits()
+        systick.cnt().read().bits()
     }
 }
 

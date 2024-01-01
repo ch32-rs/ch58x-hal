@@ -15,6 +15,7 @@ pub mod i2c;
 // pub mod lcd;
 #[cfg(feature = "ble")]
 pub mod ble;
+pub mod delay;
 pub mod rtc;
 pub mod signature;
 pub mod spi;
@@ -26,7 +27,7 @@ pub mod uart;
 
 pub mod interrupt;
 pub mod isp;
-pub mod rt;
+// pub mod rt;
 
 pub mod peripherals;
 
@@ -135,17 +136,17 @@ pub fn init(config: Config) -> Peripherals {
     let sys = unsafe { &*pac::SYS::PTR };
     if config.enable_dcdc {
         with_safe_access(|| {
-            sys.aux_power_adj.modify(|_, w| w.dcdc_charge().set_bit());
-            sys.power_plan.modify(|_, w| w.pwr_dcdc_pre().set_bit());
+            sys.aux_power_adj().modify(|_, w| w.dcdc_charge().set_bit());
+            sys.power_plan().modify(|_, w| w.pwr_dcdc_pre().set_bit());
         });
         delay_us(10);
         with_safe_access(|| {
-            sys.power_plan.modify(|_, w| w.pwr_dcdc_en().set_bit());
+            sys.power_plan().modify(|_, w| w.pwr_dcdc_en().set_bit());
         });
     } else {
         with_safe_access(|| {
-            sys.aux_power_adj.modify(|_, w| w.dcdc_charge().clear_bit());
-            sys.power_plan
+            sys.aux_power_adj().modify(|_, w| w.dcdc_charge().clear_bit());
+            sys.power_plan()
                 .modify(|_, w| w.pwr_dcdc_pre().clear_bit().pwr_dcdc_pre().clear_bit());
         });
     }
@@ -156,9 +157,9 @@ pub fn init(config: Config) -> Peripherals {
         unsafe {
             for rb in [&*pac::GPIOA::PTR, &*pac::GPIOB::PTR] {
                 // in pu
-                rb.pd_drv.write(|w| w.bits(0));
-                rb.pu.write(|w| w.bits(0xffff));
-                rb.dir.write(|w| w.bits(0));
+                rb.pd_drv().write(|w| w.bits(0));
+                rb.pu().write(|w| w.bits(0xffff));
+                rb.dir().write(|w| w.bits(0));
             }
         }
     }
@@ -170,7 +171,7 @@ pub fn init(config: Config) -> Peripherals {
 pub unsafe fn reset() -> ! {
     const KEY3: u16 = 0xBEEF;
     let pfic = unsafe { &*pac::PFIC::PTR };
-    pfic.cfgr.write(|w| w.keycode().variant(KEY3).resetsys().set_bit());
+    pfic.cfgr().write(|w| w.keycode().variant(KEY3).resetsys().set_bit());
     loop {}
 }
 
@@ -180,7 +181,7 @@ pub unsafe fn soft_reset() -> ! {
 
     let rb = unsafe { &*pac::SYS::PTR };
     with_safe_access(|| {
-        rb.rst_wdog_ctrl.modify(|_, w| w.software_reset().set_bit());
+        rb.rst_wdog_ctrl().modify(|_, w| w.software_reset().set_bit());
     });
     loop {}
 }

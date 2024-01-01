@@ -11,12 +11,12 @@ fn main() {
     }
 
     // Put the linker script somewhere the linker can find it.
-    fs::write(out_dir.join("link.x"), include_bytes!("link.x")).unwrap();
+  //  fs::write(out_dir.join("link.x"), include_bytes!("link.x")).unwrap();
 
-    //fs::write(out_dir.join("memory.x"), include_bytes!("memory.x")).unwrap();
+    fs::write(out_dir.join("memory.x"), include_bytes!("memory.x")).unwrap();
     println!("cargo:rustc-link-search={}", out_dir.display());
 
-    println!("cargo:rustc-link-search={}", out_dir.display());
+    //println!("cargo:rustc-link-search={}", out_dir.display());
 
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");

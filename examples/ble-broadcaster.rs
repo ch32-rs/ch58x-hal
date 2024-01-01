@@ -2,7 +2,7 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use ch32v_rt::highcode;
+use qingke_rt::highcode;
 use ch58x_hal as hal;
 use ch58x_hal::ble::gap::*;
 use embassy_executor::Spawner;
@@ -126,7 +126,7 @@ async fn mainloop() -> ! {
     }
 }
 
-#[embassy_executor::main(entry = "ch32v_rt::entry")]
+#[embassy_executor::main(entry = "qingke_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     use hal::ble::ffi::*;
 

@@ -17,7 +17,7 @@ use hal::uart::UartTx;
 use hal::{pac, peripherals, Peripherals};
 use {ch58x_hal as hal, panic_halt as _};
 
-#[ch32v_rt::entry]
+#[qingke_rt::entry]
 fn main() -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();
@@ -59,12 +59,12 @@ fn main() -> ! {
 
         let now = rtc.now();
 
-        let raw_temp = adc.read(&mut temp_sensor);
+        let raw_temp = adc().read(&mut temp_sensor);
         writeln!(serial, "ADC raw data: {}", raw_temp).unwrap();
         let temp = adc_to_temperature_celsius(raw_temp);
         writeln!(serial, "sensor temp: {}C", temp).unwrap();
 
-        let vi = adc.read_as_millivolts(&mut temp_sensor);
+        let vi = adc().read_as_millivolts(&mut temp_sensor);
         writeln!(serial, "ADC voltage: {}mV", vi).unwrap();
 
         writeln!(

@@ -57,11 +57,11 @@ impl SystickDriver {
         self.period.store(cnt_per_tick as u32, Ordering::Relaxed);
 
         // UNDOCUMENTED:  Avoid initial interrupt
-        rb.cmp.write(|w| unsafe { w.bits(u64::MAX - 1) });
+        rb.cmp().write(|w| unsafe { w.bits(u64::MAX - 1) });
         critical_section::with(|_| {
-            rb.sr.write(|w| w.cntif().bit(false)); // clear
+            rb.sr().write(|w| w.cntif().bit(false)); // clear
                                                    // Configration: Upcount, No reload, HCLK/8 as clock source
-            rb.ctlr.modify(|_, w| {
+            rb.ctlr().modify(|_, w| {
                 w.init()
                     .set_bit()
                     .mode()
@@ -78,8 +78,8 @@ impl SystickDriver {
 
     fn on_interrupt(&self) {
         let rb = unsafe { &*pac::SYSTICK::PTR };
-        rb.ctlr.modify(|_, w| w.stie().clear_bit()); // disable interrupt
-        rb.sr.write(|w| w.cntif().bit(false)); // clear IF
+        rb.ctlr().modify(|_, w| w.stie().clear_bit()); // disable interrupt
+        rb.sr().write(|w| w.cntif().bit(false)); // clear IF
 
         critical_section::with(|cs| {
             self.trigger_alarm(cs);
@@ -109,7 +109,7 @@ impl SystickDriver {
 impl Driver for SystickDriver {
     fn now(&self) -> u64 {
         let rb = unsafe { &*pac::SYSTICK::PTR };
-        rb.cnt.read().bits() / (self.period.load(Ordering::Relaxed) as u64)
+        rb.cnt().read().bits() / (self.period.load(Ordering::Relaxed) as u64)
     }
     unsafe fn allocate_alarm(&self) -> Option<AlarmHandle> {
         let id = self.alarm_count.fetch_update(Ordering::AcqRel, Ordering::Acquire, |x| {
@@ -146,7 +146,7 @@ impl Driver for SystickDriver {
             if timestamp <= t {
                 // If alarm timestamp has passed the alarm will not fire.
                 // Disarm the alarm and return `false` to indicate that.
-                rb.ctlr.modify(|_, w| w.stie().clear_bit());
+                rb.ctlr().modify(|_, w| w.stie().clear_bit());
 
                 alarm.timestamp.set(u64::MAX);
 
@@ -155,39 +155,31 @@ impl Driver for SystickDriver {
 
             let safe_timestamp = (timestamp + 1) * (self.period.load(Ordering::Relaxed) as u64);
 
-            rb.cmp.write(|w| unsafe { w.bits(safe_timestamp) });
-            rb.ctlr.modify(|_, w| w.stie().set_bit());
+            rb.cmp().write(|w| unsafe { w.bits(safe_timestamp) });
+            rb.ctlr().modify(|_, w| w.stie().set_bit());
 
             true
         })
     }
 }
 
-core::arch::global_asm!(
-    r#"
-    .section .trap, "ax"
-    .global SysTick
-    SysTick:
-    addi sp, sp, -4
-    sw ra, 0(sp)
-    jal _rust_SysTick
-    lw ra, 0(sp)
-    addi sp, sp, 4
-    mret
-"#
-);
+
 
 #[allow(non_snake_case)]
-#[export_name = "_rust_SysTick"]
 #[link_section = ".trap"]
-extern "C" fn SysTick_IRQHandler() {
+#[no_mangle]
+extern "C" fn SysTick() {
     DRIVER.on_interrupt();
 }
 
 pub(crate) fn init() {
-    use crate::interrupt::{self, Interrupt};
+    use qingke::interrupt::Priority;
+    use qingke_rt::CoreInterrupt;
 
     DRIVER.init();
-    interrupt::SysTick::set_priority(interrupt::Priority::P15);
-    unsafe { interrupt::SysTick::enable() };
+
+    unsafe {
+        qingke::pfic::set_priority(CoreInterrupt::SysTick as u8, Priority::P15 as _);
+        qingke::pfic::enable_interrupt(CoreInterrupt::SysTick as u8);
+    }
 }

@@ -3,7 +3,7 @@
 #![no_std]
 #![no_main]
 
-use ch32v_rt::highcode;
+use qingke_rt::highcode;
 use ch58x_hal as hal;
 use embedded_hal_1::delay::DelayNs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
@@ -39,7 +39,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-#[ch32v_rt::entry]
+#[qingke_rt::entry]
 #[highcode]
 fn main() -> ! {
     let mut config = hal::Config::default();

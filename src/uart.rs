@@ -139,7 +139,7 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
 
         for &c in buffer {
             // wait
-            while rb.tfc.read().bits() >= UART_FIFO_SIZE {}
+            while rb.tfc().read().bits() >= UART_FIFO_SIZE {}
             rb.thr().write(|w| unsafe { w.bits(c) });
         }
         Ok(())
@@ -148,7 +148,7 @@ impl<'d, T: BasicInstance> UartTx<'d, T> {
     pub fn blocking_flush(&mut self) -> Result<(), Error> {
         let rb = T::regs();
 
-        while rb.tfc.read().bits() != 0 {}
+        while rb.tfc().read().bits() != 0 {}
         Ok(())
     }
 }
@@ -198,7 +198,7 @@ impl<'d, T: BasicInstance> UartRx<'d, T> {
 
     fn check_rx_flags(&self) -> Result<bool, Error> {
         let rb = T::regs();
-        let lsr = rb.lsr.read();
+        let lsr = rb.lsr().read();
         if lsr.err_rx_fifo().bit() {
             if lsr.frame_err().bit() {
                 return Err(Error::Framing);
@@ -226,7 +226,7 @@ impl<'d, T: BasicInstance> UartRx<'d, T> {
         let rb = T::regs();
         for b in buffer {
             while !self.check_rx_flags()? {}
-            if rb.rfc.read().bits() > 0 {
+            if rb.rfc().read().bits() > 0 {
                 *b = rb.rbr().read().bits() as u8;
             }
         }
@@ -333,7 +333,7 @@ fn configure(
         panic!("USART: At least one of RX or TX should be enabled");
     }
 
-    rb.fcr.write(|w| {
+    rb.fcr().write(|w| {
         w.rx_fifo_clr()
             .set_bit()
             .tx_fifo_clr()
@@ -343,15 +343,15 @@ fn configure(
             .fifo_trig()
             .variant(0b00) // 1 bytes to send
     });
-    rb.lcr.write(|w| w.word_sz().variant(config.data_bits as u8));
+    rb.lcr().write(|w| w.word_sz().variant(config.data_bits as u8));
     match config.stop_bits {
-        StopBits::STOP1 => rb.lcr.modify(|_, w| w.stop_bit().clear_bit()),
-        StopBits::STOP2 => rb.lcr.modify(|_, w| w.stop_bit().set_bit()),
+        StopBits::STOP1 => rb.lcr().modify(|_, w| w.stop_bit().clear_bit()),
+        StopBits::STOP2 => rb.lcr().modify(|_, w| w.stop_bit().set_bit()),
     }
     match config.parity {
-        Parity::ParityNone => rb.lcr.modify(|_, w| w.par_en().clear_bit()),
+        Parity::ParityNone => rb.lcr().modify(|_, w| w.par_en().clear_bit()),
         _ => rb
-            .lcr
+            .lcr()
             .modify(|_, w| w.par_en().set_bit().par_mod().variant(config.parity as u8)),
     }
 
@@ -368,12 +368,12 @@ fn configure(
         }
     };
 
-    rb.div.write(|w| unsafe { w.bits(div) });
-    rb.dl.write(|w| unsafe { w.bits(dl) });
+    rb.div().write(|w| unsafe { w.bits(div) });
+    rb.dl().write(|w| unsafe { w.bits(dl) });
 
     // enable TX
     if enable_tx {
-        rb.ier.modify(|_, w| w.txd_en().bit(true));
+        rb.ier().modify(|_, w| w.txd_en().bit(true));
     }
 
     Ok(())
@@ -464,7 +464,7 @@ macro_rules! impl_uart {
             /// Remap offset in R16_PIN_ALTERNATE
             fn set_remap() {
                 let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
-                gpioctl.pin_alternate.modify(|_, w| w.$remap_field().set_bit());
+                gpioctl.pin_alternate().modify(|_, w| w.$remap_field().set_bit());
             }
         }
 

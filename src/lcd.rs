@@ -55,7 +55,7 @@ impl Lcd {
         sys.slp_clk_off1.modify(|_, w| w.slp_clk_lcd().clear_bit());
 
         // lcd config
-        lcd.cmd.write(|w| unsafe {
+        lcd.cmd().write(|w| unsafe {
             w.seg_en()
                 .bits(0x1ffff)
                 .vlcd_sel()

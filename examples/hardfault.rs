@@ -29,7 +29,7 @@ macro_rules! println {
     }
 }
 
-#[ch32v_rt::interrupt]
+#[qingke_rt::interrupt]
 fn RTC() {
     let mut rtc = Rtc;
 
@@ -39,7 +39,7 @@ fn RTC() {
     println!("Current time: {} weekday={}", now, now.isoweekday());
     //  writeln!(uart, "mepc: {:08x}", riscv::register::mepc::read()).unwrap();
 }
-#[ch32v_rt::interrupt]
+#[qingke_rt::interrupt]
 fn HardFault() {
     let pa8 = unsafe { hal::peripherals::PA8::steal() };
     let mut led = Output::new(pa8, Level::Low, OutputDrive::_20mA);
@@ -68,7 +68,7 @@ fn HardFault() {
     }
 }
 
-#[ch32v_rt::entry]
+#[qingke_rt::entry]
 fn main() -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz();

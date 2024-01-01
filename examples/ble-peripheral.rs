@@ -5,7 +5,7 @@
 use core::ffi::c_void;
 use core::mem::size_of_val;
 
-use ch32v_rt::highcode;
+use qingke_rt::highcode;
 use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_time::{Delay, Duration, Instant, Timer};
@@ -220,7 +220,7 @@ async fn peripheral(task_id: u8, subscriber: ble::EventSubscriber) {
     }
 }
 
-#[embassy_executor::main(entry = "ch32v_rt::entry")]
+#[embassy_executor::main(entry = "qingke_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     use hal::ble::ffi::*;
 

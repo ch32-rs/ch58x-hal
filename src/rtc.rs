@@ -32,9 +32,9 @@ impl Rtc {
     pub fn timestamp_since_epoch(&self) -> u32 {
         let rtc = unsafe { &*pac::RTC::PTR };
 
-        let day = rtc.cnt_day.read().bits() & 0x3fff;
-        let mut sec = rtc.cnt_2s.read().bits() * 2;
-        if rtc.cnt_32k.read().bits() >= 0x8000 {
+        let day = rtc.cnt_day().read().bits() & 0x3fff;
+        let mut sec = rtc.cnt_2s().read().bits() * 2;
+        if rtc.cnt_32k().read().bits() >= 0x8000 {
             sec += 1;
         }
         day * 86400 + (sec as u32)
@@ -43,24 +43,24 @@ impl Rtc {
     /// 32K clock tick
     pub fn counter_2s(&self) -> u16 {
         let rtc = unsafe { &*pac::RTC::PTR };
-        rtc.cnt_2s.read().bits()
+        rtc.cnt_2s().read().bits()
     }
 
     pub fn counter_tick(&self) -> u32 {
         let rtc = unsafe { &*pac::RTC::PTR };
-        (rtc.cnt_2s.read().bits() as u32) << 16 | (rtc.cnt_32k.read().bits() as u32)
+        (rtc.cnt_2s().read().bits() as u32) << 16 | (rtc.cnt_32k().read().bits() as u32)
     }
 
     pub fn counter_day(&self) -> u16 {
         let rtc = unsafe { &*pac::RTC::PTR };
-        (rtc.cnt_day.read().bits() & 0x3fff) as u16
+        (rtc.cnt_day().read().bits() & 0x3fff) as u16
     }
 
     pub fn enable_timing(&mut self, mode: TimingMode) {
         let rtc = unsafe { &*pac::RTC::PTR };
-        rtc.flag_ctrl.modify(|_, w| w.tmr_clr().set_bit()); // clear flag
+        rtc.flag_ctrl().modify(|_, w| w.tmr_clr().set_bit()); // clear flag
         with_safe_access(|| unsafe {
-            rtc.mode_ctrl
+            rtc.mode_ctrl()
                 .modify(|_, w| w.tmr_mode().bits(mode as u8).tmr_en().set_bit());
         });
     }
@@ -68,20 +68,20 @@ impl Rtc {
     /// Call this in IRQ handler, to clear flag
     pub fn ack_timing(&mut self) {
         let rtc = unsafe { &*pac::RTC::PTR };
-        rtc.flag_ctrl.modify(|_, w| w.tmr_clr().set_bit()); // clear flag
+        rtc.flag_ctrl().modify(|_, w| w.tmr_clr().set_bit()); // clear flag
     }
 
     pub fn disable_timing(&mut self) {
         let rtc = unsafe { &*pac::RTC::PTR };
         with_safe_access(|| {
-            rtc.mode_ctrl.modify(|_, w| w.tmr_en().clear_bit());
+            rtc.mode_ctrl().modify(|_, w| w.tmr_en().clear_bit());
         });
     }
 
     // 32768
     pub fn counter_32k(&self) -> u16 {
         let rtc = unsafe { &*pac::RTC::PTR };
-        rtc.cnt_32k.read().bits()
+        rtc.cnt_32k().read().bits()
     }
 
     pub fn set_datatime(&mut self, t: DateTime) {
@@ -95,27 +95,30 @@ impl Rtc {
         let t32k: u16 = if t.second & 1 != 0 { 0x8000 } else { 0 };
 
         with_safe_access(|| unsafe {
-            rtc.trig.write(|w| w.bits(days as u32));
-            rtc.mode_ctrl.modify(|_, w| w.load_hi().set_bit());
+            rtc.trig().write(|w| w.bits(days as u32));
+            rtc.mode_ctrl().modify(|_, w| w.load_hi().set_bit());
         });
         // load_hi clear when loadded
-        while rtc.mode_ctrl.read().load_hi().bit_is_set() {}
+        while rtc.mode_ctrl().read().load_hi().bit_is_set() {}
         let t = (sec2 as u32) << 16 | (t32k as u32);
         with_safe_access(|| unsafe {
-            rtc.trig.write(|w| w.bits(t));
-            rtc.mode_ctrl.modify(|_, w| w.load_lo().set_bit());
+            rtc.trig().write(|w| w.bits(t));
+            rtc.mode_ctrl().modify(|_, w| w.load_lo().set_bit());
         });
     }
 
     pub fn now(&self) -> DateTime {
         let rtc = unsafe { &*pac::RTC::PTR };
 
-        let mut days = (rtc.cnt_day.read().bits() & 0x3fff) as u16;
+        let mut days = (rtc.cnt_day().read().bits() & 0x3fff) as u16;
         // to u32, avoid overflow
-        let mut sec = (rtc.cnt_2s.read().bits() as u32) * 2;
-        if rtc.cnt_32k.read().bits() >= 0x8000 {
+        let mut sec = (rtc.cnt_2s().read().bits() as u32) * 2;
+        let cnt_32k = rtc.cnt_32k().read().bits();
+        if cnt_32k >= 0x8000 {
             sec += 1;
         }
+        let millisecond = ((cnt_32k % 0x8000) as u32 * 1000 / 32768) as u16;
+
 
         let mut year: u16 = YEAR_OFFSET;
         while days >= days_in_year(year) {
@@ -135,6 +138,7 @@ impl Rtc {
         sec %= 60;
         let second = (sec) as u8;
 
+
         DateTime {
             year,
             month,
@@ -142,6 +146,7 @@ impl Rtc {
             hour,
             minute,
             second,
+            millisecond
         }
     }
 }
@@ -192,6 +197,8 @@ pub struct DateTime {
     pub minute: u8,
     /// 0..59
     pub second: u8,
+    /// 0..1000
+    pub millisecond: u16,
 }
 
 impl DateTime {
@@ -223,8 +230,8 @@ impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year, self.month, self.day, self.hour, self.minute, self.second
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+            self.year, self.month, self.day, self.hour, self.minute, self.second, self.millisecond
         )
     }
 }

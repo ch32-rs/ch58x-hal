@@ -18,15 +18,18 @@ embassy = ["dep:embassy-time", "dep:embassy-sync"]
 ble = []
 
 [dependencies]
-#ch58x = { version = "0.2.0", path = "../ch32-rs-nightlies/ch58x", features = [
-#    "ch58x",
-#] }
-ch58x = { version = "0.2.0", features = ["ch58x"] }
+ch58x = { version = "0.3.0", features = ["ch58x", "rt"] }
 
 critical-section = "1.1.2"
-qingke = { version = "0.1.6", features = ["critical-section-impl"] }
-# ch32v-rt = { version = "0.0.2", path = "../ch32v-rt" }
-ch32v-rt = "0.0.2"
+qingke = { version = "0.1.7", features = ["critical-section-impl"] }
+qingke-rt = { version = "0.1.7", features = ["highcode"] }
+
+# qingke = { version = "0.1.7", features = [
+#     "critical-section-impl",
+# ], path = "../qingke" }
+# qingke-rt = { version = "0.1.7", features = [
+#     "highcode",
+# ], path = "../qingke/qingke-rt" }
 
 fugit = "0.3.7"
 nb = "1.1.0"

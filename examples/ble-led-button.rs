@@ -10,7 +10,7 @@ use core::mem::size_of_val;
 use core::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use core::{ptr, slice};
 
-use ch32v_rt::highcode;
+use qingke_rt::highcode;
 use ch58x_hal as hal;
 use embassy_executor::Spawner;
 use embassy_futures::select::{select, Either};
@@ -588,7 +588,7 @@ async fn button_task(pin: AnyPin) {
     }
 }
 
-#[embassy_executor::main(entry = "ch32v_rt::entry")]
+#[embassy_executor::main(entry = "qingke_rt::entry")]
 async fn main(spawner: Spawner) -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();
