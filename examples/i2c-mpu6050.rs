@@ -263,7 +263,7 @@ impl<'d> MPU6050<'d> {
 
     /// Initialize device for active mode read of acclerometer, gyroscope, and temperature
     fn init(&mut self, config: &Config) -> Result<(), MPU6050Error> {
-        if self().read_byte(regs::WHO_AM_I_MPU6050)? != 0x68 {
+        if self.read_byte(regs::WHO_AM_I_MPU6050)? != 0x68 {
             return Err(MPU6050Error::WrongDevice);
         }
 
