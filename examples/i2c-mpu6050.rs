@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal_1::delay::DelayUs;
+use embedded_hal_1::delay::DelayNs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::i2c::{self, I2c};
 use hal::peripherals;

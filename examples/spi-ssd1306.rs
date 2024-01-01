@@ -13,7 +13,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Line;
 use embedded_graphics::text::{Baseline, Text};
 use embedded_hal_02::spi::Polarity;
-use embedded_hal_1::delay::DelayUs;
+use embedded_hal_1::delay::DelayNs;
 use hal::adc::Adc;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 use hal::prelude::*;

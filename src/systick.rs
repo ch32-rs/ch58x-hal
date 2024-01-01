@@ -42,7 +42,7 @@ impl<'d> SysTick<'d> {
     }
 }
 
-impl<'d> embedded_hal_1::delay::DelayUs for SysTick<'d> {
+impl<'d> embedded_hal_1::delay::DelayNs for SysTick<'d> {
     fn delay_us(&mut self, us: u32) {
         let us = self.ticks_per_second * (us as u64) / 1_000_000;
 

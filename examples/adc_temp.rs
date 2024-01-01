@@ -5,7 +5,7 @@ use core::arch::{asm, global_asm};
 use core::fmt::Write;
 use core::writeln;
 
-use embedded_hal_1::delay::DelayUs;
+use embedded_hal_1::delay::DelayNs;
 use hal::adc::{adc_to_temperature_celsius, Adc};
 use hal::dma::NoDma;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
@@ -21,7 +21,6 @@ use {ch58x_hal as hal, panic_halt as _};
 fn main() -> ! {
     let mut config = hal::Config::default();
     config.clock.use_pll_60mhz().enable_lse();
-
     let p = hal::init(config);
 
     // LED PA8
@@ -48,12 +47,6 @@ fn main() -> ! {
     writeln!(serial, "ChipID: {:02x}", hal::signature::get_chip_id()).unwrap();
     let now = rtc.now();
     writeln!(serial, "Boot time: {} weekday={}", now, now.isoweekday()).unwrap();
-
-    // requires machine mode
-    // let marchid = riscv::register::marchid::read().unwrap();
-    // writeln!(serial, "marchid: 0x{:08x?}", marchid.bits());
-    // let mias = riscv::register::misa::read().unwrap();
-    // writeln!(serial, "mias: 0x{:08x?}", mias.bits());
 
     // ADC part
     let adc_config = hal::adc::Config::for_temperature();

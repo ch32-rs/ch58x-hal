@@ -1,4 +1,5 @@
 use fugit::HertzU32 as Hertz;
+use qingke::riscv;
 
 use crate::pac::SYS;
 use crate::with_safe_access;

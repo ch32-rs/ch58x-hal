@@ -5,7 +5,7 @@ use core::arch::{asm, global_asm};
 use core::fmt::Write;
 use core::writeln;
 
-use embedded_hal_1::delay::DelayUs;
+use embedded_hal_1::delay::DelayNs;
 use hal::adc::{adc_to_temperature_celsius, Adc};
 use hal::dma::NoDma;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
@@ -31,23 +31,12 @@ fn main() -> ! {
 
     let mut download_button = Input::new(p.PB22, Pull::Up);
     let mut reset_button = Input::new(p.PB23, Pull::Up);
-    let mut rtc = Rtc {};
 
     serial.blocking_flush();
-    //      rtc.set_datatime(DateTime {
-    //        year: 2023,
-    //        month: 10,
-    //        day: 16,
-    //        hour: 15,
-    //        minute: 42,
-    //        second: 10,
-    //    });
 
     writeln!(serial, "\n\n\nHello World!").unwrap();
     writeln!(serial, "Clocks: {}", hal::sysctl::clocks().hclk).unwrap();
     writeln!(serial, "ChipID: {:02x}", hal::signature::get_chip_id());
-    let now = rtc.now();
-    writeln!(serial, "Boot time: {} weekday={}", now, now.isoweekday()).unwrap();
 
     // ADC part
     let mut adc = Adc::new(p.ADC, hal::adc::Config::default());
@@ -60,8 +49,6 @@ fn main() -> ! {
     loop {
         blue_led.toggle();
 
-        let now = rtc.now();
-
         let data = adc.read(&mut pin);
         writeln!(serial, "adc raw data: {}", data).unwrap();
         let vi = adc.read_as_millivolts(&mut pin);
@@ -69,8 +56,7 @@ fn main() -> ! {
 
         writeln!(
             serial,
-            "{}: download={} reset={}",
-            now,
+            "BUTTON state: download={} reset={}",
             // now.isoweekday(),
             download_button.is_low(),
             reset_button.is_low()

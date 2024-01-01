@@ -2,7 +2,7 @@
 #![no_main]
 
 use ch32v_rt::highcode;
-use embedded_hal_1::delay::DelayUs;
+use embedded_hal_1::delay::DelayNs;
 use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 // use hal::interrupt::Interrupt;
 use hal::rtc::{DateTime, Rtc};

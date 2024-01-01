@@ -190,7 +190,7 @@ where
                 .clk_div()
                 .variant(config.clk as u8)
                 .buf_en()
-                .bit(!config.buf_en)
+                .bit(config.buf_en)
                 .pga_gain()
                 .variant(config.pga_gain as u8)
         });

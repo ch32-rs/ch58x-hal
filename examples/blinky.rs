@@ -5,7 +5,7 @@ use core::arch::{asm, global_asm};
 use core::fmt::Write;
 use core::writeln;
 
-use embedded_hal_1::delay::DelayUs;
+use embedded_hal_1::delay::DelayNs;
 use hal::gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull};
 use hal::interrupt::Interrupt;
 use hal::isp::EEPROM_BLOCK_SIZE;

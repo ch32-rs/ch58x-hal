@@ -3,6 +3,7 @@
 use core::ptr;
 
 pub use ch58x::ch58x as pac;
+use qingke::riscv;
 
 pub use self::peripheral::{Peripheral, PeripheralRef};
 pub use self::peripherals::Peripherals;
@@ -31,8 +32,6 @@ pub mod peripherals;
 
 mod peripheral;
 pub mod prelude;
-
-mod critical_section;
 
 #[cfg(feature = "embassy")]
 pub mod embassy;
