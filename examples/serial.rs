@@ -4,6 +4,7 @@
 use core::arch::{asm, global_asm};
 use core::fmt::Write;
 use core::writeln;
+use qingke::riscv;
 
 use embedded_hal_1::delay::DelayNs;
 use hal::dma::NoDma;
