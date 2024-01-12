@@ -14,7 +14,7 @@ license = "MIT/Apache-2.0"
 
 [features]
 default = ["ble", "embassy"]
-embassy = ["dep:embassy-time", "dep:embassy-sync"]
+embassy = ["dep:embassy-sync"]
 ble = []
 
 [dependencies]
@@ -36,15 +36,12 @@ nb = "1.1.0"
 embedded-hal-02 = { package = "embedded-hal", version = "0.2.7", features = [
     "unproven",
 ] }
-embedded-hal-1 = { version = "=1.0.0-rc.2", package = "embedded-hal" }
-embedded-hal-nb = "1.0.0-rc.1"
-embedded-hal-async = "1.0.0-rc.1"
+embedded-hal-1 = { version = "1.0.0", package = "embedded-hal" }
+embedded-hal-nb = "1.0.0"
+embedded-hal-async = "1.0.0"
 
-# embassy time driver
-embassy-time = { version = "0.2.0", features = [
-    "tick-hz-32_768",
-], optional = true }
 embassy-sync = { version = "0.5.0", optional = true }
+embassy-time-driver = { version = "0.1.0", features = ["tick-hz-32_768"] }
 
 [dev-dependencies]
 display-interface = "0.4.1"
@@ -54,12 +51,14 @@ panic-halt = "0.2.0"
 ssd1306 = "0.8.4"
 
 embassy-futures = "0.1.1"
-embassy-executor = { version = "0.4.0", features = [
+embassy-executor = { version = "0.5.0", features = [
     "nightly",
     "integrated-timers",
     "arch-riscv32",
     "executor-thread",
 ] }
+embassy-time = { version = "0.3.0" }
+# embassy time driver
 heapless = "0.8.0"
 embedded-alloc = "0.5.0"
 embedded-sdmmc = "0.6.0"

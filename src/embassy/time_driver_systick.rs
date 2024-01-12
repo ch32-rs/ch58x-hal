@@ -5,7 +5,7 @@ use core::sync::atomic::{AtomicU32, AtomicU8, Ordering};
 use core::{mem, ptr};
 
 use critical_section::{CriticalSection, Mutex};
-use embassy_time::driver::{AlarmHandle, Driver};
+use embassy_time_driver::{AlarmHandle, Driver};
 
 // use super::AlarmState;
 use crate::pac;
@@ -40,7 +40,7 @@ pub struct SystickDriver {
 }
 
 const ALARM_STATE_NEW: AlarmState = AlarmState::new();
-embassy_time::time_driver_impl!(static DRIVER: SystickDriver = SystickDriver {
+embassy_time_driver::time_driver_impl!(static DRIVER: SystickDriver = SystickDriver {
     period: AtomicU32::new(1), // avoid div by zero
     alarm_count: AtomicU8::new(0),
     alarms: Mutex::new([ALARM_STATE_NEW; ALARM_COUNT]),
@@ -52,7 +52,7 @@ impl SystickDriver {
         let hclk = crate::sysctl::clocks().hclk.to_Hz() as u64;
 
         let cnt_per_second = hclk / 8;
-        let cnt_per_tick = cnt_per_second / embassy_time::TICK_HZ;
+        let cnt_per_tick = cnt_per_second / embassy_time_driver::TICK_HZ;
 
         self.period.store(cnt_per_tick as u32, Ordering::Relaxed);
 
@@ -60,7 +60,7 @@ impl SystickDriver {
         rb.cmp().write(|w| unsafe { w.bits(u64::MAX - 1) });
         critical_section::with(|_| {
             rb.sr().write(|w| w.cntif().bit(false)); // clear
-                                                   // Configration: Upcount, No reload, HCLK/8 as clock source
+                                                     // Configration: Upcount, No reload, HCLK/8 as clock source
             rb.ctlr().modify(|_, w| {
                 w.init()
                     .set_bit()
@@ -162,8 +162,6 @@ impl Driver for SystickDriver {
         })
     }
 }
-
-
 
 #[allow(non_snake_case)]
 #[link_section = ".trap"]

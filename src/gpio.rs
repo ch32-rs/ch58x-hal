@@ -303,12 +303,11 @@ pub(crate) unsafe fn init() {
 fn irq_handler<const N: usize>(port: u8, wakers: &[AtomicWaker; N]) {
     let gpioctl = unsafe { &*pac::GPIOCTL::PTR };
 
-    let int_if =
-        if port == 0 {
-            gpioctl.pa_int_if().read().bits()
-        } else {
-            gpioctl.pb_int_if().read().bits()
-        };
+    let int_if = if port == 0 {
+        gpioctl.pa_int_if().read().bits()
+    } else {
+        gpioctl.pb_int_if().read().bits()
+    };
     for pin in 0..16 {
         if int_if & (1 << pin) == 0 {
             continue;
@@ -866,7 +865,7 @@ mod eh02 {
 mod eh1 {
     use core::convert::Infallible;
 
-    use embedded_hal_1::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin, ToggleableOutputPin};
+    use embedded_hal_1::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin};
 
     use super::*;
 
@@ -876,13 +875,13 @@ mod eh1 {
 
     impl<'d, T: Pin> InputPin for Input<'d, T> {
         #[inline]
-        fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_high())
+        fn is_high(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_high())
         }
 
         #[inline]
-        fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_low())
+        fn is_low(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_low())
         }
     }
 
@@ -904,33 +903,26 @@ mod eh1 {
 
     impl<'d, T: Pin> StatefulOutputPin for Output<'d, T> {
         #[inline]
-        fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_set_high())
+        fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_set_high())
         }
 
         /// Is the output pin set as low?
         #[inline]
-        fn is_set_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_set_low())
-        }
-    }
-
-    impl<'d, T: Pin> ToggleableOutputPin for Output<'d, T> {
-        #[inline]
-        fn toggle(&mut self) -> Result<(), Self::Error> {
-            Ok(self.toggle())
+        fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_set_low())
         }
     }
 
     impl<'d, T: Pin> InputPin for Flex<'d, T> {
         #[inline]
-        fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_high())
+        fn is_high(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_high())
         }
 
         #[inline]
-        fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_low())
+        fn is_low(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_low())
         }
     }
 
@@ -946,27 +938,20 @@ mod eh1 {
         }
     }
 
-    impl<'d, T: Pin> ToggleableOutputPin for Flex<'d, T> {
-        #[inline]
-        fn toggle(&mut self) -> Result<(), Self::Error> {
-            Ok(self.toggle())
-        }
-    }
-
     impl<'d, T: Pin> ErrorType for Flex<'d, T> {
         type Error = Infallible;
     }
 
     impl<'d, T: Pin> StatefulOutputPin for Flex<'d, T> {
         #[inline]
-        fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_set_high())
+        fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_set_high())
         }
 
         /// Is the output pin set as low?
         #[inline]
-        fn is_set_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.is_set_low())
+        fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+            Ok((*self).is_set_low())
         }
     }
 }

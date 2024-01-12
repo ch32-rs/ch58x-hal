@@ -119,7 +119,6 @@ impl Rtc {
         }
         let millisecond = ((cnt_32k % 0x8000) as u32 * 1000 / 32768) as u16;
 
-
         let mut year: u16 = YEAR_OFFSET;
         while days >= days_in_year(year) {
             days -= days_in_year(year);
@@ -138,7 +137,6 @@ impl Rtc {
         sec %= 60;
         let second = (sec) as u8;
 
-
         DateTime {
             year,
             month,
@@ -146,7 +144,7 @@ impl Rtc {
             hour,
             minute,
             second,
-            millisecond
+            millisecond,
         }
     }
 }
