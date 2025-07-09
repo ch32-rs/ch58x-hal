@@ -23,6 +23,7 @@ pub mod sysctl;
 #[cfg(not(feature = "embassy"))]
 pub mod systick;
 pub mod timer;
+pub mod pwm;
 pub mod uart;
 
 pub mod interrupt;
