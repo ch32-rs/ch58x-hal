@@ -120,7 +120,8 @@ impl<'d, T: Instance> I2c<'d, T> {
         let sysclk_mhz = crate::sysctl::clocks().hclk.to_MHz();
         let i2c_clk = config.frequency.to_Hz();
 
-        rb.ctrl2().modify(|_, w| w.freq().variant((sysclk / 1_000_000) as u8));
+        rb.ctrl2()
+            .modify(|_, w| unsafe { w.freq().bits((sysclk / 1_000_000) as u8) });
 
         rb.ctrl1().modify(|_, w| w.pe().clear_bit());
 
@@ -130,8 +131,8 @@ impl<'d, T: Instance> I2c<'d, T> {
 
             let val = u32::min(sysclk_mhz + 1, 0x3F);
 
-            rb.rtr().write(|w| w.trise().variant(val as _));
-            rb.ckcfgr().write(|w| w.ccr().variant(tmp as _));
+            rb.rtr().write(|w| unsafe { w.trise().bits(val as _) });
+            rb.ckcfgr().write(|w| unsafe { w.ccr().bits(tmp as _) });
         } else {
             // high speed, use duty cycle
             let tmp = if config.duty == Duty::Duty2_1 {
@@ -143,14 +144,14 @@ impl<'d, T: Instance> I2c<'d, T> {
 
             let val = (sysclk_mhz * 300) / 1000 + 1;
 
-            rb.rtr().write(|w| w.trise().variant(val as _));
-            rb.ckcfgr().write(|w| {
+            rb.rtr().write(|w| unsafe { w.trise().bits(val as _) });
+            rb.ckcfgr().write(|w| unsafe {
                 w.f_s()
                     .set_bit()
                     .duty()
                     .variant(config.duty as u8 != 0)
                     .ccr()
-                    .variant(tmp as u16)
+                    .bits(tmp as u16)
             });
         }
 
@@ -230,7 +231,7 @@ impl<'d, T: Instance> I2c<'d, T> {
         }
 
         // Set up current address, we're trying to talk to
-        rb.datar().write(|w| w.datar().variant(addr << 1));
+        rb.datar().write(|w| unsafe { w.datar().bits(addr << 1) });
 
         // Wait until address was sent
         // Wait for the address to be acknowledged
@@ -260,7 +261,7 @@ impl<'d, T: Instance> I2c<'d, T> {
         }
 
         // Push out a byte of data
-        T::regs().datar().write(|w| w.datar().variant(byte));
+        T::regs().datar().write(|w| unsafe { w.datar().bits(byte) });
 
         // Wait until byte is transferred
         while {
@@ -311,7 +312,7 @@ impl<'d, T: Instance> I2c<'d, T> {
             }
 
             // Set up current address, we're trying to talk to
-            T::regs().datar().write(|w| w.datar().variant((addr << 1) + 1));
+            T::regs().datar().write(|w| unsafe { w.datar().bits((addr << 1) + 1) });
 
             // Wait until address was sent
             // Wait for the address to be acknowledged

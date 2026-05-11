@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(type_alias_impl_trait)]
+#![feature(impl_trait_in_assoc_type)]
 
 use qingke_rt::highcode;
 use ch58x_hal as hal;

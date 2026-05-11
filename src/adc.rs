@@ -167,16 +167,18 @@ where
 
         let rb = T::regs();
         rb.cfg().modify(|_, w| {
-            w.power_on()
-                .set_bit()
-                .diff_en()
-                .bit(config.diff_en) // must for temp
-                .clk_div()
-                .variant(config.clk as u8)
-                .buf_en()
-                .bit(config.buf_en)
-                .pga_gain()
-                .variant(config.pga_gain as u8)
+            unsafe {
+                w.power_on()
+                    .set_bit()
+                    .diff_en()
+                    .bit(config.diff_en) // must for temp
+                    .clk_div()
+                    .bits(config.clk as u8)
+                    .buf_en()
+                    .bit(config.buf_en)
+                    .pga_gain()
+                    .bits(config.pga_gain as u8)
+            }
         });
 
         Self { adc }
@@ -185,14 +187,16 @@ where
     pub fn set_config(&self, config: Config) {
         let rb = T::regs();
         rb.cfg().modify(|_, w| {
-            w.diff_en()
-                .bit(config.diff_en) // must for temp
-                .clk_div()
-                .variant(config.clk as u8)
-                .buf_en()
-                .bit(config.buf_en)
-                .pga_gain()
-                .variant(config.pga_gain as u8)
+            unsafe {
+                w.diff_en()
+                    .bit(config.diff_en) // must for temp
+                    .clk_div()
+                    .bits(config.clk as u8)
+                    .buf_en()
+                    .bit(config.buf_en)
+                    .pga_gain()
+                    .bits(config.pga_gain as u8)
+            }
         });
     }
 
@@ -230,7 +234,7 @@ where
         let channel = pin.channel();
 
         // Select channel
-        rb.channel().modify(|_, w| w.ch_idx().variant(channel));
+        rb.channel().modify(|_, w| unsafe { w.ch_idx().bits(channel) });
 
         self.convert()
     }

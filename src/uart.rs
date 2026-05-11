@@ -334,26 +334,28 @@ fn configure(
     }
 
     rb.fcr().write(|w| {
-        w.rx_fifo_clr()
-            .set_bit()
-            .tx_fifo_clr()
-            .set_bit()
-            .fifo_en() // enable 8 byte FIFO
-            .set_bit()
-            .fifo_trig()
-            .variant(0b00) // 1 bytes to send
+        unsafe {
+            w.rx_fifo_clr()
+                .set_bit()
+                .tx_fifo_clr()
+                .set_bit()
+                .fifo_en() // enable 8 byte FIFO
+                .set_bit()
+                .fifo_trig()
+                .bits(0b00) // 1 bytes to send
+        }
     });
-    rb.lcr().write(|w| w.word_sz().variant(config.data_bits as u8));
+    rb.lcr().write(|w| unsafe { w.word_sz().bits(config.data_bits as u8) });
     match config.stop_bits {
         StopBits::STOP1 => rb.lcr().modify(|_, w| w.stop_bit().clear_bit()),
         StopBits::STOP2 => rb.lcr().modify(|_, w| w.stop_bit().set_bit()),
-    }
+    };
     match config.parity {
         Parity::ParityNone => rb.lcr().modify(|_, w| w.par_en().clear_bit()),
         _ => rb
             .lcr()
-            .modify(|_, w| w.par_en().set_bit().par_mod().variant(config.parity as u8)),
-    }
+            .modify(|_, w| unsafe { w.par_en().set_bit().par_mod().bits(config.parity as u8) }),
+    };
 
     // baudrate = Fsys * 2 / R8_UARTx_DIV / 16 / R16_UARTx_DL
     // match some common baudrates

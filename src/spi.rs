@@ -174,7 +174,7 @@ impl<'d, T: Instance> Spi<'d, T> {
             // master input delay enable, for high clock speed
             T::regs().ctrl_cfg().modify(|_, w| w.mst_dly_en().set_bit());
         }
-        T::regs().clock_div().write(|w| w.clock_div().variant(fdiv));
+        T::regs().clock_div().write(|w| unsafe { w.clock_div().bits(fdiv) });
 
         // FIFO/Counter/IF clear
         T::regs().ctrl_mod().write(|w| w.all_clear().set_bit());
@@ -202,11 +202,11 @@ impl<'d, T: Instance> Spi<'d, T> {
             Polarity::IdleLow => T::regs().ctrl_mod().modify(|_, w| w.mst_sck_mod().clear_bit()), // default
             // MODE_3
             Polarity::IdleHigh => T::regs().ctrl_mod().modify(|_, w| w.mst_sck_mod().set_bit()),
-        }
+        };
         match config.bit_order {
             BitOrder::MsbFirst => T::regs().ctrl_cfg().modify(|_, w| w.bit_order().clear_bit()), // default
             BitOrder::LsbFirst => T::regs().ctrl_cfg().modify(|_, w| w.bit_order().set_bit()),
-        }
+        };
 
         Self {
             _peri: peri,
@@ -243,12 +243,14 @@ impl<'d, T: Instance> Spi<'d, T> {
         // set fifo direction to output
         rb.ctrl_mod().modify(|_, w| w.fifo_dir().clear_bit());
 
-        rb.total_cnt().write(|w| w.total_cnt().variant(words.len() as _));
+        rb.total_cnt()
+            .write(|w| unsafe { w.total_cnt().bits(words.len() as _) });
+
         rb.int_flag().write(|w| w.if_cnt_end().set_bit()); // end CNT set
 
         for &byte in words {
             while rb.fifo_count().read().bits() >= SPI_FIFO_SIZE {}
-            rb.fifo().write(|w| w.fifo().variant(byte))
+            rb.fifo().write(|w| unsafe { w.fifo().bits(byte) });
         }
 
         while rb.fifo_count().read().bits() != 0 {}
@@ -264,7 +266,10 @@ impl<'d, T: Instance> Spi<'d, T> {
             return Err(Error::Overrun);
         }
 
-        T::regs().total_cnt().write(|w| w.total_cnt().variant(words.len() as _));
+        T::regs()
+            .total_cnt()
+            .write(|w| unsafe { w.total_cnt().bits(words.len() as _) });
+
         T::regs().int_flag().write(|w| w.if_cnt_end().set_bit()); // end CNT set
 
         for i in 0..read_len {

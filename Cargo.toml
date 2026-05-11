@@ -18,18 +18,11 @@ embassy = ["dep:embassy-sync"]
 ble = []
 
 [dependencies]
-ch58x = { version = "0.3.0", features = ["ch58x", "rt"] }
+ch58x = { version = "0.4.0", features = ["ch58x", "rt"] }
 
-critical-section = "1.1.2"
-qingke = { version = "0.1.7", features = ["critical-section-impl"] }
-qingke-rt = { version = "0.1.7", features = ["highcode"] }
-
-# qingke = { version = "0.1.7", features = [
-#     "critical-section-impl",
-# ], path = "../qingke" }
-# qingke-rt = { version = "0.1.7", features = [
-#     "highcode",
-# ], path = "../qingke/qingke-rt" }
+critical-section = "1.2"
+qingke = { version = "0.5.0", features = ["critical-section-impl"] }
+qingke-rt = { version = "0.5.0", features = ["highcode"] }
 
 fugit = "0.3.7"
 nb = "1.1.0"
@@ -40,8 +33,9 @@ embedded-hal-1 = { version = "1.0.0", package = "embedded-hal" }
 embedded-hal-nb = "1.0.0"
 embedded-hal-async = "1.0.0"
 
-embassy-sync = { version = "0.5.0", optional = true }
-embassy-time-driver = { version = "0.1.0", features = ["tick-hz-32_768"] }
+embassy-sync = { version = "0.6.2", optional = true }
+embassy-time-driver = { version = "0.2.0", features = ["tick-hz-32_768"] }
+embassy-time-queue-utils = "0.1.0" # time driver impl
 
 [dev-dependencies]
 display-interface = "0.4.1"
@@ -51,17 +45,16 @@ panic-halt = "0.2.0"
 ssd1306 = "0.8.4"
 
 embassy-futures = "0.1.1"
-embassy-executor = { version = "0.5.0", features = [
+embassy-executor = { version = "0.7.0", features = [
     "nightly",
-    "integrated-timers",
     "arch-riscv32",
     "executor-thread",
 ] }
-embassy-time = { version = "0.3.0" }
+embassy-time = { version = "0.4.0" }
 # embassy time driver
 heapless = "0.8.0"
-embedded-alloc = "0.5.0"
-embedded-sdmmc = "0.6.0"
+embedded-alloc = "0.6.0"
+embedded-sdmmc = "0.8.1"
 
 [profile.release]
 # panic = "unwind"

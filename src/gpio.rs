@@ -335,14 +335,14 @@ fn irq_handler<const N: usize>(port: u8, wakers: &[AtomicWaker; N]) {
 }
 
 #[cfg(feature = "embassy")]
-#[no_mangle]
-extern "C" fn GPIOA() {
+#[qingke_rt::interrupt]
+fn GPIOA() {
     irq_handler(0, &GPIOA_WAKERS);
 }
 
 #[cfg(feature = "embassy")]
-#[no_mangle]
-extern "C" fn GPIOB() {
+#[qingke_rt::interrupt]
+fn GPIOB() {
     irq_handler(1, &GPIOB_WAKERS);
 }
 

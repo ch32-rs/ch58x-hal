@@ -111,18 +111,14 @@ impl Config {
                 with_safe_access(|| {
                     sys.ck32k_config().modify(|_, w| w.clk_xt32k_pon().set_bit());
                 });
-                unsafe {
-                    riscv::asm::delay(clocks().hclk.to_Hz() / 10 / 4);
-                }
+                riscv::asm::delay(clocks().hclk.to_Hz() / 10 / 4);
                 //with_safe_access(|| unsafe {
                 //    sys.xt32k_tune().modify(|_, w| w.xt32k_i_tune().bits(0b01));
                 //});
                 with_safe_access(|| {
                     sys.ck32k_config().modify(|_, w| w.clk_osc32k_xt().set_bit());
                 });
-                unsafe {
-                    riscv::asm::delay(clocks().hclk.to_Hz() / 1000);
-                }
+                riscv::asm::delay(clocks().hclk.to_Hz() / 1000);
             }
             Clock32KSrc::LSI => {
                 with_safe_access(|| {
@@ -141,22 +137,20 @@ impl Config {
                 if sys.hfck_pwr_ctrl().read().clk_xt32m_pon().bit_is_clear() {
                     // HSE power on
                     with_safe_access(|| sys.hfck_pwr_ctrl().modify(|_, w| w.clk_xt32m_pon().set_bit()));
-                    unsafe {
-                        riscv::asm::delay(2400);
-                    }
+                    riscv::asm::delay(2400);
                 }
-                with_safe_access(|| unsafe {
+                with_safe_access(|| {
                     sys.clk_sys_cfg()
-                        .write(|w| w.clk_sys_mod().variant(0b00).clk_pll_div().variant(div & 0x1f));
+                        .write(|w| unsafe { w.clk_sys_mod().bits(0b00).clk_pll_div().bits(div & 0x1f) });
                     riscv::asm::nop();
                     riscv::asm::nop();
                     riscv::asm::nop();
                     riscv::asm::nop();
                 });
-                unsafe {
-                    riscv::asm::nop();
-                    riscv::asm::nop();
-                }
+
+                riscv::asm::nop();
+                riscv::asm::nop();
+
                 with_safe_access(|| unsafe {
                     sys.flash_cfg().write(|w| w.bits(0x51));
                 });
@@ -167,13 +161,11 @@ impl Config {
                 if sys.hfck_pwr_ctrl().read().clk_pll_pon().bit_is_clear() {
                     // HSE power on
                     with_safe_access(|| sys.hfck_pwr_ctrl().modify(|_, w| w.clk_pll_pon().set_bit()));
-                    unsafe {
-                        riscv::asm::delay(4000);
-                    }
+                    riscv::asm::delay(4000);
                 }
-                with_safe_access(|| unsafe {
+                with_safe_access(|| {
                     sys.clk_sys_cfg()
-                        .write(|w| w.clk_sys_mod().bits(0b01).clk_pll_div().bits(div & 0x1f));
+                        .write(|w| unsafe { w.clk_sys_mod().bits(0b01).clk_pll_div().bits(div & 0x1f) });
                     riscv::asm::nop();
                     riscv::asm::nop();
                     riscv::asm::nop();

@@ -171,7 +171,10 @@ pub fn init(config: Config) -> Peripherals {
 pub unsafe fn reset() -> ! {
     const KEY3: u16 = 0xBEEF;
     let pfic = unsafe { &*pac::PFIC::PTR };
-    pfic.cfgr().write(|w| w.keycode().variant(KEY3).resetsys().set_bit());
+
+    pfic.cfgr()
+        .write(|w| unsafe { w.keycode().bits(KEY3).resetsys().set_bit() });
+
     loop {}
 }
 

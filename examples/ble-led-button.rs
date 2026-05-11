@@ -4,7 +4,7 @@
 
 #![no_std]
 #![no_main]
-#![feature(type_alias_impl_trait)]
+#![feature(impl_trait_in_assoc_type)]
 
 use core::mem::size_of_val;
 use core::sync::atomic::{AtomicBool, AtomicU16, Ordering};
