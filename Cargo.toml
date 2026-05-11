@@ -21,7 +21,10 @@ ble = []
 ch58x = { version = "0.3.0", features = ["ch58x", "rt"] }
 
 critical-section = "1.2"
-qingke = { version = "0.5.0", features = ["critical-section-impl"] }
+qingke = { version = "0.5.0", features = [
+    "critical-section-impl",
+    "unsafe-trust-wch-atomics",
+] }
 qingke-rt = { version = "0.5.0", features = ["highcode"] }
 
 fugit = "0.3.7"
