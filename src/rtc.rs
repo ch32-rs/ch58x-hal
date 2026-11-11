@@ -3,7 +3,7 @@
 use core::fmt;
 
 use crate::peripherals::RTC;
-use crate::{pac, with_safe_access, Peripheral};
+use crate::{pac, safe_modify, safe_write, Peripheral};
 
 // avoid cross 100-year, which is complex to handle leap year
 const YEAR_OFFSET: u16 = 2020;
@@ -59,9 +59,8 @@ impl Rtc {
     pub fn enable_timing(&mut self, mode: TimingMode) {
         let rtc = unsafe { &*pac::RTC::PTR };
         rtc.flag_ctrl().modify(|_, w| w.tmr_clr().set_bit()); // clear flag
-        with_safe_access(|| unsafe {
-            rtc.mode_ctrl()
-                .modify(|_, w| w.tmr_mode().bits(mode as u8).tmr_en().set_bit());
+        safe_modify(rtc.mode_ctrl(), |_, w| unsafe {
+            w.tmr_mode().bits(mode as u8).tmr_en().set_bit()
         });
     }
 
@@ -73,9 +72,7 @@ impl Rtc {
 
     pub fn disable_timing(&mut self) {
         let rtc = unsafe { &*pac::RTC::PTR };
-        with_safe_access(|| {
-            rtc.mode_ctrl().modify(|_, w| w.tmr_en().clear_bit());
-        });
+        safe_modify(rtc.mode_ctrl(), |_, w| w.tmr_en().clear_bit());
     }
 
     // 32768
@@ -94,17 +91,13 @@ impl Rtc {
         let sec2 = ((t.hour as u16) % 24) * 1800 + (t.minute as u16) * 30 + (t.second as u16) / 2;
         let t32k: u16 = if t.second & 1 != 0 { 0x8000 } else { 0 };
 
-        with_safe_access(|| unsafe {
-            rtc.trig().write(|w| w.bits(days as u32));
-            rtc.mode_ctrl().modify(|_, w| w.load_hi().set_bit());
-        });
+        safe_write(rtc.trig(), |w| unsafe { w.bits(days as u32) });
+        safe_modify(rtc.mode_ctrl(), |_, w| w.load_hi().set_bit());
         // load_hi clear when loadded
         while rtc.mode_ctrl().read().load_hi().bit_is_set() {}
         let t = (sec2 as u32) << 16 | (t32k as u32);
-        with_safe_access(|| unsafe {
-            rtc.trig().write(|w| w.bits(t));
-            rtc.mode_ctrl().modify(|_, w| w.load_lo().set_bit());
-        });
+        safe_write(rtc.trig(), |w| unsafe { w.bits(t) });
+        safe_modify(rtc.mode_ctrl(), |_, w| w.load_lo().set_bit());
     }
 
     pub fn now(&self) -> DateTime {

@@ -20,7 +20,7 @@ use hal::prelude::*;
 use hal::rtc::Rtc;
 use hal::spi::{BitOrder, Spi};
 use hal::uart::UartTx;
-use hal::{delay_ms, pac, peripherals, with_safe_access};
+use hal::{delay_ms, pac, peripherals};
 use ssd1306::prelude::*;
 use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
