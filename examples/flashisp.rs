@@ -7,7 +7,7 @@ use hal::gpio::{Input, Level, Output, OutputDrive, Pull};
 // use hal::interrupt::Interrupt;
 use hal::rtc::{DateTime, Rtc};
 use hal::uart::UartTx;
-use hal::{peripherals, with_safe_access};
+use hal::peripherals;
 use {ch58x_hal as hal, panic_halt as _};
 
 static mut SERIAL: Option<UartTx<peripherals::UART1>> = None;

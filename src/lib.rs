@@ -7,6 +7,7 @@ use qingke::riscv;
 
 pub use self::peripheral::{Peripheral, PeripheralRef};
 pub use self::peripherals::Peripherals;
+pub use self::safe_access::{safe_modify, safe_write};
 
 pub mod adc;
 pub mod dma;
@@ -17,6 +18,7 @@ pub mod i2c;
 pub mod ble;
 pub mod delay;
 pub mod rtc;
+pub mod safe_access;
 pub mod signature;
 pub mod spi;
 pub mod sysctl;
@@ -54,6 +56,12 @@ impl U32Ext for u32 {
 
 static mut IRQ_STA: usize = 0;
 
+/// Runs `f` with safe access mode enabled, so it can write to protected ("RWA") registers.
+///
+/// The safe access window is only about 16 system clock cycles. Whether `f` fits in it
+/// depends on the optimization level: in debug builds it usually does not, and the writes
+/// are silently ignored. Use [`safe_modify`] / [`safe_write`] instead.
+#[deprecated(note = "unreliable in debug builds, use `safe_modify` / `safe_write` instead")]
 pub fn with_safe_access<F, R>(f: F) -> R
 where
     F: FnOnce() -> R,
@@ -135,19 +143,14 @@ pub struct Config {
 pub fn init(config: Config) -> Peripherals {
     let sys = unsafe { &*pac::SYS::PTR };
     if config.enable_dcdc {
-        with_safe_access(|| {
-            sys.aux_power_adj().modify(|_, w| w.dcdc_charge().set_bit());
-            sys.power_plan().modify(|_, w| w.pwr_dcdc_pre().set_bit());
-        });
+        safe_modify(sys.aux_power_adj(), |_, w| w.dcdc_charge().set_bit());
+        safe_modify(sys.power_plan(), |_, w| w.pwr_dcdc_pre().set_bit());
         delay_us(10);
-        with_safe_access(|| {
-            sys.power_plan().modify(|_, w| w.pwr_dcdc_en().set_bit());
-        });
+        safe_modify(sys.power_plan(), |_, w| w.pwr_dcdc_en().set_bit());
     } else {
-        with_safe_access(|| {
-            sys.aux_power_adj().modify(|_, w| w.dcdc_charge().clear_bit());
-            sys.power_plan()
-                .modify(|_, w| w.pwr_dcdc_pre().clear_bit().pwr_dcdc_pre().clear_bit());
+        safe_modify(sys.aux_power_adj(), |_, w| w.dcdc_charge().clear_bit());
+        safe_modify(sys.power_plan(), |_, w| {
+            w.pwr_dcdc_pre().clear_bit().pwr_dcdc_pre().clear_bit()
         });
     }
 
@@ -183,9 +186,7 @@ pub unsafe fn soft_reset() -> ! {
     isp::flash_rom_reset();
 
     let rb = unsafe { &*pac::SYS::PTR };
-    with_safe_access(|| {
-        rb.rst_wdog_ctrl().modify(|_, w| w.software_reset().set_bit());
-    });
+    safe_modify(rb.rst_wdog_ctrl(), |_, w| w.software_reset().set_bit());
     loop {}
 }
 
